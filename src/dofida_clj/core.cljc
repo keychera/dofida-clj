@@ -9,17 +9,13 @@
 (defonce *state (atom {:esse/dofida nil}))
 
 (def vertices
-  [0.0 0.0
-   -0.5 -0.2
-   0.0  0.5
+  [-1.0 1.0
+   -1.0 -1.0
+   1.0  1.0
 
-   0.1 0.05
-   0.5 0.2
-   0.1  0.5
-
-   -0.5 -0.3
-   0.5 0.1
-   0.1  -0.5])
+   1.0 -1.0
+   -1.0 -1.0
+   1.0  1.0])
 
 (def vertex-shader
   '{:version "300 es"
@@ -33,23 +29,66 @@
            (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0")))}})
 
 (def fragment-shader
-  '{:precision "mediump float"
+  '{:version "300 es",
+    :precision "mediump float"
     :uniforms {u_resolution vec2
+               u_mouse vec2
                u_time float}
     :inputs {v_position vec4}
     :outputs {o_color vec4}
-    :signatures {plot ([vec2 float] float)
-                 main ([] void)},
-    :functions {plot ([st pct]
-                      (- (smoothstep (- pct "0.02") pct st.y)
-                         (smoothstep pct (+ pct "0.02") st.y)))
+    :signatures {random ([vec2] float)
+                 noise ([vec2] float)
+                 box ([vec2 vec2] float)
+                 randomRect ([vec2 vec2] float)
+                 main ([] void)}
+    :functions {random ([st] (fract (* (sin (dot st.xy (vec2 "12.9898" "78.233"))) "43758.5453123")))
+                noise ([st]
+                       (=vec2 i (floor st))
+                       (=vec2 f (fract st))
+
+                       (=float a (random i))
+                       (=float b (random (+ i (vec2 "1.0" "0.0"))))
+                       (=float c (random (+ i (vec2 "0.0" "1.0"))))
+                       (=float d (random (+ i (vec2 "1.0" "1.0"))))
+
+                       (=vec2 u (* f f (- "3.0" (* "2.0" f))))
+                       (+ (mix a b u.x)
+                          (* (- c a) u.y (- "1.0" u.x))
+                          (* (- d b) u.x u.y)))
+                box ([_st _size]
+                     (= _size (- (vec2 "0.5") (* _size "0.5")))
+                     (=vec2 uv (* (smoothstep _size (+ _size (vec2 "0.001")) _st)
+                                  (smoothstep _size (+ _size (vec2 "0.001")) (- (vec2 "1.0") _st))))
+                     (* uv.x uv.y))
+                randomRect ([_st _size]
+                            (=vec2 st (fract _st))
+                            (=vec2 toCenter (- (vec2 "0.5") st))
+                            (=float angle (atan toCenter.y toCenter.x))
+                            (+= _size (vec2 (* "0.5" (random (floor (- _st))))
+                                            (* "0.1" (random (floor _st)))))
+                            (=  _size (- (vec2 "0.5") (* _size "0.5")))
+                            (=float rand (noise (* (+ (vec2 angle) st (floor _st)) "10.296")))
+                            (=vec2 uv (* (smoothstep _size (+ _size (vec2 "0.001") (* "0.050" rand)) st)
+                                         (smoothstep _size (+ _size (vec2 "0.001") (* "0.050" rand)) (- (vec2 "1.0") st))))
+                            (* uv.x uv.y))
                 main ([]
                       (=vec2 st (/ gl_FragCoord.xy u_resolution))
-                      (=float y st.x)
-                      (=vec3 color (vec3 y))
-                      (=float pct (plot st, y))
-                      (= color (+ (* (- "1.0" pct) color) (* pct (vec3 "0.0" "1.0" "0.0"))))
-                      (= o_color (vec4 color "1.0")))}})
+                      (*= st "3.0")
+                      (=float rect (randomRect st (vec2 "0.310" "0.700")))
+                      (=float rect2 (randomRect st (vec2 "0.340" "0.730")))
+
+                      (=vec2 mouse (vec2 (/ u_mouse.x u_resolution.x)
+                                         (/ (- u_resolution.y u_mouse.y) u_resolution.y)))
+                      (=vec2 pos (vec2 (* (+ st (/ u_time "1.0") mouse)
+                                          (+ "2.0" (* "0.01" (length mouse))))))
+
+                      (=float layer "5.0")
+                      (=vec3 red (vec3 "0.86" "0.078" "0.23"))
+                      (=float noiseVal (/ (floor (* layer (noise pos))) layer))
+                      (+= o_color (vec4 (vec3 rect) "1.0"))
+                      (*= o_color (vec4 (* red (vec3 noiseVal)) "1.0"))
+                      (=float factor (smoothstep "0.5" "0.65" (distance (* mouse "3.0") st)))
+                      (+= o_color (* (- "1.0" factor) (vec4 (vec3 (- rect2 rect)) "1.0"))))}})
 
 (defn ->dofida [game]
   (let [[game-width game-height] (utils/get-size game)]
@@ -59,10 +98,13 @@
                                :type (gl game FLOAT)
                                :size 2}}
      :uniforms {'u_time 0.0
-                'u_resolution [game-width game-height]}}))
+                'u_resolution [game-width game-height]
+                'u_mouse [0.0 0.0]}}))
 
-(defn mutate-dofida [{:keys [total-time]} state]
-  (assoc-in state [:esse/dofida :uniforms 'u_time] total-time))
+(defn mutate-dofida [{:keys [total-time]} {:keys [mouse-x mouse-y] :as state}]
+  (-> state
+      (assoc-in [:esse/dofida :uniforms 'u_time] total-time)
+      (assoc-in [:esse/dofida :uniforms 'u_mouse] [mouse-x mouse-y])))
 
 (defn init [game]
   (gl game enable (gl game BLEND))
