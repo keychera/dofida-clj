@@ -85,7 +85,7 @@
                       (=float layer "5.0")
                       (=vec3 red (vec3 "0.86" "0.078" "0.23"))
                       (=float noiseVal (/ (floor (* layer (noise pos))) layer))
-                      (+= o_color (vec4 (vec3 rect) "1.0"))
+                      (= o_color (vec4 (vec3 rect) "1.0"))
                       (*= o_color (vec4 (* red (vec3 noiseVal)) "1.0"))
                       (=float factor (smoothstep "0.5" "0.65" (distance (* mouse "3.0") st)))
                       (+= o_color (* (- "1.0" factor) (vec4 (vec3 (- rect2 rect)) "1.0"))))}})
@@ -104,7 +104,7 @@
 (defn mutate-dofida [{:keys [total-time]} {:keys [mouse-x mouse-y] :as state}]
   (-> state
       (assoc-in [:esse/dofida :uniforms 'u_time] total-time)
-      (assoc-in [:esse/dofida :uniforms 'u_mouse] [mouse-x mouse-y])))
+      (assoc-in [:esse/dofida :uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))
 
 (defn init [game]
   (gl game enable (gl game BLEND))
