@@ -1,8 +1,10 @@
 (ns dofida-clj.core
-  (:require [dofida-clj.utils :as utils]
-            [play-cljc.gl.core :as c]
-            #?(:clj  [play-cljc.macros-java :refer [gl math]]
-               :cljs [play-cljc.macros-js :refer-macros [gl math]])))
+  (:require
+   #?(:clj  [play-cljc.macros-java :refer [gl]]
+               :cljs [play-cljc.macros-js :refer-macros [gl math]])
+   [dofida-clj.refresh :refer [*refresh?]]
+   [dofida-clj.utils :as utils]
+   [play-cljc.gl.core :as c]))
 
 (defonce *state (atom {:esse/dofida nil}))
 
@@ -54,11 +56,15 @@
    :clear {:color [(/ 173 255) (/ 216 255) (/ 230 255) 1] :depth 1}})
 
 (defn tick [game]
-  (let [{:esse/keys [dofida]} @*state
-        [game-width game-height] (utils/get-size game)]
-    (when (and (pos? game-width) (pos? game-height))
-      (c/render game (update screen-entity :viewport
-                             assoc :width game-width :height game-height))
-      (c/render game dofida)
-      (swap! *state (fn [state] (mutate-dofida game state)))))
+  (if @*refresh?
+   (do (println "recompiling")
+       (swap! *refresh? not)
+       (init game))
+    (let [{:esse/keys [dofida]} @*state
+          [game-width game-height] (utils/get-size game)]
+      (when (and (pos? game-width) (pos? game-height))
+        (c/render game (update screen-entity :viewport
+                               assoc :width game-width :height game-height))
+        (c/render game dofida)
+        (swap! *state (fn [state] (mutate-dofida game state))))))
   game)
