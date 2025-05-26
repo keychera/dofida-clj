@@ -1,7 +1,7 @@
 (ns dofida-clj.core
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
-               :cljs [play-cljc.macros-js :refer-macros [gl math]])
+      :cljs [play-cljc.macros-js :refer-macros [gl]])
    [dofida-clj.refresh :refer [*refresh?]]
    [dofida-clj.utils :as utils]
    [play-cljc.gl.core :as c]))
@@ -16,23 +16,26 @@
 (def vertex-shader
   '{:version "300 es"
     :precision "mediump float"
-    :uniforms {u_time float}
-    :inputs {a_position vec2},
-    :outputs {v_color vec4},
-    :signatures {main ([] void)},
+    :uniforms {u_resolution vec2
+               u_time float}
+    :inputs {a_position vec2}
+    :outputs {v_color vec4}
+    :signatures {plot ([vec2 float] float)
+                 main ([] void)}
     :functions
-    {main
-     ([]
-      (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0"))
-      (=float dampened_time (* 2.5 u_time))
-      (= v_color (+ (* gl_Position 0.5) (sin dampened_time))))}})
+    {plot ([st pct]
+           (- (smoothstep (- pct "0.02") pct st.y)
+              (smoothstep pct (+ pct "0.02") st.y)))
+     main ([]
+           (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0"))
+           (= v_color (+ (* gl_Position 0.5) (sin (* 2.5 u_time)))))}})
 
 (def fragment-shader
   '{:precision "mediump float"
     :inputs {v_color vec4}
     :outputs {o_color vec4}
     :signatures {main ([] void)},
-    :functions {main ([] (= o_color v_color))}})
+    :functions {main ([] (= o_color (vec4 "1.0" "0.0" "1.0" "1.0")))}})
 
 (defn ->dofida [game]
   {:vertex vertex-shader
@@ -53,13 +56,15 @@
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 173 255) (/ 216 255) (/ 230 255) 1] :depth 1}})
+   :clear {:color [(/ 5 255) (/ 4 255) (/ 10 255) 1] :depth 1}})
 
 (defn tick [game]
   (if @*refresh?
-   (do (println "recompiling")
-       (swap! *refresh? not)
-       (init game))
+    (try (println "calling (init game)")
+         (swap! *refresh? not)
+         (init game)
+         (catch #?(:clj Exception :cljs js/Error) err
+           (println err)))
     (let [{:esse/keys [dofida]} @*state
           [game-width game-height] (utils/get-size game)]
       (when (and (pos? game-width) (pos? game-height))
