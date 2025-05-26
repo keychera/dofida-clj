@@ -9,41 +9,53 @@
 (defonce *state (atom {:esse/dofida nil}))
 
 (def vertices
-  [-0.5 -0.5
+  [0.0 0.0
    -0.5 -0.2
-   0.0  0.5])
+   0.0  0.5
+
+   0.1 0.05
+   0.5 0.2
+   0.1  0.5
+
+   -0.5 -0.3
+   0.5 0.1
+   0.1  -0.5])
 
 (def vertex-shader
   '{:version "300 es"
     :precision "mediump float"
-    :uniforms {u_resolution vec2
-               u_time float}
+    :uniforms {u_time float}
     :inputs {a_position vec2}
-    :outputs {v_color vec4}
-    :signatures {plot ([vec2 float] float)
-                 main ([] void)}
+    :outputs {}
+    :signatures {main ([] void)}
     :functions
-    {plot ([st pct]
-           (- (smoothstep (- pct "0.02") pct st.y)
-              (smoothstep pct (+ pct "0.02") st.y)))
-     main ([]
-           (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0"))
-           (= v_color (+ (* gl_Position 0.5) (sin (* 2.5 u_time)))))}})
+    {main ([]
+           (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0")))}})
 
 (def fragment-shader
   '{:precision "mediump float"
-    :inputs {v_color vec4}
+    :uniforms {u_resolution vec2
+               u_time float}
+    :inputs {v_position vec4}
     :outputs {o_color vec4}
-    :signatures {main ([] void)},
-    :functions {main ([] (= o_color (vec4 "1.0" "0.0" "1.0" "1.0")))}})
+    :signatures {plot ([vec2 float] float)
+                 main ([] void)},
+    :functions {plot ([st pct]
+                      (- (smoothstep (- pct "0.02") pct st.y)
+                         (smoothstep pct (+ pct "0.02") st.y)))
+                main ([]
+                      (=vec2 st (/ gl_FragCoord.xy u_resolution))
+                      (= o_color (vec4 st.x st.y "0.0" "1.0")))}})
 
 (defn ->dofida [game]
-  {:vertex vertex-shader
-   :fragment fragment-shader
-   :attributes {'a_position {:data vertices
-                             :type (gl game FLOAT)
-                             :size 2}}
-   :uniforms {'u_time 0.0}})
+  (let [[game-width game-height] (utils/get-size game)]
+    {:vertex vertex-shader
+     :fragment fragment-shader
+     :attributes {'a_position {:data vertices
+                               :type (gl game FLOAT)
+                               :size 2}}
+     :uniforms {'u_time 0.0
+                'u_resolution [game-width game-height]}}))
 
 (defn mutate-dofida [{:keys [total-time]} state]
   (assoc-in state [:esse/dofida :uniforms 'u_time] total-time))
