@@ -45,7 +45,11 @@
                          (smoothstep pct (+ pct "0.02") st.y)))
                 main ([]
                       (=vec2 st (/ gl_FragCoord.xy u_resolution))
-                      (= o_color (vec4 st.x st.y "0.0" "1.0")))}})
+                      (=float y st.x)
+                      (=vec3 color (vec3 y))
+                      (=float pct (plot st, y))
+                      (= color (+ (* (- "1.0" pct) color) (* pct (vec3 "0.0" "1.0" "0.0"))))
+                      (= o_color (vec4 color "1.0")))}})
 
 (defn ->dofida [game]
   (let [[game-width game-height] (utils/get-size game)]
