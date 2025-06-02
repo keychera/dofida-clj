@@ -1,3 +1,7 @@
+# dofida-clj
+
+this is created with [play-cljc](https://github.com/oakes/play-cljc)
+
 To build this project, you'll need the Clojure CLI tool:
 
 https://clojure.org/guides/deps_and_cli
@@ -32,4 +36,10 @@ To build the native version as a jar file:
 
 ```
 clj -M:prod uberjar
+```
+
+
+in calva
+```
+Jack-in -> deps.edn + Figwheel main -> tick repl
 ```
