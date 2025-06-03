@@ -28,11 +28,15 @@
     {main ([]
            (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0")))}})
 
-;; TODO deal with unordered maps (#keys > 8)
-(defn deep-merge [a & maps]
-  (if (map? a)
-    (apply merge-with deep-merge a maps)
-    (apply merge-with deep-merge maps)))
+(defn merge-shader-fn [& maps]
+  (let [res        (apply merge-with merge maps)
+        sign-count (count (keys (:signatures res)))
+        has-main?  (get-in res [:signatures 'main])]
+    (when (> sign-count 8)
+      (throw (#?(:clj Exception. :cljs js/Error.) (str "only shader with max 8 signatures allowed, # of signature: " sign-count))) )
+    (when (not has-main?)
+      (throw (#?(:clj Exception. :cljs js/Error.) "shader has no main")))
+    res))
 
 (def random-fns
   {:signatures '{random  ([vec2] float)
@@ -163,19 +167,20 @@
 
                        (= o_color (vec4 color "1.0")))}})
 
-
 (def fragment-shader
-  (deep-merge 
-   {:version    "300 es",
-    :precision  "mediump float"
-    :uniforms   '{u_resolution vec2
-                  u_mouse      vec2
-                  u_time       float}
-    :inputs     '{v_position vec4}
-    :outputs    '{o_color vec4}}
+  (merge-shader-fn
+   {:version   "300 es",
+    :precision "mediump float"
+    :uniforms  '{u_resolution vec2
+                 u_mouse      vec2
+                 u_time       float}
+    :inputs    '{v_position vec4}
+    :outputs   '{o_color vec4}}
    random-fns noise-fn
-  ;;  box-fn random-rect-fn hell-main-fn
-   perlin-fn fbm-fn star-main-fn
+   perlin-fn fbm-fn 
+   star-main-fn 
+  ;;  box-fn random-rect-fn 
+  ;;  hell-main-fn
    ))
 
 (defn ->dofida [game]
