@@ -1,6 +1,6 @@
-(ns dofida-clj.start-dev
-  (:require [dofida-clj.start :as start]
-            [dofida-clj.core :as c]
+(ns engine.start-dev
+  (:require [engine.start :as start]
+            [engine.engine :as engine]
             [clojure.spec.test.alpha :as st]
             [clojure.spec.alpha :as s]
             [play-cljc.gl.core :as pc])

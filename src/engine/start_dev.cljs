@@ -1,5 +1,5 @@
-(ns dofida-clj.start-dev
-  (:require [dofida-clj.start]
+(ns engine.start-dev
+  (:require [engine.start]
             [clojure.spec.test.alpha :as st]))
 
 (st/instrument)

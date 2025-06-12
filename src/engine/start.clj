@@ -1,5 +1,5 @@
-(ns dofida-clj.start
-  (:require [dofida-clj.core :as c]
+(ns engine.start
+  (:require [engine.engine :as engine]
             [play-cljc.gl.core :as pc])
   (:import  [org.lwjgl.glfw GLFW Callbacks
              GLFWCursorPosCallbackI GLFWKeyCallbackI GLFWMouseButtonCallbackI
@@ -34,10 +34,10 @@
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
     (MemoryUtil/memFree *window-height)
-    (swap! c/*state assoc :mouse-x x :mouse-y y)))
+    (swap! engine/*state assoc :mouse-x x :mouse-y y)))
 
 (defn on-mouse-click! [window button action mods]
-  (swap! c/*state assoc :mouse-button (when (= action GLFW/GLFW_PRESS)
+  (swap! engine/*state assoc :mouse-button (when (= action GLFW/GLFW_PRESS)
                                         (mousecode->keyword button))))
 
 (defn keycode->keyword [keycode]
@@ -51,8 +51,8 @@
 (defn on-key! [window keycode scancode action mods]
   (when-let [k (keycode->keyword keycode)]
     (condp = action
-      GLFW/GLFW_PRESS (swap! c/*state update :pressed-keys conj k)
-      GLFW/GLFW_RELEASE (swap! c/*state update :pressed-keys disj k)
+      GLFW/GLFW_PRESS (swap! engine/*state update :pressed-keys conj k)
+      GLFW/GLFW_RELEASE (swap! engine/*state update :pressed-keys disj k)
       nil)))
 
 (defn on-char! [window codepoint])
@@ -87,7 +87,7 @@
   (on-scroll [{:keys [handle]} xoffset yoffset]
     (on-scroll! handle xoffset yoffset))
   (on-tick [this game]
-    (c/tick game)))
+    (engine/tick game)))
 
 (defn listen-for-events [{:keys [handle] :as window}]
   (doto handle
@@ -141,7 +141,7 @@
   (let [handle (:handle window)
         game (assoc game :delta-time 0 :total-time (GLFW/glfwGetTime))]
     (GLFW/glfwShowWindow handle)
-    (c/init game)
+    (engine/init game)
     (listen-for-events window)
     (loop [game game]
       (when-not (GLFW/glfwWindowShouldClose handle)

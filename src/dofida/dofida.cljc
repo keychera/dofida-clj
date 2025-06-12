@@ -1,12 +1,9 @@
-(ns dofida-clj.core
+(ns dofida.dofida
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [dofida-clj.refresh :refer [*refresh?]]
-   [dofida-clj.utils :as utils]
-   [play-cljc.gl.core :as c]))
-
-(defonce *state (atom {:esse/dofida nil}))
+   [engine.utils :as utils]
+   [dofida.shader :refer [merge-shader-fn]]))
 
 (def vertices
   [-1.0 1.0
@@ -25,18 +22,7 @@
     :outputs {}
     :signatures {main ([] void)}
     :functions
-    {main ([]
-           (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0")))}})
-
-(defn merge-shader-fn [& maps]
-  (let [res        (apply merge-with merge maps)
-        sign-count (count (keys (:signatures res)))
-        has-main?  (get-in res [:signatures 'main])]
-    (when (> sign-count 8)
-      (throw (#?(:clj Exception. :cljs js/Error.) (str "only shader with max 8 signatures allowed, # of signature: " sign-count))) )
-    (when (not has-main?)
-      (throw (#?(:clj Exception. :cljs js/Error.) "shader has no main")))
-    res))
+    {main ([] (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0")))}})
 
 (def random-fns
   {:signatures '{random  ([vec2] float)
@@ -82,27 +68,6 @@
                                           (smoothstep _size (+ _size (vec2 "0.001") (* "0.050" rand)) (- (vec2 "1.0") st))))
                              (* uv.x uv.y))}})
 
-(def hell-main-fn
-  {:signatures '{main ([] void)}
-   :functions  '{main ([]
-                       (=vec2 st (/ gl_FragCoord.xy u_resolution))
-                       (*= st "3.0")
-                       (=float rect (randomRect st (vec2 "0.310" "0.700")))
-                       (=float rect2 (randomRect st (vec2 "0.340" "0.730")))
-
-                       (=vec2 mouse (vec2 (/ u_mouse.x u_resolution.x)
-                                          (/ (- u_resolution.y u_mouse.y) u_resolution.y)))
-                       (=vec2 pos (vec2 (* (+ st (/ u_time "1.0") mouse)
-                                           (+ "2.0" (* "0.01" (length mouse))))))
-
-                       (=float layer "5.0")
-                       (=vec3 red (vec3 "0.86" "0.878" "0.83"))
-                       (=float noiseVal (/ (floor (* layer (noise pos))) layer))
-                       (= o_color (vec4 (vec3 rect) "1.0"))
-                       (*= o_color (vec4 (* red (vec3 noiseVal)) "1.0"))
-                       (=float factor (smoothstep "0.5" "0.65" (distance (* mouse "3.0") st)))
-                       (+= o_color (* (- "1.0" factor) (vec4 (vec3 (- rect2 rect)) "1.0"))))}})
-
 (def perlin-fn
   {:signatures '{perlin ([vec2 float float] float)}
    :functions  '{perlin ([p dim time]
@@ -141,7 +106,7 @@
   {:signatures '{main ([] void)}
    :functions  '{main ([]
                        (=vec2 orig_xy gl_FragCoord.xy)
-                       (=vec2 mouse (/ u_mouse (* u_resolution "20.0")))
+                       (=vec2 mouse (/ u_mouse (* u_resolution "5.0")))
                        (+= orig_xy (* "256.0" mouse))
 
                        (=vec2 st (/ orig_xy u_resolution.xy))
@@ -176,12 +141,7 @@
                  u_time       float}
     :inputs    '{v_position vec4}
     :outputs   '{o_color vec4}}
-   random-fns noise-fn
-   perlin-fn fbm-fn 
-   star-main-fn 
-  ;;  box-fn random-rect-fn 
-  ;;  hell-main-fn
-   ))
+   random-fns noise-fn perlin-fn fbm-fn star-main-fn))
 
 (defn ->dofida [game]
   (let [[game-width game-height] (utils/get-size game)]
@@ -198,29 +158,3 @@
   (-> state
       (assoc-in [:esse/dofida :uniforms 'u_time] total-time)
       (assoc-in [:esse/dofida :uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))
-
-(defn init [game]
-  (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-  (let [esse-dofida (c/compile game (->dofida game))]
-    (swap! *state assoc :esse/dofida esse-dofida)))
-
-(def screen-entity
-  {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 5 255) (/ 4 255) (/ 10 255) 1] :depth 1}})
-
-(defn tick [game]
-  (if @*refresh?
-    (try (println "calling (init game)")
-         (swap! *refresh? not)
-         (init game)
-         (catch #?(:clj Exception :cljs js/Error) err
-           (println err)))
-    (let [{:esse/keys [dofida]} @*state
-          [game-width game-height] (utils/get-size game)]
-      (when (and (pos? game-width) (pos? game-height))
-        (c/render game (update screen-entity :viewport
-                               assoc :width game-width :height game-height))
-        (c/render game dofida)
-        (swap! *state (fn [state] (mutate-dofida game state))))))
-  game)

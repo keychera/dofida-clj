@@ -1,4 +1,4 @@
-(ns ^:figwheel-hooks dofida-clj.refresh)
+(ns ^:figwheel-hooks engine.refresh)
 
 (def *refresh? (atom false))
 

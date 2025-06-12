@@ -1,4 +1,4 @@
-(ns dofida-clj.utils
+(ns engine.utils
   #?(:clj (:require [clojure.java.io :as io]))
   #?(:clj (:import [java.nio ByteBuffer]
                    [org.lwjgl.glfw GLFW]
@@ -44,9 +44,3 @@
              [w h])
      :cljs [(-> game :context .-canvas .-clientWidth)
             (-> game :context .-canvas .-clientHeight)]))
-
-(defn get-width [game]
-  (first (get-size game)))
-
-(defn get-height [game]
-  (second (get-size game)))

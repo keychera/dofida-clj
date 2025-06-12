@@ -1,5 +1,5 @@
-(ns dofida-clj.start
-  (:require [dofida-clj.core :as c]
+(ns engine.start
+  (:require [engine.engine :as engine]
             [play-cljc.gl.core :as pc]
             [goog.events :as events]))
 
@@ -7,7 +7,7 @@
   (* 0.001 n))
 
 (defn game-loop [game]
-  (let [game (c/tick game)]
+  (let [game (engine/tick game)]
     (js/requestAnimationFrame
       (fn [ts]
         (let [ts (msec->sec ts)]
@@ -24,7 +24,7 @@
 (defn listen-for-mouse [canvas]
   (events/listen js/window "mousemove"
     (fn [event]
-      (swap! c/*state
+      (swap! engine/*state
         (fn [state]
           (let [bounds (.getBoundingClientRect canvas)
                 x (- (.-clientX event) (.-left bounds))
@@ -32,10 +32,10 @@
             (assoc state :mouse-x x :mouse-y y))))))
   (events/listen js/window "mousedown"
     (fn [event]
-      (swap! c/*state assoc :mouse-button (mousecode->keyword (.-button event)))))
+      (swap! engine/*state assoc :mouse-button (mousecode->keyword (.-button event)))))
   (events/listen js/window "mouseup"
     (fn [event]
-      (swap! c/*state assoc :mouse-button nil))))
+      (swap! engine/*state assoc :mouse-button nil))))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
@@ -48,11 +48,11 @@
   (events/listen js/window "keydown"
     (fn [event]
       (when-let [k (keycode->keyword (.-keyCode event))]
-        (swap! c/*state update :pressed-keys conj k))))
+        (swap! engine/*state update :pressed-keys conj k))))
   (events/listen js/window "keyup"
     (fn [event]
       (when-let [k (keycode->keyword (.-keyCode event))]
-        (swap! c/*state update :pressed-keys disj k)))))
+        (swap! engine/*state update :pressed-keys disj k)))))
 
 (defn resize [context]
   (let [display-width context.canvas.clientWidth
@@ -73,7 +73,7 @@
         initial-game (assoc (pc/->game context)
                             :delta-time 0
                             :total-time (msec->sec (js/performance.now)))]
-    (c/init initial-game)
+    (engine/init initial-game)
     (listen-for-mouse canvas)
     (listen-for-keys)
     (resize context)

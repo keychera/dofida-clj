@@ -1,0 +1,16 @@
+{
+    "calva.replConnectSequences": [
+        {
+            "name": "play-cljc repl",
+            "projectType": "deps.edn",
+            "cljsType": "Figwheel Main",
+            "autoSelectForJackIn": true,
+            "menuSelections": {
+                "cljAliases": [
+                    "repl"
+                ]
+            }
+        }
+    ],
+    "html.format.wrapAttributes": "preserve-aligned"
+}

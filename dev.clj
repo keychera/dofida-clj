@@ -12,11 +12,11 @@
 
 (defmethod task "native"
   [_]
-  (require '[dofida-clj.start-dev])
-  ((resolve 'dofida-clj.start-dev/start)))
+  (require '[engine.start-dev])
+  ((resolve 'engine.start-dev/start)))
 
 (defmethod task "repl"
   [_]
-  (clojure.main/repl :init #(doto 'dofida-clj.start-dev require in-ns)))
+  (clojure.main/repl :init #(doto 'engine.start-dev require in-ns)))
 
 (task *command-line-args*)

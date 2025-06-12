@@ -58,7 +58,7 @@
         out-dir "resources/public/main.out"]
     (println "Building main.js")
     (delete-children-recursively! (io/file out-dir))
-    (api/build "src" {:main          'dofida-clj.start
+    (api/build "src" {:main          'engine.start
                       :optimizations :advanced
                       :output-to     out-file
                       :output-dir    out-dir})
