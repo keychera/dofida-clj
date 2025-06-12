@@ -133,5 +133,6 @@
 
 (defn mutate-dofida [{:keys [total-time]} {:keys [mouse-x mouse-y] :as state}]
   (->> state
+       (sp/transform [:esse/dofida2] #(some-> % (t/translate (/ mouse-x 1000000) 0)))
        (sp/setval [:esse/dofida :uniforms 'u_time] total-time)
        (sp/setval [:esse/dofida :uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))
