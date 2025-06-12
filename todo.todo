@@ -1,10 +1,19 @@
 todo:
 ✔ isolate star shader (and clean up a bit) @done(25-06-12 22:48)
 ✔ specter @done(25-06-12 22:48)
-☐ revisit hsr level's up UI
-☐ collect assets
-☐ incorporate assets
-☐ inputs
+✘ revisit hsr level's up UI @cancelled(25-06-12 23:10) old files not in hand
+✘ collect assets @cancelled(25-06-12 23:10)
+✘ incorporate assets @cancelled(25-06-12 23:10)
+
+cmzw_:
+☐ second esse
+☐ eye
+☐ twitter embed
+
+startaker:
+☐ mouse inputs
+☐ ripple effecct
+☐ sprite
 ☐ the logic
 ☐ vfx
 ☐ publish
