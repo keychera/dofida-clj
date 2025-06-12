@@ -1,5 +1,6 @@
 (ns dofida.dofida
   (:require
+   [com.rpl.specter :as sp]
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [engine.utils :as utils]
@@ -155,6 +156,6 @@
                 'u_mouse [0.0 0.0]}}))
 
 (defn mutate-dofida [{:keys [total-time]} {:keys [mouse-x mouse-y] :as state}]
-  (-> state
-      (assoc-in [:esse/dofida :uniforms 'u_time] total-time)
-      (assoc-in [:esse/dofida :uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))
+  (->> state
+       (sp/setval [:esse/dofida :uniforms 'u_time] total-time)
+       (sp/setval [:esse/dofida :uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))
