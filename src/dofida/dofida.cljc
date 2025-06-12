@@ -1,19 +1,13 @@
 (ns dofida.dofida
   (:require
-   [com.rpl.specter :as sp]
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
+   [com.rpl.specter :as sp]
+   [dofida.shader :refer [merge-shader-fn]]
    [engine.utils :as utils]
-   [dofida.shader :refer [merge-shader-fn]]))
+   [play-cljc.primitives-2d :as primitives]
+   [play-cljc.transforms :as t]))
 
-(def vertices
-  [-1.0 1.0
-   -1.0 -1.0
-   1.0  1.0
-
-   1.0 -1.0
-   -1.0 -1.0
-   1.0  1.0])
 
 (def vertex-shader
   '{:version "300 es"
@@ -46,28 +40,6 @@
                         (+ (mix a b u.x)
                            (* (- c a) u.y (- "1.0" u.x))
                            (* (- d b) u.x u.y)))}})
-
-(def box-fn
-  {:signatures '{box ([vec2 vec2] float)}
-   :functions  '{box ([_st _size]
-                      (= _size (- (vec2 "0.5") (* _size "0.5")))
-                      (=vec2 uv (* (smoothstep _size (+ _size (vec2 "0.001")) _st)
-                                   (smoothstep _size (+ _size (vec2 "0.001")) (- (vec2 "1.0") _st))))
-                      (* uv.x uv.y))}})
-
-(def random-rect-fn
-  {:signatures '{randomRect ([vec2 vec2] float)}
-   :functions  '{randomRect ([_st _size]
-                             (=vec2 st (fract _st))
-                             (=vec2 toCenter (- (vec2 "0.5") st))
-                             (=float angle (atan toCenter.y toCenter.x))
-                             (+= _size (vec2 (* "0.5" (random (floor (- _st))))
-                                             (* "0.1" (random (floor _st)))))
-                             (=  _size (- (vec2 "0.5") (* _size "0.5")))
-                             (=float rand (noise (* (+ (vec2 angle) st (floor _st)) "10.296")))
-                             (=vec2 uv (* (smoothstep _size (+ _size (vec2 "0.001") (* "0.050" rand)) st)
-                                          (smoothstep _size (+ _size (vec2 "0.001") (* "0.050" rand)) (- (vec2 "1.0") st))))
-                             (* uv.x uv.y))}})
 
 (def perlin-fn
   {:signatures '{perlin ([vec2 float float] float)}
@@ -146,14 +118,18 @@
 
 (defn ->dofida [game]
   (let [[game-width game-height] (utils/get-size game)]
-    {:vertex vertex-shader
-     :fragment fragment-shader
-     :attributes {'a_position {:data vertices
-                               :type (gl game FLOAT)
-                               :size 2}}
-     :uniforms {'u_time 0.0
-                'u_resolution [game-width game-height]
-                'u_mouse [0.0 0.0]}}))
+    (-> {:vertex     vertex-shader
+         :fragment   fragment-shader
+         :attributes {'a_position {:data primitives/rect
+                                   :type (gl game FLOAT)
+                                   :size 2}}
+         :uniforms   {'u_time       0.0
+                      'u_resolution [game-width game-height]
+                      'u_mouse      [0.0 0.0]}
+         :viewport   {:x      (/ game-width -4)
+                      :y      (/ game-height -4)
+                      :width  game-width
+                      :height game-height}})))
 
 (defn mutate-dofida [{:keys [total-time]} {:keys [mouse-x mouse-y] :as state}]
   (->> state
