@@ -26,7 +26,8 @@
                               com.bhauman/figwheel-main {:mvn/version "0.2.18"}}
                  :main-opts ["dev.clj"]}
            :repl {:extra-deps {org.clojure/clojurescript {:mvn/version "1.11.4"}
-                               com.bhauman/figwheel-main {:mvn/version "0.2.18"}}}
+                               com.bhauman/figwheel-main {:mvn/version "0.2.18"}
+                               djblue/portal {:mvn/version "0.59.1"}}}
            :prod {:extra-deps {org.clojure/clojurescript {:mvn/version "1.11.4"}
                                leiningen/leiningen {:mvn/version "2.9.0"}}
                   :main-opts ["prod.clj"]}

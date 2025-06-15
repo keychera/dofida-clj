@@ -10,7 +10,11 @@ cmzw_:
 ☐ understand position and transforms
 ☐ why is it flipped
 ☐ remove the white outline
-☐ portal
+✔ portal @done(25-06-15 20:05)
+☐ portal weird require error
+☐ ecs
+☐ rules engine
+☐ ecs + rules engine?
 ☐ eye
 ☐ twitter embed
 
