@@ -1,0 +1,23 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "open web game",
+            "command": "${input:openSimpleBrowser}",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "never",
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "openSimpleBrowser",
+            "type": "command",
+            "command": "simpleBrowser.show",
+            "args": [
+                "http://localhost:9500"
+            ]
+        },
+    ],
+}

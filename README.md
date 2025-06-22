@@ -41,5 +41,5 @@ clj -M:prod uberjar
 
 in calva
 ```
-Jack-in -> deps.edn + Figwheel main -> tick repl
+Jack-in -> deps.edn + Figwheel main -> eval engine.engine/tick
 ```
