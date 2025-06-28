@@ -1,6 +1,7 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         play-cljc/play-cljc {:mvn/version "0.9.6"}
+        net.sekao/odoyle-rules {:mvn/version "1.0.0"}
         org.lwjgl/lwjgl {:mvn/version "3.3.1"}
         org.lwjgl/lwjgl-glfw {:mvn/version "3.3.1"}
         org.lwjgl/lwjgl-opengl {:mvn/version "3.3.1"}
