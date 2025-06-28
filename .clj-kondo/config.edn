@@ -1,4 +1,9 @@
-{:config-in-call 
+{:lint-as {com.rpl.specter/defcollector clojure.core/defn
+           com.rpl.specter/defdynamicnav clojure.core/defn
+           com.rpl.specter/defmacroalias clojure.core/def
+           com.rpl.specter/defnav clojure.core/defn
+           com.rpl.specter/defrichnav clojure.core/defn}
+ :config-in-call
  {play-cljc.macros-java/gl {:ignore [:unresolved-symbol]}
   play-cljc.macros-js/gl {:ignore [:unresolved-symbol]}
   odoyle.rules/ruleset {:ignore [:unresolved-symbol]}}}

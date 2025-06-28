@@ -3,7 +3,8 @@ resources/public/*.js
 resources/public/*.out
 .calva
 .cpcache
-.lsp
+.lsp/*
+!.lsp/config.edn
 .portal
 .zzz
 .clj-kondo/*
