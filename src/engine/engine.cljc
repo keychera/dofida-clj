@@ -8,7 +8,9 @@
    [engine.session :as session]
    [engine.utils :as utils]
    [odoyle.rules :as o]
-   [play-cljc.gl.core :as c]))
+   [play-cljc.gl.core :as c]
+   [play-cljc.gl.entities-2d :as entities-2d]
+   [play-cljc.transforms :as t]))
 
 (defn update-window-size! [width height]
   (swap! session/*session o/insert ::session/window {::session/width width ::session/height height}))
@@ -22,16 +24,25 @@
   (let [[game-width game-height] (utils/get-size game)]
     (reset! session/*session
             (-> session/initial-session
-                (o/insert ::dofida (esse/->shader)) ;; I don't know the necessity of this yet
                 (o/insert ::session/window
                           {::session/width game-width
                            ::session/height game-height})
-                (o/fire-rules))))
-  (let [esse-dofida (c/compile game (dofida/->dofida game))]
-    (swap! session/*session
-           #(-> %
-                (o/insert ::dofida ::esse/compiled-shader esse-dofida)
-                (o/fire-rules)))))
+                (o/fire-rules)))
+    (let [esse-dofida (c/compile game (dofida/->dofida game))]
+      (swap! session/*session
+             #(-> %
+                  (o/insert ::dofida ::esse/compiled-shader esse-dofida)
+                  (o/fire-rules))))
+    (utils/get-image
+     "dofida2.png"
+     (fn [{:keys [data width height]}]
+       (let [image-entity (entities-2d/->image-entity game data width height)
+             image-entity (c/compile game image-entity)
+             esse-dofida2 (assoc image-entity :width width :height height)]
+         (swap! session/*session
+                #(-> %
+                     (o/insert ::dofida2 (esse/->sprite 250 100 esse-dofida2))
+                     (o/fire-rules))))))))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
@@ -54,13 +65,22 @@
                                            ::session/delta delta-time})
                                 o/fire-rules))
             {game-width :width game-height :height} (first (o/query-all session ::session/window))
-            shader-esses (o/query-all session ::session/shader-esse)]
+            shader-esses (o/query-all session ::session/shader-esse)
+            sprite-esses (o/query-all session ::session/sprite-esse)]
         (when (and (pos? game-width) (pos? game-height))
-          (c/render game (update screen-entity :viewport assoc :width game-width :height game-height))
+          (c/render game (update screen-entity :viewport
+                                 assoc :width game-width :height game-height))
           (doseq [shader-esse shader-esses]
-            (c/render game (:compiled-shader shader-esse)))))
+            (c/render game (:compiled-shader shader-esse)))
+          (doseq [sprite-esse sprite-esses]
+            (let [{:keys [x y current-sprite]} sprite-esse]
+              (c/render game
+                        (-> current-sprite
+                            (t/project game-width game-height)
+                            (t/translate x y)
+                            (t/scale (:width current-sprite)
+                                     (:height current-sprite))))))))
       (catch #?(:clj Exception :cljs js/Error) err
         (println "tick error")
         (println err))))
   game)
-

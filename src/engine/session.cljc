@@ -19,6 +19,12 @@
      [::mouse ::x x]
      [::mouse ::y y]]
 
+    ::sprite-esse
+    [:what
+     [esse-id ::esse/x x]
+     [esse-id ::esse/y y]
+     [esse-id ::esse/current-sprite current-sprite]]
+
     ::shader-esse
     [:what
      [esse-id ::esse/compiled-shader compiled-shader]]
@@ -33,7 +39,7 @@
      (o/insert! esse-id ::esse/compiled-shader
                 (->> compiled-shader
                      (sp/setval [:uniforms 'u_time] total-time)
-                     (sp/setval [:uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))]}))
+                     (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])))]}))
 
 (def initial-session
   (reduce o/add-rule (o/->session) rules))

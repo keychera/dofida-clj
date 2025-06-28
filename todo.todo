@@ -11,7 +11,7 @@ cmzw_:
     ☐ how to center di..entity in the canvas
     ☐ make grid based movement
     ☐ scour from kenney for free-assets
-☐ why is it flipped
+✔ why is it flipped @done(25-06-28 23:53) dont use viewport, use project + translate + scale
 ☐ remove the white outline
 ✔ portal @done(25-06-15 20:05)
 ☐ portal weird require error
