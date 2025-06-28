@@ -7,14 +7,18 @@ todo:
 
 cmzw_:
 ✔ second esse @done(25-06-13 01:25)
-☐ understand position and transforms
+✘ understand position and transforms @cancelled(25-06-28 16:15)
+    ☐ how to center di..entity in the canvas
+    ☐ make grid based movement
+    ☐ scour from kenney for free-assets
 ☐ why is it flipped
 ☐ remove the white outline
 ✔ portal @done(25-06-15 20:05)
 ☐ portal weird require error
-☐ ecs
-☐ rules engine
-☐ ecs + rules engine?
+✘ ecs @cancelled(25-06-28 16:11)
+✔ rules engine @done(25-06-28 16:11) 
+    ☐ let's see if this also works as an ECS
+✘ ecs + rules engine? @cancelled(25-06-28 16:11)
 ☐ clerk or leva.cljs
 ☐ eye
 ☐ twitter embed
