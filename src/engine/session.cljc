@@ -14,17 +14,26 @@
      [::window ::width width]
      [::window ::height height]]
 
+    ::mouse
+    [:what
+     [::mouse ::x x]
+     [::mouse ::y y]]
+
     ::shader-esse
     [:what
-     [any-esse ::esse/compiled-shader compiled-shader]]
+     [esse-id ::esse/compiled-shader compiled-shader]]
 
     ::shader-update
     [:what
      [::time ::total total-time]
-     [any-esse ::esse/compiled-shader compiled-shader {:then false}]
+     [::mouse ::x mouse-x]
+     [::mouse ::y mouse-y]
+     [esse-id ::esse/compiled-shader compiled-shader {:then false}]
      :then
-     (o/insert! any-esse ::esse/compiled-shader
-                (->> compiled-shader (sp/setval [:uniforms 'u_time] total-time)))]}))
+     (o/insert! esse-id ::esse/compiled-shader
+                (->> compiled-shader
+                     (sp/setval [:uniforms 'u_time] total-time)
+                     (sp/setval [:uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))]}))
 
 (def initial-session
   (reduce o/add-rule (o/->session) rules))
@@ -36,3 +45,6 @@
 
 (s/def ::width number?)
 (s/def ::height number?)
+
+(s/def ::x number?)
+(s/def ::y number?)

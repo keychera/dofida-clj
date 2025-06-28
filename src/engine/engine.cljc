@@ -8,28 +8,13 @@
    [engine.session :as session]
    [engine.utils :as utils]
    [odoyle.rules :as o]
-   [play-cljc.gl.core :as c]
-   [play-cljc.gl.entities-2d :as entities-2d]
-   [play-cljc.transforms :as t]))
+   [play-cljc.gl.core :as c]))
 
-(defonce *state
-  (atom {:esse/dofida2 nil}))
+(defn update-window-size! [width height]
+  (swap! session/*session o/insert ::session/window {::session/width width ::session/height height}))
 
-(defn init2 [game]
-  (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-  (utils/get-image
-   "dofida2.png"
-   (fn [{:keys [data width height]}]
-     (let [entity (entities-2d/->image-entity game data width height)
-           entity (c/compile game entity)
-           [game-width game-height] (utils/get-size game)
-           esse-dofida2 (-> entity
-                            (assoc :width width :height height
-                                   :viewport {:x 0, :y 0, :width (- game-width), :height game-height})
-                            (t/translate 0 -0.1))]
-       (swap! *state assoc :esse/dofida2 esse-dofida2)))))
-
+(defn update-mouse-coords! [x y]
+  (swap! session/*session o/insert ::session/mouse {::session/x x ::session/y y}))
 
 (defn init [game]
   (gl game enable (gl game BLEND))

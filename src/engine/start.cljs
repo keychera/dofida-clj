@@ -9,11 +9,11 @@
 (defn game-loop [game]
   (let [game (engine/tick game)]
     (js/requestAnimationFrame
-      (fn [ts]
-        (let [ts (msec->sec ts)]
-          (game-loop (assoc game
-                            :delta-time (- ts (:total-time game))
-                            :total-time ts)))))))
+     (fn [ts]
+       (let [ts (msec->sec ts)]
+         (game-loop (assoc game
+                           :delta-time (- ts (:total-time game))
+                           :total-time ts)))))))
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
@@ -23,19 +23,17 @@
 
 (defn listen-for-mouse [canvas]
   (events/listen js/window "mousemove"
-    (fn [event]
-      (swap! engine/*state
-        (fn [state]
-          (let [bounds (.getBoundingClientRect canvas)
-                x (- (.-clientX event) (.-left bounds))
-                y (- (.-clientY event) (.-top bounds))]
-            (assoc state :mouse-x x :mouse-y y))))))
-  (events/listen js/window "mousedown"
-    (fn [event]
-      (swap! engine/*state assoc :mouse-button (mousecode->keyword (.-button event)))))
-  (events/listen js/window "mouseup"
-    (fn [event]
-      (swap! engine/*state assoc :mouse-button nil))))
+                 (fn [event]
+                   (let [bounds (.getBoundingClientRect canvas)
+                         x (- (.-clientX event) (.-left bounds))
+                         y (- (.-clientY event) (.-top bounds))]
+                     (engine/update-mouse-coords! x y))))
+  #_(events/listen js/window "mousedown"
+                   (fn [event]
+                     (swap! engine/*state assoc :mouse-button (mousecode->keyword (.-button event)))))
+  #_(events/listen js/window "mouseup"
+                   (fn [event]
+                     (swap! engine/*state assoc :mouse-button nil))))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
@@ -45,25 +43,32 @@
     nil))
 
 (defn listen-for-keys []
-  (events/listen js/window "keydown"
-    (fn [event]
-      (when-let [k (keycode->keyword (.-keyCode event))]
-        (swap! engine/*state update :pressed-keys conj k))))
-  (events/listen js/window "keyup"
-    (fn [event]
-      (when-let [k (keycode->keyword (.-keyCode event))]
-        (swap! engine/*state update :pressed-keys disj k)))))
+  #_(events/listen js/window "keydown"
+                   (fn [event]
+                     (when-let [k (keycode->keyword (.-keyCode event))]
+                       (swap! engine/*state update :pressed-keys conj k))))
+  #_(events/listen js/window "keyup"
+                   (fn [event]
+                     (when-let [k (keycode->keyword (.-keyCode event))]
+                       (swap! engine/*state update :pressed-keys disj k)))))
 
 (defn resize [context]
   (let [display-width context.canvas.clientWidth
         display-height context.canvas.clientHeight]
     (set! context.canvas.width display-width)
-    (set! context.canvas.height display-height)))
+    (set! context.canvas.height display-height)
+    (engine/update-window-size! display-width display-height)))
 
-(defn listen-for-resize [context]
-  (events/listen js/window "resize"
-    (fn [event]
-      (resize context))))
+(defn ^:vibe listen-for-resize [context]
+  (let [canvas context.canvas
+        debounce-timer (atom nil)
+        observer (js/ResizeObserver.
+                  (fn [_entries]
+                    (when @debounce-timer
+                      (js/clearTimeout @debounce-timer))
+                    (reset! debounce-timer
+                            (js/setTimeout #(resize context) 200))))] ; 200ms after last resize event
+    (.observe observer canvas)))
 
 ;; start the game
 

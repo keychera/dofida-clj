@@ -2,11 +2,9 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [com.rpl.specter :as sp]
    [dofida.shader :refer [merge-shader-fn]]
    [engine.utils :as utils]
-   [play-cljc.primitives-2d :as primitives]
-   [play-cljc.transforms :as t]))
+   [play-cljc.primitives-2d :as primitives]))
 
 
 (def vertex-shader
@@ -131,8 +129,3 @@
                       :width  game-width
                       :height game-height}})))
 
-(defn mutate-dofida [{:keys [total-time]} {:keys [mouse-x mouse-y] :as state}]
-  (->> state
-       (sp/transform [:esse/dofida2] #(some-> % (t/translate (/ mouse-x 1000000) 0)))
-       (sp/setval [:esse/dofida :uniforms 'u_time] total-time)
-       #_(sp/setval [:esse/dofida :uniforms 'u_mouse] [(or mouse-x 0.0) (or mouse-y 0.0)])))
