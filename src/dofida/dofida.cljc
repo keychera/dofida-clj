@@ -123,9 +123,4 @@
                                    :size 2}}
          :uniforms   {'u_time       0.0
                       'u_resolution [game-width game-height]
-                      'u_mouse      [0.0 0.0]}
-         :viewport   {:x      (/ game-width -4)
-                      :y      (/ game-height -4)
-                      :width  game-width
-                      :height game-height}})))
-
+                      'u_mouse      [0.0 0.0]}})))

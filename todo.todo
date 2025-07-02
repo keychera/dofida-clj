@@ -12,7 +12,8 @@ cmzw_:
     ☐ make grid based movement
     ☐ scour from kenney for free-assets
 ✔ why is it flipped @done(25-06-28 23:53) dont use viewport, use project + translate + scale
-☐ remove the white outline
+✔ remove the white outline @done(25-07-03 00:18) (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
+    (the image is forced to be premultiplied by webgl https://stackoverflow.com/q/23497925/8812880 https://www.youtube.com/watch?v=XobSAXZaKJ8)
 ✔ portal @done(25-06-15 20:05)
 ☐ portal weird require error
 ✘ ecs @cancelled(25-06-28 16:11)

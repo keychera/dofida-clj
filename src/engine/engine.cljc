@@ -20,7 +20,7 @@
 
 (defn init [game]
   (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+  (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
   (let [[game-width game-height] (utils/get-size game)]
     (reset! session/*session
             (-> session/initial-session
@@ -41,12 +41,12 @@
              esse-dofida2 (assoc image-entity :width width :height height)]
          (swap! session/*session
                 #(-> %
-                     (o/insert ::dofida2 (esse/->sprite 250 100 esse-dofida2))
+                     (o/insert ::dofida2 (esse/->sprite 0 0 esse-dofida2))
                      (o/fire-rules))))))))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 0 255) (/ 0 255) (/ 0 255) 1] :depth 1}})
+   :clear {:color [(/ 30 255) (/ 0 255) (/ 0 255) 1] :depth 1}})
 
 (defn tick [game]
   (if @*refresh?
