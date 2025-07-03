@@ -3,11 +3,11 @@
         {
             "name": "play-cljc repl",
             "projectType": "deps.edn",
-            "cljsType": "Figwheel Main",
+            "cljsType": "shadow-cljs",
             "autoSelectForJackIn": true,
             "menuSelections": {
                 "cljAliases": [
-                    "repl"
+                    "shadow-cljs"
                 ]
             }
         }
