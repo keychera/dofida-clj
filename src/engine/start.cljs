@@ -1,6 +1,9 @@
 (ns engine.start
   (:require [engine.engine :as engine]
             [play-cljc.gl.core :as pc]
+            [leva.core :as leva]
+            [reagent.core :as reagent]
+            [reagent.dom.client :as rdomc]
             [goog.events :as events]))
 
 (defn msec->sec [n]
@@ -70,7 +73,25 @@
                             (js/setTimeout #(resize context) 200))))] ; 200ms after last resize event
     (.observe observer canvas)))
 
+;; leva
+(defonce !synced
+  (reagent/atom
+   {:number 10
+    :color {:r 10 :g 12 :b 4}
+    :string "Hi!"
+    :point {:x 1 :y 1}}))
+
 ;; start the game
+
+(defn main-panel []
+  [leva/Controls
+   {:folder {:name "Control"} 
+    :atom !synced}])
+
+(defonce root (delay (rdomc/create-root (.getElementById js/document "app"))))
+
+(defn ^:export ^:dev/after-load run-reagent []
+  (rdomc/render @root [main-panel]))
 
 (defonce context
   (let [canvas (js/document.querySelector "canvas")
@@ -83,5 +104,6 @@
     (listen-for-keys)
     (resize context)
     (listen-for-resize context)
+    (run-reagent)
     (game-loop initial-game)
     context))
