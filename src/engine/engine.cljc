@@ -66,10 +66,12 @@
                                 o/fire-rules))
             {game-width :width game-height :height} (first (o/query-all session ::session/window))
             shader-esses (o/query-all session ::session/shader-esse)
-            sprite-esses (o/query-all session ::session/sprite-esse)]
+            sprite-esses (o/query-all session ::session/sprite-esse)
+            {:keys [r g b]} (first (o/query-all session ::session/leva-color))] 
         (when (and (pos? game-width) (pos? game-height))
-          (c/render game (update screen-entity :viewport
-                                 assoc :width game-width :height game-height))
+          (c/render game (-> screen-entity
+                             (update :viewport assoc :width game-width :height game-height)
+                             (update :clear assoc :color [(/ r 255) (/ g 255) (/ b 255) 1])))
           (doseq [shader-esse shader-esses]
             (c/render game (:compiled-shader shader-esse)))
           (doseq [sprite-esse sprite-esses]

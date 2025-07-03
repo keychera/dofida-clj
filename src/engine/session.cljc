@@ -18,6 +18,12 @@
     [:what
      [::mouse ::x x]
      [::mouse ::y y]]
+    
+    ::leva-color
+    [:what
+     [::leva-color ::r r]
+     [::leva-color ::g g]
+     [::leva-color ::b b]]
 
     ::sprite-esse
     [:what
@@ -42,7 +48,28 @@
                      (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])))]}))
 
 (def initial-session
-  (reduce o/add-rule (o/->session) rules))
+  (->> rules
+       (map (fn [rule]
+              (o/wrap-rule rule
+                           {:what
+                            (fn [f session new-fact old-fact]
+                              (when (= ::leva-color (:name rule))
+                                (println :what (:name rule) new-fact old-fact))
+                              ;; (println :what (:name rule) new-fact old-fact)
+                              (f session new-fact old-fact))
+                            :when
+                            (fn [f session match]
+                              ;; (println :when (:name rule) match)
+                              (f session match))
+                            :then
+                            (fn [f session match]
+                              ;; (println :then (:name rule) match)
+                              (f session match))
+                            :then-finally
+                            (fn [f session]
+                              ;; (println :then-finally (:name rule))
+                              (f session))})))
+       (reduce o/add-rule (o/->session))))
 
 ;; specs
 
@@ -54,3 +81,7 @@
 
 (s/def ::x number?)
 (s/def ::y number?)
+
+(s/def ::r (s/and number? #(<= 0 % 255)))
+(s/def ::g (s/and number? #(<= 0 % 255)))
+(s/def ::b (s/and number? #(<= 0 % 255)))

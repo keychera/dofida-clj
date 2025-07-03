@@ -1,10 +1,12 @@
 (ns engine.start
-  (:require [engine.engine :as engine]
-            [play-cljc.gl.core :as pc]
-            [leva.core :as leva]
-            [reagent.core :as reagent]
-            [reagent.dom.client :as rdomc]
-            [goog.events :as events]))
+  (:require
+   [engine.engine :as engine]
+   [engine.session :as session]
+   [goog.events :as events]
+   [leva.core :as leva]
+   [odoyle.rules :as o]
+   [play-cljc.gl.core :as pc]
+   [reagent.dom.client :as rdomc]))
 
 (defn msec->sec [n]
   (* 0.001 n))
@@ -74,25 +76,23 @@
     (.observe observer canvas)))
 
 ;; leva
-(defonce !synced
-  (reagent/atom
-   {:number 10
-    :color {:r 10 :g 12 :b 4}
-    :string "Hi!"
-    :point {:x 1 :y 1}}))
-
-;; start the game
-
 (defn main-panel []
   [leva/Controls
    {:folder {:name "Control"} 
-    :atom !synced}])
+    :schema {:color {:r 30 :g 30 :b 30 
+                     :onChange (fn [{:keys [r g b]}]
+                                 (swap! session/*session o/insert ::session/leva-color
+                                        {::session/r r ::session/g g ::session/b b})
+                                 (js/console.log "Leva values changed:" (clj->js [r g b])))} 
+             :point {:x 1 :y 1}}
+    }])
 
 (defonce root (delay (rdomc/create-root (.getElementById js/document "app"))))
 
 (defn ^:export ^:dev/after-load run-reagent []
   (rdomc/render @root [main-panel]))
 
+;; start the game
 (defonce context
   (let [canvas (js/document.querySelector "canvas")
         context (.getContext canvas "webgl2")
