@@ -24,6 +24,14 @@
      [::leva-color ::r r]
      [::leva-color ::g g]
      [::leva-color ::b b]]
+    
+    ::leva-point
+    [:what
+     [::leva-point ::x x]
+     [::leva-point ::y y]
+     :then
+     (o/insert! :engine.engine/dofida2
+                {::esse/x (* x 6553) ::esse/y (* y 6553)})]
 
     ::sprite-esse
     [:what
@@ -53,7 +61,7 @@
               (o/wrap-rule rule
                            {:what
                             (fn [f session new-fact old-fact]
-                              (when (= ::leva-color (:name rule))
+                              (when (#{::leva-color ::leva-point} (:name rule))
                                 (println :what (:name rule) new-fact old-fact))
                               ;; (println :what (:name rule) new-fact old-fact)
                               (f session new-fact old-fact))
