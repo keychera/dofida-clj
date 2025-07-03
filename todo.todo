@@ -23,7 +23,8 @@ cmzw_:
 ☐ clerk or leva.cljs
 ☐ eye
 ☐ twitter embed
-☐ shadow-cljs?
+✔ shadow-cljs? @done(25-07-03 22:15)
+☐ remove figwheel-main?
 
 startaker:
 ☐ mouse inputs
