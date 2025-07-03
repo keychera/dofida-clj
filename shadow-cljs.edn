@@ -1,0 +1,12 @@
+;; shadow-cljs configuration
+{:deps {:aliases [:shadow-cljs]}
+
+ :builds
+ {:game
+  {:target :browser
+   :output-dir "resources/public/js"
+   :modules {:main {:init-fn engine.start-dev/start}}
+   :compiler-options {:infer-externs :auto}
+   :devtools
+   {:http-root "resources/public"
+    :http-port 9333}}}}

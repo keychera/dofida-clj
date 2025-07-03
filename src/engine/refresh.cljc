@@ -1,6 +1,6 @@
-(ns ^:figwheel-hooks engine.refresh)
+(ns engine.refresh)
 
 (def *refresh? (atom false))
 
-(defn ^:after-load set-refresh []
+(defn ^:dev/after-load set-refresh []
   (swap! *refresh? (constantly true)))

@@ -23,7 +23,8 @@
         org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.3.1"}
         org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.3.1"}
         com.rpl/specter {:mvn/version "1.1.4"}}
- :aliases {:dev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.12.42"}
+ :aliases {:shadow-cljs {:extra-deps {thheller/shadow-cljs {:mvn/version "3.1.7"}}} 
+           :dev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.12.42"}
                               com.bhauman/figwheel-main {:mvn/version "0.2.18"}}
                  :main-opts ["dev.clj"]}
            :repl {:extra-deps {org.clojure/clojurescript {:mvn/version "1.12.42"}

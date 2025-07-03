@@ -10,3 +10,8 @@ resources/public/*.out
 .clj-kondo/*
 !.clj-kondo/config.edn
 .nrepl-port
+
+resources/public/js
+node_modules/
+/report.html
+.shadow-cljs
