@@ -5,7 +5,7 @@
  {:game
   {:target :browser
    :output-dir "resources/public/js"
-   :modules {:main {:init-fn engine.start-dev/start}}
+   :modules {:main {:entries [engine.start-dev]}}
    :compiler-options {:infer-externs :auto}
    :devtools
    {:http-root "resources/public"
