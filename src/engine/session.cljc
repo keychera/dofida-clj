@@ -48,12 +48,16 @@
      [::time ::total total-time]
      [::mouse ::x mouse-x]
      [::mouse ::y mouse-y]
+     [::leva-color ::r r]
+     [::leva-color ::g g]
+     [::leva-color ::b b]
      [esse-id ::esse/compiled-shader compiled-shader {:then false}]
      :then
      (o/insert! esse-id ::esse/compiled-shader
                 (->> compiled-shader
                      (sp/setval [:uniforms 'u_time] total-time)
-                     (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])))]}))
+                     (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])
+                     (sp/setval [:uniforms 'u_sky_color] [(/ r 255) (/ g 255) (/ b 255)])))]}))
 
 (def initial-session
   (->> rules

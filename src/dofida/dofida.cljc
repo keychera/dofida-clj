@@ -86,7 +86,9 @@
                        (*= st.x (/ u_resolution.x u_resolution.y))
                        (=vec3 color (vec3 "0.0"))
 
-                       (+= color (* "0.7" (vec3 "0.3" "0.3" (mix (vec2 "0.5") (vec2 "0.8") st))))
+                       (+= color (* "0.7" (vec3 u_sky_color.r 
+                                                u_sky_color.g 
+                                                (mix (vec2 (- u_sky_color.b "0.2")) (vec2 (+ u_sky_color.b "0.2")) st)))) 
 
                        (=vec2 smoke_pos (* st "2.0"))
                        (=float speed (/ u_time "16.0"))
@@ -110,6 +112,7 @@
    {:version   "300 es",
     :precision "mediump float"
     :uniforms  '{u_resolution vec2
+                 u_sky_color  vec3
                  u_mouse      vec2
                  u_time       float}
     :inputs    '{v_position vec4}
@@ -123,7 +126,8 @@
          :attributes {'a_position {:data primitives/rect
                                    :type (gl game FLOAT)
                                    :size 2}}
-         :uniforms   {'u_matrix (m/identity-matrix 3)
+         :uniforms   {'u_matrix     (m/identity-matrix 3)
+                      'u_sky_color  [0.0 0.0 0.0]
                       'u_time       0.0
                       'u_resolution [game-width game-height]
                       'u_mouse      [0.0 0.0]}}

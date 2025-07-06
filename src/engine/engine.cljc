@@ -41,12 +41,12 @@
              esse-dofida2 (assoc image-entity :width width :height height)]
          (swap! session/*session
                 #(-> %
-                     (o/insert ::dofida2 (esse/->sprite 0 0 esse-dofida2))
+                     (o/insert ::dofida2 (esse/->sprite 100 100 esse-dofida2))
                      (o/fire-rules))))))))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 30 255) (/ 0 255) (/ 0 255) 1] :depth 1}})
+   :clear {:color [(/ 0 255) (/ 0 255) (/ 0 255) 1] :depth 1}})
 
 (defn tick [game]
   (if @*refresh?
@@ -71,11 +71,12 @@
             {:keys [r g b]} (first (o/query-all session ::session/leva-color))]
         (when (and (pos? game-width) (pos? game-height))
           (c/render game (-> screen-entity
-                             (update :viewport assoc :width game-width :height game-height)
-                             (update :clear assoc :color [(/ r 255) (/ g 255) (/ b 255) 1])))
+                             (update :viewport assoc :width game-width :height game-height)))
           (doseq [shader-esse shader-esses]
             (c/render game (-> (:compiled-shader shader-esse)
-                               (t/project 1 1)))) ;; still not sure why this work
+                               (t/project 1 1) ;; still not sure why this work
+                               (t/translate 0 0.1)
+                               (t/scale 1 0.8))))
           (doseq [sprite-esse sprite-esses]
             (let [{:keys [x y current-sprite]} sprite-esse]
               (c/render game
