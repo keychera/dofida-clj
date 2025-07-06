@@ -4,18 +4,20 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [dofida.shader :refer [merge-shader-fn]]
    [engine.utils :as utils]
-   [play-cljc.primitives-2d :as primitives]))
+   [play-cljc.math :as m]
+   [play-cljc.primitives-2d :as primitives]
+   [play-cljc.gl.entities-2d :as entities-2d]))
 
 
 (def vertex-shader
   '{:version "300 es"
     :precision "mediump float"
-    :uniforms {u_time float}
+    :uniforms {u_matrix mat3}
     :inputs {a_position vec2}
     :outputs {}
     :signatures {main ([] void)}
     :functions
-    {main ([] (= gl_Position (vec4 (.x a_position) (.y a_position) "0.0" "1.0")))}})
+    {main ([] (= gl_Position (vec4 (.xy (* u_matrix (vec3 a_position 1))) 0 1)))}})
 
 (def random-fns
   {:signatures '{random  ([vec2] float)
@@ -121,6 +123,8 @@
          :attributes {'a_position {:data primitives/rect
                                    :type (gl game FLOAT)
                                    :size 2}}
-         :uniforms   {'u_time       0.0
+         :uniforms   {'u_matrix (m/identity-matrix 3)
+                      'u_time       0.0
                       'u_resolution [game-width game-height]
-                      'u_mouse      [0.0 0.0]}})))
+                      'u_mouse      [0.0 0.0]}}
+        (entities-2d/map->TwoDEntity))))
