@@ -8,7 +8,7 @@ todo:
 cmzw_:
 ✔ second esse @done(25-06-13 01:25)
 ✘ understand position and transforms @cancelled(25-06-28 16:15)
-    ☐ how to center di..entity in the canvas
+    ✔ how to center di..entity in the canvas @done(25-07-06 23:40) kinda?
     ☐ make grid based movement
     ☐ scour from kenney for free-assets
 ✔ why is it flipped @done(25-06-28 23:53) dont use viewport, use project + translate + scale
@@ -18,13 +18,22 @@ cmzw_:
 ✘ portal weird require error @cancelled(25-07-03 00:46) drop portal for now
 ✘ ecs @cancelled(25-06-28 16:11)
 ✔ rules engine @done(25-06-28 16:11) 
-    ☐ let's see if this also works as an ECS
+    ✔ let's see if this also works as an ECS @done(25-07-06 23:41) Paranim readme says rules engine is similar to ECS
 ✘ ecs + rules engine? @cancelled(25-06-28 16:11)
-☐ clerk or leva.cljs
+✔ clerk or leva.cljs @done(25-07-06 23:40)
 ☐ eye
 ☐ twitter embed
 ✔ shadow-cljs? @done(25-07-03 22:15)
 ☐ remove figwheel-main?
+
+I don't think you realized how blessed you are:
+☐ text
+☐ dialogues
+☐ controls
+☐ animated gif
+☐ animation
+☐ the rules engine as ecs and thinking of loading and prep
+
 
 startaker:
 ☐ mouse inputs
