@@ -2,10 +2,35 @@
   (:require
    [clojure.spec.alpha :as s]
    [com.rpl.specter :as sp]
+   [dofida.dofida :as dofida]
    [engine.esse :as esse]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o]
+   [play-cljc.gl.core :as c]))
 
-(defonce *session (atom {}))
+(defonce session* (atom {}))
+
+(defn wrap-fn [rule]
+  (o/wrap-rule rule
+               {:what
+                (fn [f session new-fact old-fact]
+                  (when (#{::compile-shader} (:name rule))
+                    (println :what (:name rule) new-fact old-fact))
+                  ;; (println :what (:name rule) new-fact old-fact)
+                  (f session new-fact old-fact))
+                :when
+                (fn [f session match]
+                  ;; (println :when (:name rule) match)
+                  (f session match))
+                :then
+                (fn [f session match]
+                  (when (#{::compile-shader ::compiling-shader} (:name rule))
+                    (println "firing" (:name rule)))
+                  ;; (println :then (:name rule) match)
+                  (f session match))
+                :then-finally
+                (fn [f session]
+                  ;; (println :then-finally (:name rule))
+                  (f session))}))
 
 (def rules
   (o/ruleset
@@ -18,13 +43,12 @@
     [:what
      [::mouse ::x x]
      [::mouse ::y y]]
-    
     ::leva-color
     [:what
      [::leva-color ::r r]
      [::leva-color ::g g]
      [::leva-color ::b b]]
-    
+
     ::leva-point
     [:what
      [::leva-point ::x x]
@@ -57,34 +81,28 @@
                 (->> compiled-shader
                      (sp/setval [:uniforms 'u_time] total-time)
                      (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])
-                     (sp/setval [:uniforms 'u_sky_color] [(/ r 255) (/ g 255) (/ b 255)])))]}))
+                     (sp/setval [:uniforms 'u_sky_color] [(/ r 255) (/ g 255) (/ b 255)])))]
+
+    ::compile-shader
+    [:what
+     [esse-id ::esse/shader-compile-fn compile-fn]]
+
+    ::compiling-shader
+    [:what
+     [esse-id ::esse/shader-compile-fn compile-fn]
+     [esse-id ::esse/compiling-shader true]
+     :then
+     (o/retract! esse-id ::esse/shader-compile-fn)]}))
+
 
 (def initial-session
-  (->> rules
-       (map (fn [rule]
-              (o/wrap-rule rule
-                           {:what
-                            (fn [f session new-fact old-fact]
-                              (when (#{::leva-color ::leva-point} (:name rule))
-                                (println :what (:name rule) new-fact old-fact))
-                              ;; (println :what (:name rule) new-fact old-fact)
-                              (f session new-fact old-fact))
-                            :when
-                            (fn [f session match]
-                              ;; (println :when (:name rule) match)
-                              (f session match))
-                            :then
-                            (fn [f session match]
-                              ;; (println :then (:name rule) match)
-                              (f session match))
-                            :then-finally
-                            (fn [f session]
-                              ;; (println :then-finally (:name rule))
-                              (f session))})))
-       (reduce o/add-rule (o/->session))))
+  (-> (->> rules
+           (map #'wrap-fn)
+           (reduce o/add-rule (o/->session)))
+      (o/insert ::dofida ::esse/shader-compile-fn
+                (fn [game] (c/compile game (dofida/->dofida game))))))
 
 ;; specs
-
 (s/def ::total number?)
 (s/def ::delta number?)
 

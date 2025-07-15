@@ -78,16 +78,15 @@
 ;; leva
 (defn main-panel []
   [leva/Controls
-   {:folder {:name "Control"} 
-    :schema {:color {:r 30 :g 30 :b 30 
+   {:folder {:name "Control"}
+    :schema {:color {:r 30 :g 30 :b 30
                      :onChange (fn [{:keys [r g b]}]
-                                 (swap! session/*session o/insert ::session/leva-color
-                                        {::session/r r ::session/g g ::session/b b}))} 
+                                 (swap! session/session* o/insert ::session/leva-color
+                                        {::session/r r ::session/g g ::session/b b}))}
              :point {:x 0 :y 0
                      :onChange (fn [{:keys [x y]}]
-                                 (swap! session/*session o/insert ::session/leva-point
-                                        {::session/x x ::session/y y}))}}
-    }])
+                                 (swap! session/session* o/insert ::session/leva-point
+                                        {::session/x x ::session/y y}))}}}])
 
 (defonce root (delay (rdomc/create-root (.getElementById js/document "app"))))
 

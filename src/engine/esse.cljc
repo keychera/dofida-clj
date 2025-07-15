@@ -10,5 +10,7 @@
 
 (s/def ::x number?)
 (s/def ::y number?)
+(s/def ::shader-compile-fn fn?)
+(s/def ::compiling-shader boolean?)
 (s/def ::compiled-shader map?)
 (s/def ::current-sprite (s/nilable map?))
