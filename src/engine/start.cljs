@@ -79,7 +79,7 @@
 (defn main-panel []
   [leva/Controls
    {:folder {:name "Control"}
-    :schema {:color {:r 30 :g 30 :b 30
+    :schema {:color {:r 200 :g 120 :b 120
                      :onChange (fn [{:keys [r g b]}]
                                  (swap! session/session* o/insert ::session/leva-color
                                         {::session/r r ::session/g g ::session/b b}))}

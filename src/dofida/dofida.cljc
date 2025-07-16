@@ -127,7 +127,7 @@
                                    :type (gl game FLOAT)
                                    :size 2}}
          :uniforms   {'u_matrix     (m/identity-matrix 3)
-                      'u_sky_color  [0.0 0.0 0.0]
+                      'u_sky_color  [0.78 0.47 0.47]
                       'u_time       0.0
                       'u_resolution [game-width game-height]
                       'u_mouse      [0.0 0.0]}}

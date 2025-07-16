@@ -21,20 +21,30 @@
   (doseq [{:keys [esse-id compile-fn]} (o/query-all @session* ::session/compile-shader)]
     (swap! session* #(o/insert % esse-id ::esse/compiling-shader true))
     (let [compiled-shader (compile-fn game)]
-      (swap! session* #(o/insert % esse-id ::esse/compiled-shader compiled-shader)))))
+      (swap! session* #(-> %
+                           (o/retract esse-id ::esse/compiling-shader)
+                           (o/insert esse-id ::esse/compiled-shader compiled-shader)
+                           (o/fire-rules))))))
+
+(defn load-image [game session*]
+  (doseq [{:keys [esse-id image-path]} (o/query-all @session* ::session/load-image)]
+    (swap! session* #(o/insert % esse-id ::esse/loading-image true))
+    (println "loading image" esse-id image-path)
+    (utils/get-image
+     image-path
+     (fn [{:keys [data width height]}]
+       (let [image-entity (entities-2d/->image-entity game data width height)
+             image-entity (c/compile game image-entity)
+             loaded-image (assoc image-entity :width width :height height)]
+         (swap! session*
+                #(-> %
+                     (o/retract esse-id ::esse/loading-image)
+                     (o/insert esse-id ::esse/current-sprite loaded-image)
+                     (o/fire-rules))))))))
 
 (defn compile-all [game session*]
-  (#'compile-shader game session*)
-  (utils/get-image
-   "dofida2.png"
-   (fn [{:keys [data width height]}]
-     (let [image-entity (entities-2d/->image-entity game data width height)
-           image-entity (c/compile game image-entity)
-           esse-dofida2 (assoc image-entity :width width :height height)]
-       (swap! session*
-              #(-> %
-                   (o/insert ::dofida2 (esse/->sprite 100 100 esse-dofida2))
-                   (o/fire-rules)))))))
+  (compile-shader game session*)
+  (load-image game session*))
 
 (defn init [game]
   (gl game enable (gl game BLEND))
@@ -46,7 +56,7 @@
                           {::session/width game-width
                            ::session/height game-height})
                 (o/fire-rules)))
-    (#'compile-all game session/session*)))
+    (compile-all game session/session*)))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
@@ -57,7 +67,8 @@
   (if @*refresh?
     (try (println "calling (compile-all game)")
          (swap! *refresh? not)
-         (#'compile-all game session/session*)
+         (init game)
+         (compile-all game session/session*)
          (catch #?(:clj Exception :cljs js/Error) err
            (println "compile-all error")
            #?(:clj  (println err)

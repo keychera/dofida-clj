@@ -53,9 +53,10 @@
     [:what
      [::leva-point ::x x]
      [::leva-point ::y y]
+     [esse-id ::esse/x esse-x {:then false}]
+     [esse-id ::esse/y esse-y {:then false}]
      :then
-     (o/insert! :engine.engine/dofida2
-                {::esse/x (* x 6553) ::esse/y (* y 6553)})]
+     (o/insert! esse-id {::esse/x (+ esse-x (* x 25)) ::esse/y (+ esse-y (* y 25))})]
 
     ::sprite-esse
     [:what
@@ -92,15 +93,29 @@
      [esse-id ::esse/shader-compile-fn compile-fn]
      [esse-id ::esse/compiling-shader true]
      :then
-     (o/retract! esse-id ::esse/shader-compile-fn)]}))
+     (o/retract! esse-id ::esse/shader-compile-fn)]
+    
+    ::load-image
+    [:what
+     [esse-id ::esse/image-to-load image-path]]
+    
+    ::loading-image
+    [:what
+     [esse-id ::esse/image-to-load image-path]
+     [esse-id ::esse/loading-image true]
+     :then
+     (o/retract! esse-id ::esse/image-to-load)]}))
 
 
 (def initial-session (->> rules (map #'wrap-fn) (reduce o/add-rule (o/->session))))
 
 (def dofida-session
   (-> initial-session
-      (o/insert ::dofida ::esse/shader-compile-fn
-                (fn [game] (c/compile game (dofida/->dofida game))))))
+      (o/insert :dofida ::esse/shader-compile-fn
+                (fn [game] (c/compile game (dofida/->dofida game))))
+      (o/insert ::dofida2 (esse/->sprite 100 100 "dofida2.png"))
+      (o/insert ::dofida3 (esse/->sprite 222 200 "dofida2.png"))
+      (o/insert ::dofida4 (esse/->sprite 450 300 "dofida2.png"))))
 
 ;; specs
 (s/def ::total number?)

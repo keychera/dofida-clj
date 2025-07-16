@@ -32,8 +32,10 @@ I don't think you realized how blessed you are:
 ☐ controls
 ☐ animated gif
 ☐ animation
-☐ the rules engine as ecs and thinking of loading and prep
-
+✔ the rules engine as ecs and thinking of loading and prep @done(25-07-16 22:36)
+    ☐ thinking of what to hot-reload
+    ☐ more efficient image loading, maybe decouple sprite and loaded image
+☐ redraw dofida
 
 startaker:
 ☐ mouse inputs
