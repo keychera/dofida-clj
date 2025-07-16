@@ -23,27 +23,30 @@
     (let [compiled-shader (compile-fn game)]
       (swap! session* #(o/insert % esse-id ::esse/compiled-shader compiled-shader)))))
 
+(defn compile-all [game session*]
+  (#'compile-shader game session*)
+  (utils/get-image
+   "dofida2.png"
+   (fn [{:keys [data width height]}]
+     (let [image-entity (entities-2d/->image-entity game data width height)
+           image-entity (c/compile game image-entity)
+           esse-dofida2 (assoc image-entity :width width :height height)]
+       (swap! session*
+              #(-> %
+                   (o/insert ::dofida2 (esse/->sprite 100 100 esse-dofida2))
+                   (o/fire-rules)))))))
+
 (defn init [game]
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
   (let [[game-width game-height] (utils/get-size game)]
     (reset! session/session*
-            (-> session/initial-session
+            (-> session/dofida-session
                 (o/insert ::session/window
                           {::session/width game-width
                            ::session/height game-height})
                 (o/fire-rules)))
-    (#'compile-shader game session/session*)
-    (utils/get-image
-     "dofida2.png"
-     (fn [{:keys [data width height]}]
-       (let [image-entity (entities-2d/->image-entity game data width height)
-             image-entity (c/compile game image-entity)
-             esse-dofida2 (assoc image-entity :width width :height height)]
-         (swap! session/session*
-                #(-> %
-                     (o/insert ::dofida2 (esse/->sprite 100 100 esse-dofida2))
-                     (o/fire-rules))))))))
+    (#'compile-all game session/session*)))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
@@ -52,11 +55,11 @@
 
 (defn tick [game]
   (if @*refresh?
-    (try (println "calling (init game)")
+    (try (println "calling (compile-all game)")
          (swap! *refresh? not)
-         (init game)
+         (#'compile-all game session/session*)
          (catch #?(:clj Exception :cljs js/Error) err
-           (println "init error")
+           (println "compile-all error")
            #?(:clj  (println err)
               :cljs (js/console.error err))))
     (try

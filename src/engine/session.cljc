@@ -95,10 +95,10 @@
      (o/retract! esse-id ::esse/shader-compile-fn)]}))
 
 
-(def initial-session
-  (-> (->> rules
-           (map #'wrap-fn)
-           (reduce o/add-rule (o/->session)))
+(def initial-session (->> rules (map #'wrap-fn) (reduce o/add-rule (o/->session))))
+
+(def dofida-session
+  (-> initial-session
       (o/insert ::dofida ::esse/shader-compile-fn
                 (fn [game] (c/compile game (dofida/->dofida game))))))
 
@@ -115,3 +115,24 @@
 (s/def ::r (s/and number? #(<= 0 % 255)))
 (s/def ::g (s/and number? #(<= 0 % 255)))
 (s/def ::b (s/and number? #(<= 0 % 255)))
+
+
+(comment
+  (def testrule
+    (o/ruleset
+     {::happening
+      [:what
+       [esse-id ::esse/shader-compile-fn compile-fn]
+       [esse-id ::esse/compiling-shader true]
+       :then
+       (o/retract! esse-id ::esse/shader-compile-fn)]}))
+
+  (def testsession
+    (->> testrule
+         (map #'wrap-fn)
+         (reduce o/add-rule (o/->session))))
+
+  (-> testsession
+      (o/insert :dofida ::esse/shader-compile-fn (fn [] (println "hello")))
+      (o/fire-rules)
+      (o/query-all ::happening)))
