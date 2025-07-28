@@ -24,7 +24,8 @@ cmzw_:
 ☐ eye
 ☐ twitter embed
 ✔ shadow-cljs? @done(25-07-03 22:15)
-☐ remove figwheel-main?
+✔ remove figwheel-main? @done(25-07-28 13:09)
+    ☐ fix .start-dev, build, and maybe remove lein in favor of tools.build
 
 I don't think you realized how blessed you are:
 ☐ text

@@ -10,7 +10,7 @@ https://clojure.org/guides/deps_and_cli
 To develop in a browser with live code reloading:
 
 ```
-clj -M:dev
+Calva Jack-in
 ```
 
 
@@ -24,25 +24,20 @@ clj -M:prod
 To develop the native version:
 
 ```
-clj -M:dev native
+clj -M:dev native (BROKEN)
 
 # NOTE: On Mac OS, you need to add the macos alias:
 
-clj -M:dev:macos native
+clj -M:dev:macos native (UNTESTED)
 ```
 
 
 To build the native version as a jar file:
 
 ```
-clj -M:prod uberjar
+clj -M:prod uberjar (BROKEN)
 ```
 
-
-in calva
-```
-Jack-in -> deps.edn + Figwheel main -> eval engine.engine/tick
-```
 
 ## shadow-cljs migration
 
