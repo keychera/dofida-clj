@@ -7,7 +7,8 @@ todo:
 
 ☐ sidestream
     ☐ macros s-> refactor
-    ☐ build-java
+    ✔ build-java @done(25-08-25 06:45)
+        ☐ make the shader and everything else works in java
     ☐ world system
     ☐ esse/asset
 
@@ -62,3 +63,6 @@ startaker:
 ☐ vfx
 ☐ publish
 
+
+devx:
+    ☐  deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}

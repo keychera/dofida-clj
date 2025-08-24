@@ -1,11 +1,8 @@
 (ns engine.start-dev
-  (:require [engine.start :as start]
-            [engine.engine :as engine]
-            [clojure.spec.test.alpha :as st]
-            [clojure.spec.alpha :as s]
-            [play-cljc.gl.core :as pc])
-  (:import [org.lwjgl.glfw GLFW]
-           [dofida_clj.start Window]))
+  (:require
+   [clojure.spec.test.alpha :as st]
+   [engine.start :as start]
+   [play-cljc.gl.core :as pc]))
 
 (defn start []
   (st/instrument)
