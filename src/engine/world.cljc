@@ -9,6 +9,9 @@
 
 (defonce world* (atom {}))
 
+(s/def ::init fn?)
+(s/def ::rules vector?) 
+
 (defn wrap-fn [rule]
   (o/wrap-rule rule
                {:what
@@ -109,7 +112,7 @@
 
 (def initial-session (->> rules (map #'wrap-fn) (reduce o/add-rule (o/->session))))
 
-(def dofida-session
+(def dofida-world
   (-> initial-session
       (o/insert :dofida ::esse/shader-compile-fn
                 (fn [game] (c/compile game (dofida/->dofida game))))

@@ -4,7 +4,7 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [engine.esse :as esse]
    [engine.refresh :refer [*refresh?]]
-   [engine.world :as session]
+   [engine.world :as world]
    [engine.utils :as utils]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
@@ -12,23 +12,23 @@
    [play-cljc.transforms :as t]))
 
 (defn update-window-size! [width height]
-  (swap! session/world* o/insert ::session/window {::session/width width ::session/height height}))
+  (swap! world/world* o/insert ::world/window {::world/width width ::world/height height}))
 
 (defn update-mouse-coords! [x y]
-  (swap! session/world* o/insert ::session/mouse {::session/x x ::session/y y}))
+  (swap! world/world* o/insert ::world/mouse {::world/x x ::world/y y}))
 
-(defn compile-shader [game session*]
-  (doseq [{:keys [esse-id compile-fn]} (o/query-all @session* ::session/compile-shader)]
-    (swap! session* #(o/insert % esse-id ::esse/compiling-shader true))
+(defn compile-shader [game world*]
+  (doseq [{:keys [esse-id compile-fn]} (o/query-all @world* ::world/compile-shader)]
+    (swap! world* #(o/insert % esse-id ::esse/compiling-shader true))
     (let [compiled-shader (compile-fn game)]
-      (swap! session* #(-> %
+      (swap! world* #(-> %
                            (o/retract esse-id ::esse/compiling-shader)
                            (o/insert esse-id ::esse/compiled-shader compiled-shader)
                            (o/fire-rules))))))
 
-(defn load-image [game session*]
-  (doseq [{:keys [esse-id image-path]} (o/query-all @session* ::session/load-image)]
-    (swap! session* #(o/insert % esse-id ::esse/loading-image true))
+(defn load-image [game world*]
+  (doseq [{:keys [esse-id image-path]} (o/query-all @world* ::world/load-image)]
+    (swap! world* #(o/insert % esse-id ::esse/loading-image true))
     (println "loading image" esse-id image-path)
     (utils/get-image
      image-path
@@ -36,27 +36,27 @@
        (let [image-entity (entities-2d/->image-entity game data width height)
              image-entity (c/compile game image-entity)
              loaded-image (assoc image-entity :width width :height height)]
-         (swap! session*
+         (swap! world*
                 #(-> %
                      (o/retract esse-id ::esse/loading-image)
                      (o/insert esse-id ::esse/current-sprite loaded-image)
                      (o/fire-rules))))))))
 
-(defn compile-all [game session*]
-  (compile-shader game session*)
-  (load-image game session*))
+(defn compile-all [game world*]
+  (compile-shader game world*)
+  (load-image game world*))
 
 (defn init [game]
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
   (let [[game-width game-height] (utils/get-size game)]
-    (reset! session/world*
-            (-> session/dofida-session
-                (o/insert ::session/window
-                          {::session/width game-width
-                           ::session/height game-height})
+    (reset! world/world*
+            (-> world/dofida-world
+                (o/insert ::world/window
+                          {::world/width game-width
+                           ::world/height game-height})
                 (o/fire-rules)))
-    (compile-all game session/world*)))
+    (compile-all game world/world*)))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
@@ -68,22 +68,22 @@
     (try (println "calling (compile-all game)")
          (swap! *refresh? not)
          (init game)
-         (compile-all game session/world*)
+         (compile-all game world/world*)
          (catch #?(:clj Exception :cljs js/Error) err
            (println "compile-all error")
            #?(:clj  (println err)
               :cljs (js/console.error err))))
     (try
       (let [{:keys [delta-time total-time]} game
-            session (swap! session/world*
+            world (swap! world/world*
                            #(-> %
-                                (o/insert ::session/time
-                                          {::session/total total-time
-                                           ::session/delta delta-time})
+                                (o/insert ::world/time
+                                          {::world/total total-time
+                                           ::world/delta delta-time})
                                 o/fire-rules))
-            {game-width :width game-height :height} (first (o/query-all session ::session/window))
-            shader-esses (o/query-all session ::session/shader-esse)
-            sprite-esses (o/query-all session ::session/sprite-esse)]
+            {game-width :width game-height :height} (first (o/query-all world ::world/window))
+            shader-esses (o/query-all world ::world/shader-esse)
+            sprite-esses (o/query-all world ::world/sprite-esse)]
         (when (and (pos? game-width) (pos? game-height))
           (c/render game (-> screen-entity
                              (update :viewport assoc :width game-width :height game-height)))
