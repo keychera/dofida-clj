@@ -1,4 +1,4 @@
-(ns engine.session
+(ns engine.world
   (:require
    [clojure.spec.alpha :as s]
    [com.rpl.specter :as sp]
@@ -7,7 +7,7 @@
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]))
 
-(defonce session* (atom {}))
+(defonce world* (atom {}))
 
 (defn wrap-fn [rule]
   (o/wrap-rule rule

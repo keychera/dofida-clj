@@ -4,7 +4,7 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [engine.esse :as esse]
    [engine.refresh :refer [*refresh?]]
-   [engine.session :as session]
+   [engine.world :as session]
    [engine.utils :as utils]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
@@ -12,10 +12,10 @@
    [play-cljc.transforms :as t]))
 
 (defn update-window-size! [width height]
-  (swap! session/session* o/insert ::session/window {::session/width width ::session/height height}))
+  (swap! session/world* o/insert ::session/window {::session/width width ::session/height height}))
 
 (defn update-mouse-coords! [x y]
-  (swap! session/session* o/insert ::session/mouse {::session/x x ::session/y y}))
+  (swap! session/world* o/insert ::session/mouse {::session/x x ::session/y y}))
 
 (defn compile-shader [game session*]
   (doseq [{:keys [esse-id compile-fn]} (o/query-all @session* ::session/compile-shader)]
@@ -50,13 +50,13 @@
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
   (let [[game-width game-height] (utils/get-size game)]
-    (reset! session/session*
+    (reset! session/world*
             (-> session/dofida-session
                 (o/insert ::session/window
                           {::session/width game-width
                            ::session/height game-height})
                 (o/fire-rules)))
-    (compile-all game session/session*)))
+    (compile-all game session/world*)))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
@@ -68,14 +68,14 @@
     (try (println "calling (compile-all game)")
          (swap! *refresh? not)
          (init game)
-         (compile-all game session/session*)
+         (compile-all game session/world*)
          (catch #?(:clj Exception :cljs js/Error) err
            (println "compile-all error")
            #?(:clj  (println err)
               :cljs (js/console.error err))))
     (try
       (let [{:keys [delta-time total-time]} game
-            session (swap! session/session*
+            session (swap! session/world*
                            #(-> %
                                 (o/insert ::session/time
                                           {::session/total total-time

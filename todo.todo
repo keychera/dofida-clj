@@ -5,6 +5,22 @@ todo:
 ✘ collect assets @cancelled(25-06-12 23:10)
 ✘ incorporate assets @cancelled(25-06-12 23:10)
 
+☐ sidestream
+    ☐ macros s-> refactor
+    ☐ build-java
+    ☐ world system
+    ☐ esse/asset
+
+☐ cube
+☐ sphere
+☐ transform3d
+
+☐ jvm reloaded
+    ☐ tools.namespace
+    ☐ fps imgui
+    ☐ hot-reload JVM side
+    ☐ clj-memory-meter
+
 cmzw_:
 ✔ second esse @done(25-06-13 01:25)
 ✘ understand position and transforms @cancelled(25-06-28 16:15)

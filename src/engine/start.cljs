@@ -1,7 +1,7 @@
 (ns engine.start
   (:require
    [engine.engine :as engine]
-   [engine.session :as session]
+   [engine.world :as session]
    [goog.events :as events]
    [leva.core :as leva]
    [odoyle.rules :as o]
@@ -81,11 +81,11 @@
    {:folder {:name "Control"}
     :schema {:color {:r 200 :g 120 :b 120
                      :onChange (fn [{:keys [r g b]}]
-                                 (swap! session/session* o/insert ::session/leva-color
+                                 (swap! session/world* o/insert ::session/leva-color
                                         {::session/r r ::session/g g ::session/b b}))}
              :point {:x 0 :y 0
                      :onChange (fn [{:keys [x y]}]
-                                 (swap! session/session* o/insert ::session/leva-point
+                                 (swap! session/world* o/insert ::session/leva-point
                                         {::session/x x ::session/y y}))}}}])
 
 (defonce root (delay (rdomc/create-root (.getElementById js/document "app"))))

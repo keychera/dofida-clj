@@ -2,7 +2,6 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [dofida.shader :refer [merge-shader-fn]]
    [engine.utils :as utils]
    [play-cljc.math :as m]
    [play-cljc.primitives-2d :as primitives]
@@ -108,7 +107,7 @@
                        (= o_color (vec4 color "1.0")))}})
 
 (def fragment-shader
-  (merge-shader-fn
+  (utils/merge-shader-fn
    {:version   "300 es",
     :precision "mediump float"
     :uniforms  '{u_resolution vec2
