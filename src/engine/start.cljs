@@ -6,7 +6,8 @@
    [leva.core :as leva]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as pc]
-   [reagent.dom.client :as rdomc]))
+   [reagent.dom.client :as rdomc]
+   [systems.dev.leva-rules :as leva-rules]))
 
 (defn msec->sec [n]
   (* 0.001 n))
@@ -81,12 +82,12 @@
    {:folder {:name "Control"}
     :schema {:color {:r 200 :g 120 :b 120
                      :onChange (fn [{:keys [r g b]}]
-                                 (swap! world/world* o/insert ::world/leva-color
-                                        {::world/r r ::world/g g ::world/b b}))}
+                                 (swap! world/world* o/insert ::leva-rules/leva-color
+                                        {::leva-rules/r r ::leva-rules/g g ::leva-rules/b b}))}
              :point {:x 0 :y 0
                      :onChange (fn [{:keys [x y]}]
-                                 (swap! world/world* o/insert ::world/leva-point
-                                        {::world/x x ::world/y y}))}}}])
+                                 (swap! world/world* o/insert ::leva-rules/leva-point
+                                        {::leva-rules/x x ::leva-rules/y y}))}}}])
 
 (defonce root (delay (rdomc/create-root (.getElementById js/document "app"))))
 

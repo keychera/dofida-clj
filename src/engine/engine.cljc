@@ -2,29 +2,35 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
+   #?(:cljs [systems.dev.leva-rules :as leva-rules])
+   [com.rpl.specter :as sp]
    [engine.esse :as esse]
    [engine.refresh :refer [*refresh?]]
-   [engine.world :as world]
    [engine.utils :as utils]
+   [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
    [play-cljc.gl.entities-2d :as entities-2d]
-   [play-cljc.transforms :as t]))
+   [play-cljc.transforms :as t]
+   [systems.dev.dev-only :as dev-only]
+   [systems.input :as input]
+   [systems.time :as time]
+   [systems.window :as window]))
 
 (defn update-window-size! [width height]
-  (swap! world/world* o/insert ::world/window {::world/width width ::world/height height}))
+  (swap! world/world* window/set-window width height))
 
 (defn update-mouse-coords! [x y]
-  (swap! world/world* o/insert ::world/mouse {::world/x x ::world/y y}))
+  (swap! world/world* input/insert-mouse x y))
 
 (defn compile-shader [game world*]
   (doseq [{:keys [esse-id compile-fn]} (o/query-all @world* ::world/compile-shader)]
     (swap! world* #(o/insert % esse-id ::esse/compiling-shader true))
     (let [compiled-shader (compile-fn game)]
       (swap! world* #(-> %
-                           (o/retract esse-id ::esse/compiling-shader)
-                           (o/insert esse-id ::esse/compiled-shader compiled-shader)
-                           (o/fire-rules))))))
+                         (o/retract esse-id ::esse/compiling-shader)
+                         (o/insert esse-id ::esse/compiled-shader compiled-shader)
+                         (o/fire-rules))))))
 
 (defn load-image [game world*]
   (doseq [{:keys [esse-id image-path]} (o/query-all @world* ::world/load-image)]
@@ -46,42 +52,55 @@
   (compile-shader game world*)
   (load-image game world*))
 
+(def all-systems
+  [window/system
+   input/system
+   dev-only/system
+   #?(:cljs leva-rules/system)
+   {::world/rules world/rules}])
+
+(apply concat (sp/select [sp/ALL ::world/rules] all-systems))
+
 (defn init [game]
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
-  (let [[game-width game-height] (utils/get-size game)]
-    (reset! world/world*
-            (-> world/dofida-world
-                (o/insert ::world/window
-                          {::world/width game-width
-                           ::world/height game-height})
-                (o/fire-rules)))
+  (let [[game-width game-height] (utils/get-size game)
+        all-rules (apply concat (sp/select [sp/ALL ::world/rules] all-systems))]
+    (swap! world/world*
+           (fn [world]
+             (-> (world/init-world world all-rules)
+                 (world/init-dofida)
+                 (window/set-window game-width game-height)
+                 (o/fire-rules))))
     (compile-all game world/world*)))
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
    :clear {:color [(/ 7 255) (/ 7 255) (/ 22 255) 1] :depth 1}})
 
+(defn make-limited-logger [limit]
+  (let [counter (atom 0)]
+    (fn [& args]
+      (when (< @counter limit)
+        (apply #?(:clj println :cljs js/console.error) args)
+        (swap! counter inc)))))
+
+(def log-once (make-limited-logger 24))
 
 (defn tick [game]
   (if @*refresh?
-    (try (println "calling (compile-all game)")
+    (try (println "calling (init game)")
          (swap! *refresh? not)
          (init game)
-         (compile-all game world/world*)
          (catch #?(:clj Exception :cljs js/Error) err
-           (println "compile-all error")
-           #?(:clj  (println err)
-              :cljs (js/console.error err))))
+           (log-once "init-error" err)))
     (try
       (let [{:keys [delta-time total-time]} game
             world (swap! world/world*
-                           #(-> %
-                                (o/insert ::world/time
-                                          {::world/total total-time
-                                           ::world/delta delta-time})
-                                o/fire-rules))
-            {game-width :width game-height :height} (first (o/query-all world ::world/window))
+                         #(-> %
+                              (time/insert total-time delta-time)
+                              o/fire-rules))
+            {game-width :width game-height :height} (first (o/query-all world ::window/window))
             shader-esses (o/query-all world ::world/shader-esse)
             sprite-esses (o/query-all world ::world/sprite-esse)]
         (when (and (pos? game-width) (pos? game-height))
@@ -101,7 +120,9 @@
                             (t/scale (:width current-sprite)
                                      (:height current-sprite))))))))
       (catch #?(:clj Exception :cljs js/Error) err
-        (println "tick error")
-        #?(:clj  (println err)
-           :cljs (js/console.error err)))))
+        (log-once "tick-error" err))))
   game)
+
+
+(comment
+  (o/query-all @world/world* ::input/mouse))

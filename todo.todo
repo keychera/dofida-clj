@@ -9,7 +9,7 @@ todo:
     ☐ macros s-> refactor
     ✔ build-java @done(25-08-25 06:45)
         ☐ make the shader and everything else works in java
-    ☐ world system
+    ✔ world system @done(25-08-25 21:16)
     ☐ esse/asset
 
 ☐ cube
