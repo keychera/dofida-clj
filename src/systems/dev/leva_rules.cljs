@@ -1,5 +1,6 @@
 (ns systems.dev.leva-rules
   (:require
+   [engine.macros :refer-macros [s->]]
    [clojure.spec.alpha :as s]
    [com.rpl.specter :as sp]
    [engine.esse :as esse]
@@ -31,8 +32,9 @@
       [esse-id ::esse/x esse-x {:then false}]
       [esse-id ::esse/y esse-y {:then false}]
       :then
-      (o/insert! esse-id {::esse/x (+ esse-x (* x 25)) ::esse/y (+ esse-y (* y 25))})]
-     
+      (s-> session
+           (o/insert esse-id {::esse/x (+ esse-x (* x 25)) ::esse/y (+ esse-y (* y 25))}))]
+
      ::shader-update
      [:what
       [::time/now ::time/total total-time]
@@ -43,10 +45,11 @@
       [::leva-color ::b b]
       [esse-id ::esse/compiled-shader compiled-shader {:then false}]
       :then
-      (o/insert! esse-id ::esse/compiled-shader
-                 (->> compiled-shader
-                      (sp/setval [:uniforms 'u_time] total-time)
-                      (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])
-                      (sp/setval [:uniforms 'u_sky_color] [(/ r 255) (/ g 255) (/ b 255)])))]})})
+      (s-> session
+           (o/insert esse-id ::esse/compiled-shader
+                     (->> compiled-shader
+                          (sp/setval [:uniforms 'u_time] total-time)
+                          (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])
+                          (sp/setval [:uniforms 'u_sky_color] [(/ r 255) (/ g 255) (/ b 255)]))))]})})
 
 
