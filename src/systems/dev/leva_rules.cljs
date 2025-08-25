@@ -48,7 +48,7 @@
       (s-> session
            (o/insert esse-id ::esse/compiled-shader
                      (->> compiled-shader
-                          (sp/setval [:uniforms 'u_time] total-time)
+                          (sp/setval [:uniforms 'u_time] (/ total-time 100))
                           (sp/setval [:uniforms 'u_mouse] [mouse-x mouse-x])
                           (sp/setval [:uniforms 'u_sky_color] [(/ r 255) (/ g 255) (/ b 255)]))))]})})
 

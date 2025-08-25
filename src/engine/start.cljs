@@ -1,25 +1,21 @@
 (ns engine.start
   (:require
-   [engine.engine :as engine]
-   [engine.world :as world]
-   [goog.events :as events]
-   [leva.core :as leva]
-   [odoyle.rules :as o]
-   [play-cljc.gl.core :as pc]
-   [reagent.dom.client :as rdomc]
-   [systems.dev.leva-rules :as leva-rules]))
+   [engine.engine :as engine] 
+   [goog.events :as events] 
+   [play-cljc.gl.core :as pc]))
 
-(defn msec->sec [n]
-  (* 0.001 n))
-
-(defn game-loop [game]
-  (let [game (engine/tick game)]
-    (js/requestAnimationFrame
-     (fn [ts]
-       (let [ts (msec->sec ts)]
-         (game-loop (assoc game
-                           :delta-time (- ts (:total-time game))
-                           :total-time ts)))))))
+(defn game-loop
+  ([game] (game-loop game nil))
+  ([game callback-fn]
+   (let [game (engine/tick game)]
+     (js/requestAnimationFrame
+      (fn [ts]
+        (let [ts ts]
+          (when callback-fn (callback-fn))
+          (game-loop (assoc game
+                            :delta-time (- ts (:total-time game))
+                            :total-time ts)
+                     callback-fn)))))))
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
@@ -76,36 +72,19 @@
                             (js/setTimeout #(resize context) 200))))] ; 200ms after last resize event
     (.observe observer canvas)))
 
-;; leva
-(defn main-panel []
-  [leva/Controls
-   {:folder {:name "Control"}
-    :schema {:color {:r 200 :g 120 :b 120
-                     :onChange (fn [{:keys [r g b]}]
-                                 (swap! world/world* o/insert ::leva-rules/leva-color
-                                        {::leva-rules/r r ::leva-rules/g g ::leva-rules/b b}))}
-             :point {:x 0 :y 0
-                     :onChange (fn [{:keys [x y]}]
-                                 (swap! world/world* o/insert ::leva-rules/leva-point
-                                        {::leva-rules/x x ::leva-rules/y y}))}}}])
-
-(defonce root (delay (rdomc/create-root (.getElementById js/document "app"))))
-
-(defn ^:export ^:dev/after-load run-reagent []
-  (rdomc/render @root [main-panel]))
-
 ;; start the game
-(defonce context
-  (let [canvas (js/document.querySelector "canvas")
-        context (.getContext canvas "webgl2" (clj->js {:alpha false}))
-        initial-game (assoc (pc/->game context)
-                            :delta-time 0
-                            :total-time (msec->sec (js/performance.now)))]
-    (engine/init initial-game)
-    (listen-for-mouse canvas)
-    (listen-for-keys)
-    (resize context)
-    (listen-for-resize context)
-    (run-reagent)
-    (game-loop initial-game)
-    context))
+(defn -main
+  ([] (-main nil))
+  ([loop-callback-fn]
+   (let [canvas (js/document.querySelector "canvas")
+         context (.getContext canvas "webgl2" (clj->js {:alpha false}))
+         initial-game (assoc (pc/->game context)
+                             :delta-time 0
+                             :total-time (js/performance.now))]
+     (engine/init initial-game)
+     (listen-for-mouse canvas)
+     (listen-for-keys)
+     (resize context)
+     (listen-for-resize context)
+     (game-loop initial-game loop-callback-fn)
+     context)))
