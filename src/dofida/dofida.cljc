@@ -2,10 +2,17 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
+   #?(:clj [engine.macros :refer [s->]]
+      :cljs [engine.macros :refer-macros [s->]])
+   [clojure.spec.alpha :as s]
+   [engine.esse :as esse]
    [engine.utils :as utils]
+   [engine.world :as world]
+   [odoyle.rules :as o]
+   [play-cljc.gl.core :as c]
+   [play-cljc.gl.entities-2d :as entities-2d]
    [play-cljc.math :as m]
-   [play-cljc.primitives-2d :as primitives]
-   [play-cljc.gl.entities-2d :as entities-2d]))
+   [play-cljc.primitives-2d :as primitives]))
 
 
 (def vertex-shader
@@ -85,9 +92,9 @@
                        (*= st.x (/ u_resolution.x u_resolution.y))
                        (=vec3 color (vec3 "0.0"))
 
-                       (+= color (* "0.7" (vec3 u_sky_color.r 
-                                                u_sky_color.g 
-                                                (mix (vec2 (- u_sky_color.b "0.2")) (vec2 (+ u_sky_color.b "0.2")) st)))) 
+                       (+= color (* "0.7" (vec3 u_sky_color.r
+                                                u_sky_color.g
+                                                (mix (vec2 (- u_sky_color.b "0.2")) (vec2 (+ u_sky_color.b "0.2")) st))))
 
                        (=vec2 smoke_pos (* st "2.0"))
                        (=float speed (/ u_time "16.0"))
@@ -118,7 +125,7 @@
     :outputs   '{o_color vec4}}
    random-fns noise-fn perlin-fn fbm-fn star-main-fn))
 
-(defn ->dofida [game]
+(defn ->sky [game]
   (let [[game-width game-height] (utils/get-size game)]
     (-> {:vertex     vertex-shader
          :fragment   fragment-shader
@@ -131,3 +138,50 @@
                       'u_resolution [game-width game-height]
                       'u_mouse      [0.0 0.0]}}
         (entities-2d/map->TwoDEntity))))
+
+(s/def ::x number?)
+(s/def ::y number?)
+
+(def system
+  {::world/init
+   (fn init-dofida [world]
+     (-> world
+         (o/insert :sky ::esse/shader-compile-fn
+                   (fn [game] (c/compile game (->sky game))))
+         (o/insert ::dofida (esse/->sprite 100 100 "dofida.png"))))
+
+   ::world/rules
+   (o/ruleset
+    {::sprite-esse
+     [:what
+      [esse-id ::esse/x x]
+      [esse-id ::esse/y y]
+      [esse-id ::esse/current-sprite current-sprite]]
+
+     ::shader-esse
+     [:what
+      [esse-id ::esse/compiled-shader compiled-shader]]
+
+     ::compile-shader
+     [:what
+      [esse-id ::esse/shader-compile-fn compile-fn]]
+
+     ::compiling-shader
+     [:what
+      [esse-id ::esse/shader-compile-fn compile-fn]
+      [esse-id ::esse/compiling-shader true]
+      :then
+      (s-> session
+           (o/retract esse-id ::esse/shader-compile-fn))]
+
+     ::load-image
+     [:what
+      [esse-id ::esse/image-to-load image-path]]
+
+     ::loading-image
+     [:what
+      [esse-id ::esse/image-to-load image-path]
+      [esse-id ::esse/loading-image true]
+      :then
+      (s-> session
+           (o/retract esse-id ::esse/image-to-load))]})})

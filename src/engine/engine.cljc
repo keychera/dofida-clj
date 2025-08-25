@@ -4,6 +4,7 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    #?(:cljs [systems.dev.leva-rules :as leva-rules])
    [com.rpl.specter :as sp]
+   [dofida.dofida :as dofida]
    [engine.esse :as esse]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
@@ -24,7 +25,7 @@
   (swap! world/world* input/insert-mouse x y))
 
 (defn compile-shader [game world*]
-  (doseq [{:keys [esse-id compile-fn]} (o/query-all @world* ::world/compile-shader)]
+  (doseq [{:keys [esse-id compile-fn]} (o/query-all @world* ::dofida/compile-shader)]
     (swap! world* #(o/insert % esse-id ::esse/compiling-shader true))
     (let [compiled-shader (compile-fn game)]
       (swap! world* #(-> %
@@ -33,7 +34,7 @@
                          (o/fire-rules))))))
 
 (defn load-image [game world*]
-  (doseq [{:keys [esse-id image-path]} (o/query-all @world* ::world/load-image)]
+  (doseq [{:keys [esse-id image-path]} (o/query-all @world* ::dofida/load-image)]
     (swap! world* #(o/insert % esse-id ::esse/loading-image true))
     (println "loading image" esse-id image-path)
     (utils/get-image
@@ -55,21 +56,20 @@
 (def all-systems
   [window/system
    input/system
+   dofida/system
    dev-only/system
-   #?(:cljs leva-rules/system)
-   {::world/rules world/rules}])
-
-(apply concat (sp/select [sp/ALL ::world/rules] all-systems))
+   #?(:cljs leva-rules/system)])
 
 (defn init [game]
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
   (let [[game-width game-height] (utils/get-size game)
-        all-rules (apply concat (sp/select [sp/ALL ::world/rules] all-systems))]
+        all-rules (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
+        all-init  (sp/select [sp/ALL ::world/init some?] all-systems)]
     (swap! world/world*
            (fn [world]
              (-> (world/init-world world all-rules)
-                 (world/init-dofida)
+                 (as-> w (reduce (fn [w init-fn] (init-fn w)) w all-init))
                  (window/set-window game-width game-height)
                  (o/fire-rules))))
     (compile-all game world/world*)))
@@ -101,8 +101,8 @@
                               (time/insert total-time delta-time)
                               o/fire-rules))
             {game-width :width game-height :height} (first (o/query-all world ::window/window))
-            shader-esses (o/query-all world ::world/shader-esse)
-            sprite-esses (o/query-all world ::world/sprite-esse)]
+            shader-esses (o/query-all world ::dofida/shader-esse)
+            sprite-esses (o/query-all world ::dofida/sprite-esse)]
         (when (and (pos? game-width) (pos? game-height))
           (c/render game (-> screen-entity
                              (update :viewport assoc :width game-width :height game-height)))

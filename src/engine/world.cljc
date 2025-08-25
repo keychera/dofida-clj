@@ -1,10 +1,7 @@
 (ns engine.world
   (:require
-   [clojure.spec.alpha :as s]
-   [dofida.dofida :as dofida]
-   [engine.esse :as esse]
-   [odoyle.rules :as o]
-   [play-cljc.gl.core :as c]))
+   [clojure.spec.alpha :as s] 
+   [odoyle.rules :as o]))
 
 (defonce world* (atom nil))
 
@@ -33,49 +30,6 @@
                 (fn [f session]
                   ;; (println :then-finally (:name rule))
                   (f session))}))
-
-(s/def ::x number?)
-(s/def ::y number?)
-
-(def rules
-  (o/ruleset
-   {::sprite-esse
-    [:what
-     [esse-id ::esse/x x]
-     [esse-id ::esse/y y]
-     [esse-id ::esse/current-sprite current-sprite]]
-
-    ::shader-esse
-    [:what
-     [esse-id ::esse/compiled-shader compiled-shader]]
-
-    ::compile-shader
-    [:what
-     [esse-id ::esse/shader-compile-fn compile-fn]]
-
-    ::compiling-shader
-    [:what
-     [esse-id ::esse/shader-compile-fn compile-fn]
-     [esse-id ::esse/compiling-shader true]
-     :then
-     (o/retract! esse-id ::esse/shader-compile-fn)]
-
-    ::load-image
-    [:what
-     [esse-id ::esse/image-to-load image-path]]
-
-    ::loading-image
-    [:what
-     [esse-id ::esse/image-to-load image-path]
-     [esse-id ::esse/loading-image true]
-     :then
-     (o/retract! esse-id ::esse/image-to-load)]}))
-
-(defn init-dofida [session]
-  (-> session
-      (o/insert :dofida ::esse/shader-compile-fn
-                (fn [game] (c/compile game (dofida/->dofida game))))
-      (o/insert ::dofida2 (esse/->sprite 100 100 "dofida.png"))))
 
 (defonce ^:devonly previous-rules (atom nil))
 
