@@ -63,7 +63,7 @@
 
 (defn init [game]
   (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
+  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
   (let [[game-width game-height] (utils/get-size game)
         all-rules (apply concat (sp/select [sp/ALL ::world/rules] all-systems))]
     (swap! world/world*
@@ -76,7 +76,7 @@
 
 (def screen-entity
   {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 7 255) (/ 7 255) (/ 22 255) 1] :depth 1}})
+   :clear {:color [(/ 242 255) (/ 242 255) (/ 248 255) 1] :depth 1}})
 
 (defn make-limited-logger [limit]
   (let [counter (atom 0)]

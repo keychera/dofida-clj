@@ -97,7 +97,7 @@
 ;; start the game
 (defonce context
   (let [canvas (js/document.querySelector "canvas")
-        context (.getContext canvas "webgl2")
+        context (.getContext canvas "webgl2" (clj->js {:alpha false}))
         initial-game (assoc (pc/->game context)
                             :delta-time 0
                             :total-time (msec->sec (js/performance.now)))]

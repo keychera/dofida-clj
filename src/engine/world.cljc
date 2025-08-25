@@ -71,16 +71,11 @@
      :then
      (o/retract! esse-id ::esse/image-to-load)]}))
 
-
-(def initial-session (->> rules (map #'wrap-fn) (reduce o/add-rule (o/->session))))
-
 (defn init-dofida [session]
   (-> session
       (o/insert :dofida ::esse/shader-compile-fn
                 (fn [game] (c/compile game (dofida/->dofida game))))
-      (o/insert ::dofida2 (esse/->sprite 100 100 "dofida2.png"))
-      (o/insert ::dofida3 (esse/->sprite 222 200 "dofida2.png"))
-      (o/insert ::dofida4 (esse/->sprite 450 300 "dofida2.png"))))
+      (o/insert ::dofida2 (esse/->sprite 100 100 "dofida.png"))))
 
 (defonce ^:devonly previous-rules (atom nil))
 
