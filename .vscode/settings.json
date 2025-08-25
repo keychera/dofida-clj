@@ -4,7 +4,6 @@
             "name": "play-cljc repl",
             "projectType": "deps.edn",
             "cljsType": "shadow-cljs",
-            "autoSelectForJackIn": true,
             "menuSelections": {
                 "cljAliases": [
                     "shadow-cljs"

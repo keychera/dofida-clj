@@ -27,4 +27,7 @@
  :aliases {:shadow-cljs {:extra-deps {thheller/shadow-cljs {:mvn/version "3.1.7"}
                                       org.mentat/leva.cljs {:mvn/version "0.3.0"}}}
            :build {:deps {io.github.clojure/tools.build {:git/tag "v0.10.10" :git/sha "deedd62"}}
-                   :ns-default build}}}
+                   :ns-default build}
+           :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.57.0"}
+                               org.clojure/tools.namespace {:mvn/version "1.5.0"}}
+                  :main-opts ["-m" "engine.start-dev"]}}}

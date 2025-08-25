@@ -1,6 +1,7 @@
 (ns engine.start
   (:require [engine.engine :as engine]
-            [play-cljc.gl.core :as pc])
+            [play-cljc.gl.core :as pc]
+            [systems.window :as window])
   (:import  [org.lwjgl.glfw GLFW Callbacks
              GLFWCursorPosCallbackI GLFWKeyCallbackI GLFWMouseButtonCallbackI
              GLFWCharCallbackI GLFWFramebufferSizeCallbackI GLFWWindowCloseCallbackI
@@ -122,6 +123,8 @@
          (System/exit 0))))))
 
 (defn ->window []
+  (GLFW/glfwSetErrorCallback
+   (org.lwjgl.glfw.GLFWErrorCallback/createPrint System/err))
   (when-not (GLFW/glfwInit)
     (throw (Exception. "Unable to initialize GLFW")))
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
@@ -138,25 +141,30 @@
       (->Window window))
     (throw (Exception. "Failed to create window"))))
 
-(defn start [game window]
-  (let [handle (:handle window)
-        game (assoc game :delta-time 0 :total-time (GLFW/glfwGetTime))]
-    (GLFW/glfwShowWindow handle)
-    (engine/init game)
-    (listen-for-events window)
-    (loop [game game]
-      (when-not (GLFW/glfwWindowShouldClose handle)
-        (let [ts (GLFW/glfwGetTime)
-              game (assoc game
-                          :delta-time (- ts (:total-time game))
-                          :total-time ts)
-              game (on-tick window game)]
-          (GLFW/glfwSwapBuffers handle)
-          (GLFW/glfwPollEvents)
-          (recur game))))
-    (Callbacks/glfwFreeCallbacks handle)
-    (GLFW/glfwDestroyWindow handle)
-    (GLFW/glfwTerminate)))
+(defn start
+  ([game window] (start game window nil))
+  ([game window stop-flag*]
+   (let [handle (:handle window)
+         game (assoc game :delta-time 0 :total-time (GLFW/glfwGetTime))]
+     (GLFW/glfwShowWindow handle)
+     (engine/init game)
+     (listen-for-events window)
+     (println "game loop starting...")
+     (loop [game game]
+       (when-not (or (GLFW/glfwWindowShouldClose handle)
+                     (and (some? stop-flag*) @stop-flag*))
+         (let [ts (GLFW/glfwGetTime)
+               game (assoc game
+                           :delta-time (- ts (:total-time game))
+                           :total-time ts)
+               game (on-tick window game)]
+           (GLFW/glfwSwapBuffers handle)
+           (GLFW/glfwPollEvents)
+           (recur game))))
+     (println "game loop ending...")
+     (Callbacks/glfwFreeCallbacks handle)
+     (GLFW/glfwDestroyWindow handle)
+     (GLFW/glfwTerminate))))
 
 (defn -main [& args]
   (let [window (->window)]
