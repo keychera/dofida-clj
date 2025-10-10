@@ -2,127 +2,100 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   #?(:cljs [systems.dev.leva-rules :as leva-rules])
-   [com.rpl.specter :as sp]
-   [dofida.dofida :as dofida]
-   [engine.esse :as esse]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
-   [engine.world :as world]
-   [odoyle.rules :as o]
+   [iglu.core :as iglu]
    [play-cljc.gl.core :as c]
-   [play-cljc.gl.entities-2d :as entities-2d]
-   [play-cljc.transforms :as t]
-   [systems.dev.dev-only :as dev-only]
-   [systems.input :as input]
-   [systems.time :as time]
-   [systems.window :as window]))
+   [play-cljc.gl.utils :as gl-utils]))
 
-(defn update-window-size! [width height]
-  (swap! world/world* window/set-window width height))
+;; from the very beginning https://www.opengl-tutorial.org/beginners-tutorials/tutorial-2-the-first-triangle/#shaders
 
-(defn update-mouse-coords! [x y]
-  (swap! world/world* input/insert-mouse x y))
+(def glsl-version #?(:clj "330" :cljs "300 es"))
 
-(defn compile-shader [game world*]
-  (doseq [{:keys [esse-id compile-fn]} (o/query-all @world* ::dofida/compile-shader)]
-    (swap! world* #(o/insert % esse-id ::esse/compiling-shader true))
-    (let [compiled-shader (compile-fn game)]
-      (swap! world* #(-> %
-                         (o/retract esse-id ::esse/compiling-shader)
-                         (o/insert esse-id ::esse/compiled-shader compiled-shader)
-                         (o/fire-rules))))))
+(defn ->game [context]
+  (merge
+   (c/->game context)
+   {::naive (volatile! {})}))
 
-(defn load-image [game world*]
-  (doseq [{:keys [esse-id image-path]} (o/query-all @world* ::dofida/load-image)]
-    (swap! world* #(o/insert % esse-id ::esse/loading-image true))
-    (println "loading image" esse-id image-path)
-    (utils/get-image
-     image-path
-     (fn [{:keys [data width height]}]
-       (let [image-entity (entities-2d/->image-entity game data width height)
-             image-entity (c/compile game image-entity)
-             loaded-image (assoc image-entity :width width :height height)]
-         (swap! world*
-                #(-> %
-                     (o/retract esse-id ::esse/loading-image)
-                     (o/insert esse-id ::esse/current-sprite loaded-image)
-                     (o/fire-rules))))))))
+(def triangle-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [-1.0 -1.0 0.0
+    1.0 -1.0 0.0
+    0.0  1.0 0.0]))
 
-(defn compile-all [game world*]
-  (compile-shader game world*)
-  (load-image game world*))
+(def vertex-shader
+  {:precision  "mediump float"
+   :inputs     '{a_vertex_pos vec3}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= gl_Position (vec4 a_vertex_pos "1.0")))}})
 
-(def all-systems
-  [window/system
-   input/system
-   dofida/system
-   dev-only/system
-   #?(:cljs leva-rules/system)])
+(def fragment-shader
+  {:precision  "mediump float"
+   :outputs    '{o_color vec4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([] (= o_color (vec4 "1.0")))}})
 
 (defn init [game]
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-  (let [[game-width game-height] (utils/get-size game)
-        all-rules (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
-        all-init  (sp/select [sp/ALL ::world/init some?] all-systems)]
-    (swap! world/world*
-           (fn [world]
-             (-> (world/init-world world all-rules)
-                 (as-> w (reduce (fn [w init-fn] (init-fn w)) w all-init))
-                 (window/set-window game-width game-height)
-                 (o/fire-rules))))
-    (compile-all game world/world*)))
 
-(def screen-entity
-  {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 242 255) (/ 242 255) (/ 248 255) 1] :depth 1}})
+  (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
+    (vswap! (::naive game) assoc :vao vao))
 
-(defn make-limited-logger [limit]
-  (let [counter (atom 0)]
-    (fn [& args]
-      (when (< @counter limit)
-        (apply #?(:clj println :cljs js/console.error) args)
-        (swap! counter inc)))))
+  (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
+        fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
+        triangle-program (gl-utils/create-program game vertex-source fragment-source)
+        triangle-buffer  (gl-utils/create-buffer game)
+        _                (gl game bindBuffer (gl game ARRAY_BUFFER) triangle-buffer)
+        _                (gl game bufferData (gl game ARRAY_BUFFER) triangle-data (gl game STATIC_DRAW))
+        attr-name        (-> vertex-shader :inputs keys first str)
+        vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)]
+    (vswap! (::naive game) assoc
+            :program  triangle-program
+            :vbo      triangle-buffer
+            :loc      vertex-attr-loc)))
 
-(def log-once (make-limited-logger 24))
+#?(:cljs
+   (defn make-limited-logger [limit]
+     (let [counter (atom 0)]
+       (fn [err & args]
+         (let [messages (apply str args)]
+           (when (< @counter limit)
+             (js/console.error (.-stack err))
+             (swap! counter inc))
+           (when (= @counter limit)
+             (println "[SUPRESSED]" messages)
+             (swap! counter inc)))))))
+
+#?(:cljs (def log-once (make-limited-logger 4)))
 
 (defn tick [game]
   (if @*refresh?
     (try (println "calling (init game)")
          (swap! *refresh? not)
          (init game)
-         (catch #?(:clj Exception :cljs js/Error) err
-           (log-once "init-error" err)))
+         #?(:clj  (catch Exception err (throw err))
+            :cljs (catch js/Error err (log-once err "[init-error] "))))
     (try
-      (let [{:keys [delta-time total-time]} game
-            world (swap! world/world*
-                         #(-> %
-                              (time/insert total-time delta-time)
-                              o/fire-rules))
-            {game-width :width game-height :height} (first (o/query-all world ::window/window))
-            shader-esses (o/query-all world ::dofida/shader-esse)
-            sprite-esses (o/query-all world ::dofida/sprite-esse)]
-        (when (and (pos? game-width) (pos? game-height))
-          (c/render game (-> screen-entity
-                             (update :viewport assoc :width game-width :height game-height)))
-          (doseq [shader-esse shader-esses]
-            (c/render game (-> (:compiled-shader shader-esse)
-                               (t/project 1 1) ;; still not sure why this work
-                               (t/translate 0 0.1)
-                               (t/scale 1 0.8))))
-          (doseq [sprite-esse sprite-esses]
-            (let [{:keys [x y current-sprite]} sprite-esse]
-              (c/render game
-                        (-> current-sprite
-                            (t/project game-width game-height)
-                            (t/translate x y)
-                            (t/scale (:width current-sprite)
-                                     (:height current-sprite))))))))
-      (catch #?(:clj Exception :cljs js/Error) err
-        (log-once "tick-error" err))))
+      (let [{:keys [::naive]} game
+            {:keys [vao program vbo loc]} @naive
+            [game-width game-height] (utils/get-size game)]
+        (gl game viewport 0 0 game-width game-height)
+
+        
+        (gl game bindVertexArray vao)
+
+        ;; triangle
+        (gl game useProgram program)
+        (gl game enableVertexAttribArray loc)
+        (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
+        (gl game vertexAttribPointer loc 3 (gl game FLOAT) false 0 0)
+        (gl game drawArrays (gl game TRIANGLES) 0 3)
+        (gl game disableVertexAttribArray loc))
+      
+      #?(:clj  (catch Exception err (throw err))
+         :cljs (catch js/Error err (log-once err "[init-error] ")))))
   game)
-
-
-(comment
-  (o/query-all @world/world* ::input/mouse))

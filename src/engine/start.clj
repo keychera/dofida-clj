@@ -1,7 +1,5 @@
 (ns engine.start
-  (:require [engine.engine :as engine]
-            [play-cljc.gl.core :as pc]
-            [systems.window :as window])
+  (:require [engine.engine :as engine])
   (:import  [org.lwjgl.glfw GLFW Callbacks
              GLFWCursorPosCallbackI GLFWKeyCallbackI GLFWMouseButtonCallbackI
              GLFWCharCallbackI GLFWFramebufferSizeCallbackI GLFWWindowCloseCallbackI
@@ -34,8 +32,7 @@
     (MemoryUtil/memFree *fb-width)
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
-    (MemoryUtil/memFree *window-height)
-    (engine/update-mouse-coords! x y)))
+    (MemoryUtil/memFree *window-height)))
 
 (defn on-mouse-click! [window button action mods]
   #_(swap! engine/*state assoc :mouse-button (when (= action GLFW/GLFW_PRESS)
@@ -58,8 +55,7 @@
 
 (defn on-char! [window codepoint])
 
-(defn on-resize! [window width height]
-  (engine/update-window-size! width height))
+(defn on-resize! [window width height])
 
 (defn on-scroll! [window xoffset yoffset])
 
@@ -133,7 +129,7 @@
   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL33/GL_TRUE)
   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
-  (if-let [window (GLFW/glfwCreateWindow 1024 768 "Hello, world!" 0 0)]
+  (if-let [window (GLFW/glfwCreateWindow 1024 768 "Hello, dofida!" 0 0)]
     (do
       (GLFW/glfwMakeContextCurrent window)
       (GLFW/glfwSwapInterval 1)
@@ -168,5 +164,5 @@
 
 (defn -main [& args]
   (let [window (->window)]
-    (start (pc/->game (:handle window)) window)))
+    (start (engine/->game (:handle window)) window)))
 
