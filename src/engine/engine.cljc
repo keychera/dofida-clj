@@ -36,7 +36,7 @@
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (vec4 "1.0")))}})
+   '{main ([] (= o_color (vec4 "1.0" "0.15" "0.15" "1.0")))}})
 
 (defn init [game]
   (gl game enable (gl game BLEND))

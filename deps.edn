@@ -33,5 +33,8 @@
                                        io.github.spair/imgui-java-binding         {:mvn/version "1.89.0"}
                                        io.github.spair/imgui-java-lwjgl3          {:mvn/version "1.89.0"}
                                        io.github.spair/imgui-java-natives-windows {:mvn/version "1.89.0"}}}
-           :build {:deps {io.github.clojure/tools.build {:git/tag "v0.10.10" :git/sha "deedd62"}}
-                   :ns-default build}}}
+           :build       {:deps {io.github.clojure/tools.build {:git/tag "v0.10.10" :git/sha "deedd62"}}
+                         :ns-default build}
+           :serve       {:deps      {io.github.babashka/http-server {:git/sha "6964d9edb1c7b2ea767f30136da0c658e0a98a44"}}
+                         :main-opts ["-m" "babashka.http-server"]
+                         :exec-fn   babashka.http-server/exec}}}
