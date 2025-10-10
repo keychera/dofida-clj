@@ -44,3 +44,17 @@
              [w h])
      :cljs [(-> game :context .-canvas .-clientWidth)
             (-> game :context .-canvas .-clientHeight)]))
+
+#?(:cljs
+   (defn make-limited-logger [limit]
+     (let [counter (atom 0)]
+       (fn [err & args]
+         (let [messages (apply str args)]
+           (when (< @counter limit)
+             (js/console.error (.-stack err))
+             (swap! counter inc))
+           (when (= @counter limit)
+             (println "[SUPRESSED]" messages)
+             (swap! counter inc)))))))
+
+#?(:cljs (def log-limited (make-limited-logger 8)))

@@ -6,9 +6,10 @@
    [engine.utils :as utils]
    [iglu.core :as iglu]
    [play-cljc.gl.core :as c]
-   [play-cljc.gl.utils :as gl-utils]))
+   [play-cljc.gl.utils :as gl-utils]
+   [play-cljc.math :as m]))
 
-;; from the very beginning https://www.opengl-tutorial.org/beginners-tutorials/tutorial-2-the-first-triangle/#shaders
+;; from the very beginning https://www.opengl-tutorial.org/beginners-tutorials/tutorial-3-matrices/
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
 
@@ -26,17 +27,18 @@
 (def vertex-shader
   {:precision  "mediump float"
    :inputs     '{a_vertex_pos vec3}
+   :uniforms   '{mvp mat4}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (= gl_Position (vec4 a_vertex_pos "1.0")))}})
+           (= gl_Position (* mvp (vec4 a_vertex_pos "1.0"))))}})
 
 (def fragment-shader
   {:precision  "mediump float"
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (vec4 "1.0" "0.15" "0.15" "1.0")))}})
+   '{main ([] (= o_color (vec4 "0.42" "1.0" "0.69" "1.0")))}})
 
 (defn init [game]
   (gl game enable (gl game BLEND))
@@ -52,25 +54,17 @@
         _                (gl game bindBuffer (gl game ARRAY_BUFFER) triangle-buffer)
         _                (gl game bufferData (gl game ARRAY_BUFFER) triangle-data (gl game STATIC_DRAW))
         attr-name        (-> vertex-shader :inputs keys first str)
-        vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)]
+        vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)
+        uniform-name     (-> vertex-shader :uniforms keys first str)
+        uniform-loc      (gl game getUniformLocation triangle-program uniform-name)]
     (vswap! (::naive game) assoc
-            :program  triangle-program
-            :vbo      triangle-buffer
-            :loc      vertex-attr-loc)))
+            :program     triangle-program
+            :vbo         triangle-buffer
+            :attr-loc    vertex-attr-loc
+            :uniform-loc uniform-loc)))
 
-#?(:cljs
-   (defn make-limited-logger [limit]
-     (let [counter (atom 0)]
-       (fn [err & args]
-         (let [messages (apply str args)]
-           (when (< @counter limit)
-             (js/console.error (.-stack err))
-             (swap! counter inc))
-           (when (= @counter limit)
-             (println "[SUPRESSED]" messages)
-             (swap! counter inc)))))))
-
-#?(:cljs (def log-once (make-limited-logger 4)))
+;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
+;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
 
 (defn tick [game]
   (if @*refresh?
@@ -78,24 +72,31 @@
          (swap! *refresh? not)
          (init game)
          #?(:clj  (catch Exception err (throw err))
-            :cljs (catch js/Error err (log-once err "[init-error] "))))
+            :cljs (catch js/Error err (utils/log-limited err "[init-error]"))))
     (try
-      (let [{:keys [::naive]} game
-            {:keys [vao program vbo loc]} @naive
-            [game-width game-height] (utils/get-size game)]
-        (gl game viewport 0 0 game-width game-height)
+      (let [[game-width game-height] (utils/get-size game)
+            {:keys [total-time ::naive]} game
+            {:keys [vao program vbo attr-loc uniform-loc]} @naive 
 
+            aspect-ratio (/ game-width game-height)
+            projection   (m/perspective-matrix-3d (m/deg->rad 45) aspect-ratio 0.1 100)
+            camera       (m/look-at-matrix-3d [(Math/sin (* total-time 0.002)) 4 3] [0 0 0] [0 1 0])
+            view         (m/inverse-matrix-3d camera)
+            p*v          (m/multiply-matrices-3d view projection)
+            mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) p*v)]
         
+        (gl game viewport 0 0 game-width game-height)
         (gl game bindVertexArray vao)
 
         ;; triangle
         (gl game useProgram program)
-        (gl game enableVertexAttribArray loc)
+        (gl game enableVertexAttribArray attr-loc)
         (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
-        (gl game vertexAttribPointer loc 3 (gl game FLOAT) false 0 0)
+        (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
+        (gl game uniformMatrix4fv uniform-loc false mvp)
         (gl game drawArrays (gl game TRIANGLES) 0 3)
-        (gl game disableVertexAttribArray loc))
-      
+        (gl game disableVertexAttribArray attr-loc))
+
       #?(:clj  (catch Exception err (throw err))
-         :cljs (catch js/Error err (log-once err "[init-error] ")))))
+         :cljs (catch js/Error err (utils/log-limited err "[tick-error]")))))
   game)
