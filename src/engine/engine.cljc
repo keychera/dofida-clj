@@ -204,10 +204,12 @@
 
             aspect-ratio (/ game-width game-height)
             projection   (m/perspective-matrix-3d (m/deg->rad 45) aspect-ratio 0.1 100)
-            camera       (m/look-at-matrix-3d [(Math/sin (* total-time 0.005)) 4 3] [0 0 0] [0 1 0])
+            camera       (m/look-at-matrix-3d [(Math/sin (* total-time 0.002)) 4 3] [0 0 0] [0 1 0])
             view         (m/inverse-matrix-3d camera)
             p*v          (m/multiply-matrices-3d view projection)
             mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) p*v)]
+        
+        (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 game-width game-height)
         (gl game bindVertexArray vao)
 
@@ -240,7 +242,7 @@
           (gl game uniformMatrix4fv cube-uniform-loc false mvp)
           (gl game drawArrays (gl game TRIANGLES) 0 (* 3 12))
           (gl game disableVertexAttribArray cube-attr-loc)))
-
+      
       #?(:clj  (catch Exception err (throw err))
          :cljs (catch js/Error err (utils/log-limited err "[tick-error]")))))
   (def hmm game)
