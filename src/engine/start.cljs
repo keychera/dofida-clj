@@ -1,7 +1,17 @@
 (ns engine.start
   (:require
    [engine.engine :as engine]
-   [goog.events :as events]))
+   [engine.world :as world]
+   [goog.events :as events]
+   [rules.interface.input :as input]))
+
+(def world-queue (atom #queue []))
+
+(defn update-world [game]
+  (when (seq @world-queue)
+    (let [world-fn (peek @world-queue)]
+      (swap! world-queue pop)
+      (swap! (::world/atom* game) world-fn))))
 
 (defn game-loop
   ([game] (game-loop game nil))
@@ -27,7 +37,8 @@
                  (fn [event]
                    (let [bounds (.getBoundingClientRect canvas)
                          x (- (.-clientX event) (.-left bounds))
-                         y (- (.-clientY event) (.-top bounds))])))
+                         y (- (.-clientY event) (.-top bounds))]
+                     (swap! world-queue conj (fn mouse-move [w] (input/update-mouse-pos w x y))))))
   (events/listen js/window "mousedown"
                  (fn [event]))
   (events/listen js/window "mouseup"
@@ -79,5 +90,11 @@
      (listen-for-keys)
      (resize context)
      (listen-for-resize context)
-     (game-loop initial-game config)
+     (game-loop initial-game
+                (update config
+                        ::callback-fn
+                        (fn callback-fn [afn]
+                          (fn [game]
+                            (when afn (afn game))
+                            (update-world game)))))
      context)))

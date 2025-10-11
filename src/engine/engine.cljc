@@ -2,28 +2,26 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
+   [com.rpl.specter :as sp]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
+   [engine.world :as world]
    [iglu.core :as iglu]
+   [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
    [play-cljc.gl.utils :as gl-utils]
-   [play-cljc.math :as m]))
+   [play-cljc.math :as m]
+   [rules.interface.input :as input]))
 
-;; from the very beginning https://www.opengl-tutorial.org/beginners-tutorials/tutorial-3-matrices/
+;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
-
-(defn ->game [context]
-  (merge
-   (c/->game context)
-   {::naive (volatile! {})}))
 
 (def triangle-data
   (#?(:clj float-array :cljs #(js/Float32Array. %))
    [-1.0 -1.0 0.0
     1.0 -1.0 0.0
     0.0  1.0 0.0]))
-
 
 (def vertex-shader
   {:precision  "mediump float"
@@ -161,12 +159,34 @@
            ("if" (> uv.x "0.001") (= o_color (texture textureSampler uv)))
            ("else" (= o_color (vec4 "1.0" "1.0" "1.0" "0.2"))))}})
 
+(defn ->game [context]
+  (merge
+   (c/->game context)
+   {::global* (atom {})}
+   (world/->init)))
+
+(def all-systems
+  [input/system])
+
 (defn init [game]
   (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA)) 
+
+  (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
+        all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
+        reload-fns (sp/select [sp/ALL ::world/reload-fn some?] all-systems)
+        render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)]
+
+    (swap! (::world/init-cnt* game) inc)
+    (swap! (::global* game) assoc ::render-fns render-fns)
+    (swap! (::world/atom* game)
+           (fn [world]
+             (-> (world/init-world world game all-rules reload-fns)
+                 (as-> w (reduce (fn [w' init-fn] (init-fn w' game)) w all-init))
+                 (o/fire-rules)))))
 
   (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
-    (vswap! (::naive game) assoc :vao vao))
+    (swap! (::global* game) assoc :vao vao))
 
   (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
         fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
@@ -178,11 +198,11 @@
         vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)
         uniform-name     (-> vertex-shader :uniforms keys first str)
         uniform-loc      (gl game getUniformLocation triangle-program uniform-name)]
-    (vswap! (::naive game) assoc
-            :program     triangle-program
-            :vbo         triangle-buffer
-            :attr-loc    vertex-attr-loc
-            :uniform-loc uniform-loc))
+    (swap! (::global* game) assoc
+           :program     triangle-program
+           :vbo         triangle-buffer
+           :attr-loc    vertex-attr-loc
+           :uniform-loc uniform-loc))
 
   (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
         fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
@@ -196,11 +216,11 @@
 
         uniform-name     (-> cube-vertex-shader :uniforms keys first str)
         uniform-loc      (gl game getUniformLocation cube-program uniform-name)]
-    (vswap! (::naive game) assoc
-            :cube-program     cube-program
-            :cube-vbo         cube-buffer
-            :cube-attr-loc    vertex-attr-loc
-            :cube-uniform-loc uniform-loc)
+    (swap! (::global* game) assoc
+           :cube-program     cube-program
+           :cube-vbo         cube-buffer
+           :cube-attr-loc    vertex-attr-loc
+           :cube-uniform-loc uniform-loc)
 
     (utils/get-image
      "dofida.png"
@@ -233,31 +253,63 @@
          (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
          (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
 
-         (vswap! (::naive game) assoc
-                 :uv-buffer uv-buffer
-                 :uv-attr-loc uv-attr-loc
-                 :texture-unit texture-unit
-                 :texture texture
-                 :texture-loc texture-loc))))))
+         (swap! (::global* game) assoc
+                :uv-buffer uv-buffer
+                :uv-attr-loc uv-attr-loc
+                :texture-unit texture-unit
+                :texture texture
+                :texture-loc texture-loc))))))
 
 ;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
 ;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
 
 (defn tick [game]
+  (def hmm game)
   (if @*refresh?
     (try (println "calling (init game)")
          (swap! *refresh? not)
          (init game)
+         game
          #?(:clj  (catch Exception err (throw err))
-            :cljs (catch js/Error err (utils/log-limited err "[init-error]"))))
+            :cljs (catch js/Error err 
+                    (utils/log-limited err "[init-error]")
+                    game)))
     (try
       (let [[game-width game-height] (utils/get-size game)
-            {:keys [total-time ::naive]} game
-            {:keys [vao]} @naive
+            {:keys [delta-time 
+                    horiz-angle verti-angle
+                    prev-mouse-x prev-mouse-y
+                    ::global*]
+             :or {horiz-angle Math/PI
+                  verti-angle 0.0
+                  prev-mouse-x 0
+                  prev-mouse-y 0}} game
+            {:keys [vao]} @global*
+
+            world (swap! (::world/atom* game)
+                         #(-> %
+                              o/fire-rules))
+
+            position [0 0 0 ]
+            initial-fov (m/deg->rad 45)
+            mouse-speed 0.0005
+
+            {:keys [mouse-x mouse-y]} (first (o/query-all world ::input/mouse))
+            horiz-angle (+ horiz-angle (* mouse-speed delta-time (- prev-mouse-x (or mouse-x prev-mouse-x))))
+            verti-angle (+ verti-angle (* mouse-speed delta-time (- prev-mouse-y (or mouse-y prev-mouse-y))))
+            direction   [(* (Math/cos verti-angle) (Math/sin horiz-angle))
+                         (Math/sin verti-angle)
+                         (* (Math/cos verti-angle) (Math/cos horiz-angle))]
+            
+            right       [(Math/sin (- horiz-angle (/ Math/PI 2)))
+                         0
+                         (Math/cos (- horiz-angle (/ Math/PI 2)))]
+            
+            up           (#'m/cross right direction)
 
             aspect-ratio (/ game-width game-height)
-            projection   (m/perspective-matrix-3d (m/deg->rad 45) aspect-ratio 0.1 100)
-            camera       (m/look-at-matrix-3d [2 4 3] [0 0 0] [0 1 0])
+            projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+            camera       (m/look-at-matrix-3d [2 4 3] (mapv + position direction) up)
             view         (m/inverse-matrix-3d camera)
             p*v          (m/multiply-matrices-3d view projection)
             mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) p*v)]
@@ -267,7 +319,7 @@
         (gl game bindVertexArray vao)
 
         ;; triangle
-        (let [{:keys [program vbo attr-loc uniform-loc]} @naive]
+        (let [{:keys [program vbo attr-loc uniform-loc]} @global*]
 
           (gl game useProgram program)
           (gl game enableVertexAttribArray attr-loc)
@@ -283,7 +335,7 @@
                       cube-uniform-loc
 
                       uv-attr-loc uv-buffer
-                      texture-loc texture-unit texture]} @naive]
+                      texture-loc texture-unit texture]} @global*]
           (when (and uv-attr-loc uv-buffer)
             (gl game useProgram cube-program)
 
@@ -302,13 +354,18 @@
             (gl game uniform1i texture-loc texture-unit)
 
             (gl game drawArrays (gl game TRIANGLES) 0 (* 3 12))
-            (gl game disableVertexAttribArray cube-attr-loc))))
+            (gl game disableVertexAttribArray cube-attr-loc)))
+            
+            (assoc game
+                   :horiz-angle horiz-angle 
+                   :verti-angel verti-angle
+                   :prev-mouse-x (or mouse-x prev-mouse-x)
+                   :prev-mouse-y (or mouse-y prev-mouse-y)))
 
       #?(:clj  (catch Exception err (throw err))
-         :cljs (catch js/Error err (utils/log-limited err "[tick-error]")))))
-  (def hmm game)
-  game)
-
+         :cljs (catch js/Error err
+                 (utils/log-limited err "[tick-error]")
+                 game)))))
 
 (comment
   (let [game hmm
@@ -320,4 +377,8 @@
      (gl game getParameter (gl game MAX_VERTEX_TEXTURE_IMAGE_UNITS))
      (gl game getParameter (gl game MAX_COMBINED_TEXTURE_IMAGE_UNITS))
      (gl game TEXTURE0)
-     (gl game getUniformLocation cube-program "textureSampler")]))
+     (gl game getUniformLocation cube-program "textureSampler")])
+  
+  
+  (let [world @(::world/atom* hmm)]
+    (o/query-all world ::input/mouse)))

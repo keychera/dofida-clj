@@ -29,6 +29,11 @@
           (throw (ex-info (expound/expound-str ::system ~m) {}))
           ~m))))
 
+(defn ->init []
+  {::atom*       (atom nil)
+   ::prev-rules* (atom nil)
+   ::init-cnt*   (atom 0)})
+
 (defn rules-debugger-wrap-fn [rule]
   (o/wrap-rule rule
                {:what

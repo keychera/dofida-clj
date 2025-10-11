@@ -1,12 +1,30 @@
 (ns engine.start
-  (:require [engine.engine :as engine])
-  (:import  [org.lwjgl.glfw GLFW Callbacks
-             GLFWCursorPosCallbackI GLFWKeyCallbackI GLFWMouseButtonCallbackI
-             GLFWCharCallbackI GLFWFramebufferSizeCallbackI GLFWWindowCloseCallbackI
-             GLFWScrollCallbackI]
-            [org.lwjgl.opengl GL GL33]
-            [org.lwjgl.system MemoryUtil])
+  (:require
+   [engine.engine :as engine]
+   [engine.world :as world]
+   [rules.interface.input :as input])
+  (:import
+   [org.lwjgl.glfw
+    Callbacks
+    GLFW
+    GLFWCharCallbackI
+    GLFWCursorPosCallbackI
+    GLFWFramebufferSizeCallbackI
+    GLFWKeyCallbackI
+    GLFWMouseButtonCallbackI
+    GLFWScrollCallbackI
+    GLFWWindowCloseCallbackI]
+   [org.lwjgl.opengl GL GL33]
+   [org.lwjgl.system MemoryUtil])
   (:gen-class))
+
+(defonce world-queue (atom clojure.lang.PersistentQueue/EMPTY))
+
+(defn update-world [game]
+  (when (seq @world-queue)
+    (let [world-fn (peek @world-queue)]
+      (swap! world-queue pop)
+      (swap! (::world/atom* game) world-fn))))
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
@@ -32,7 +50,9 @@
     (MemoryUtil/memFree *fb-width)
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
-    (MemoryUtil/memFree *window-height)))
+    (MemoryUtil/memFree *window-height)
+    (swap! world-queue conj (fn mouse-move [w]
+                              (input/update-mouse-pos w x y)))))
 
 (defn on-mouse-click! [window button action mods])
 
@@ -83,6 +103,7 @@
   (on-scroll [{:keys [handle]} xoffset yoffset]
     (on-scroll! handle xoffset yoffset))
   (on-tick [this game]
+    (update-world game)
     (engine/tick game)))
 
 (defn listen-for-events [{:keys [handle] :as window}]
