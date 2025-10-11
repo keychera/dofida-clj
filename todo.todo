@@ -8,7 +8,7 @@ todo:
 ☐ sidestream
     ✔ macros s-> refactor @done(25-08-25 21:26)
     ✔ build-java @done(25-08-25 06:45)
-        ☐ make the shader and everything else works in java
+        ✔ make the shader and everything else works in java @done(25-10-11 19:47) slowly but surely we get to be familiar with the idiosyncracies
     ✔ world system @done(25-08-25 21:16)
     ☐ esse/asset
 
@@ -17,10 +17,22 @@ todo:
 ☐ transform3d
 
 ☐ jvm reloaded
-    ☐ tools.namespace
-    ☐ fps imgui
-    ☐ hot-reload JVM side
+    ✘ tools.namespace @cancelled(25-10-11 19:47)
+    ✔ fps imgui @done(25-10-11 19:47)
+    ✔ hot-reload JVM side @done(25-10-11 19:47)
     ☐ clj-memory-meter
+
+play-cljc.gl:
+    ☐ from zero
+        ☐ text render
+        ☐ dialogue render
+        ☐ 3d text
+        ☐ think of abstraction... 
+        ☐ reintro odoyle
+        ☐ UI
+        ☐ button
+        ☐ circle transition
+        ☐ director
 
 cmzw_:
 ✔ second esse @done(25-06-13 01:25)
