@@ -6,7 +6,8 @@
    [odoyle.rules :as o]
    [play-cljc.math :as m]
    [rules.interface.input :as input]
-   [rules.time :as time]))
+   [rules.time :as time]
+   [rules.window :as window]))
 
 (s/def ::mvp any?)
 
@@ -58,6 +59,7 @@
      ::mouse-camera
      [:what
       [::time/now ::time/delta delta-time]
+      [::window/window ::window/dimension dimension]
       [::input/mouse-delta ::input/x mouse-dx]
       [::input/mouse-delta ::input/y mouse-dy]
       [::player ::position position {:then false}]
@@ -78,7 +80,7 @@
 
             up           (#'m/cross right direction)
 
-            aspect-ratio #_(/ game-width game-height) 1.0
+            aspect-ratio (/ (:width dimension) (:height dimension))
             projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
 
             camera       (m/look-at-matrix-3d position (mapv + position direction) up)

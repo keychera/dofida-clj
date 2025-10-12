@@ -12,7 +12,8 @@
    [play-cljc.gl.utils :as gl-utils]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
-   [rules.time :as time]))
+   [rules.time :as time]
+   [rules.window :as window]))
 
 ;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
@@ -167,7 +168,8 @@
    (world/->init)))
 
 (def all-systems
-  [input/system
+  [window/system
+   input/system
    firstperson/system])
 
 (defn init [game]
@@ -281,6 +283,7 @@
 
             world (swap! (::world/atom* game)
                          #(-> %
+                              (window/set-window game-width game-height)
                               (time/insert total-time delta-time)
                               (o/fire-rules)))
             mvp    (:mvp (first (o/query-all world ::firstperson/state)))]
