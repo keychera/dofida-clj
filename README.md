@@ -1,6 +1,6 @@
 # dofida-clj
 
-To develop in a browser with live code reloading:
+> dofida, an entity made of stars and clojure data structures.
 
 ## js
 
