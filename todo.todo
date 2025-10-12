@@ -24,6 +24,15 @@ todo:
 
 play-cljc.gl:
     ☐ from zero
+        ☐ somehow we continued the tutorial
+            ✔ firstperson movement @done(25-10-13 00:01)
+            ☐ movement with gravity
+            ☐ jvm control, because it will be wildly different
+            ☐ input dependency inversion
+            ☐ model loading, try use kenney 3ds
+            ☐ sidestream particle
+            ☐ particle 3d 
+            ☐ text particle
         ☐ text render
         ☐ dialogue render
         ☐ 3d text
