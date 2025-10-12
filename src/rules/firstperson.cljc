@@ -5,7 +5,6 @@
    [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.math :as m]
-   [rules.interface.input :as input]
    [rules.time :as time]
    [rules.window :as window]))
 
@@ -18,7 +17,9 @@
 (s/def ::horiz-angle float?)
 (s/def ::verti-angle float?)
 
-(mapv #(* % 3) [1 2 3])
+(s/def ::move-control keyword?)
+(s/def ::view-dx float?)
+(s/def ::view-dy float?)
 
 (world/system system
   {::world/init-fn
@@ -42,16 +43,16 @@
       [::player ::position position {:then false}]
       [::player ::direction direction {:then false}]
       [::player ::right right {:then false}]
-      [keyname ::input/keystate keystate {:then false}]
+      [::player ::move-control control {:then false}]
       :then
       (let [speed 0.01
-            move  (case keyname
-                    :w     (mapv #(* % speed delta-time) direction)
-                    :a     (mapv #(* % speed delta-time -1) right)
-                    :s     (mapv #(* % speed delta-time -1) direction)
-                    :d     (mapv #(* % speed delta-time) right)
-                    :shift (mapv #(* % speed delta-time) [0 1 0])
-                    :ctrl  (mapv #(* % speed delta-time) [0 -1 0])
+            move  (case control
+                    ::forward  (mapv #(* % speed delta-time) direction)
+                    ::backward (mapv #(* % speed delta-time -1) direction)
+                    ::strafe-l (mapv #(* % speed delta-time -1) right)
+                    ::strafe-r (mapv #(* % speed delta-time) right)
+                    ::ascend   (mapv #(* % speed delta-time) [0 1 0])
+                    ::descend  (mapv #(* % speed delta-time) [0 -1 0])
                     nil)]
         (when move
           (insert! ::player ::position (mapv + position move))))]
@@ -60,16 +61,16 @@
      [:what
       [::time/now ::time/delta delta-time]
       [::window/window ::window/dimension dimension]
-      [::input/mouse-delta ::input/x mouse-dx]
-      [::input/mouse-delta ::input/y mouse-dy]
+      [::player ::view-dx view-dx]
+      [::player ::view-dy view-dy]
       [::player ::position position {:then false}]
       [::player ::horiz-angle horiz-angle {:then false}]
       [::player ::verti-angle verti-angle {:then false}]
       :then
       (let [initial-fov  (m/deg->rad 45)
             mouse-speed  0.001
-            horiz-angle  (+ horiz-angle (* mouse-speed delta-time (or (- mouse-dx) 0)))
-            verti-angle  (+ verti-angle (* mouse-speed delta-time (or (- mouse-dy) 0)))
+            horiz-angle  (+ horiz-angle (* mouse-speed delta-time (or (- view-dx) 0)))
+            verti-angle  (+ verti-angle (* mouse-speed delta-time (or (- view-dy) 0)))
             direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                           (Math/sin verti-angle)
                           (* (Math/cos verti-angle) (Math/cos horiz-angle))]

@@ -1,8 +1,10 @@
 (ns rules.interface.input
   (:require
    [clojure.spec.alpha :as s]
+   [engine.macros :refer [insert! s->]]
    [engine.world :as world]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o]
+   [rules.firstperson :as firstperson]))
 
 (s/def ::x number?)
 (s/def ::y number?)
@@ -20,13 +22,26 @@
      ::mouse-delta
      [:what
       [::mouse-delta ::x mouse-dx]
-      [::mouse-delta ::y mouse-dy]]
+      [::mouse-delta ::y mouse-dy]
+      :then
+      (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})]
 
      ::keys
      [:what
       [keyname ::keystate keystate]
       :then
-      (println keyname keystate)]})})
+      (when-let [move (case keyname
+                        :w     ::firstperson/forward
+                        :a     ::firstperson/strafe-l
+                        :s     ::firstperson/backward
+                        :d     ::firstperson/strafe-r
+                        :shift ::firstperson/ascend
+                        :ctrl  ::firstperson/descend
+                        nil)]
+        (insert! ::firstperson/player ::firstperson/move-control move))
+      :then-finally
+      (when-not (seq (o/query-all session ::keys))
+        (s-> session (o/retract ::firstperson/player ::firstperson/move-control)))]})})
 
 (defn update-mouse-pos [world x y]
   (o/insert world ::mouse {::x x ::y y}))
