@@ -18,6 +18,8 @@
    [org.lwjgl.system MemoryUtil])
   (:gen-class))
 
+;; I think java can still use queue here because 
+;; the rate of update is the same due to GLFW/PollEvents?
 (defonce world-inputs (atom clojure.lang.PersistentQueue/EMPTY))
 
 (defn update-world [game]
@@ -31,6 +33,8 @@
     GLFW/GLFW_MOUSE_BUTTON_LEFT :left
     GLFW/GLFW_MOUSE_BUTTON_RIGHT :right
     nil))
+
+(defonce mouse-locked?* (atom nil))
 
 (defn on-mouse-move! [window xpos ypos]
   (let [*fb-width (MemoryUtil/memAllocInt 1)
@@ -51,24 +55,60 @@
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
     (MemoryUtil/memFree *window-height)
-    (swap! world-inputs conj (fn mouse-move [w]
-                              (input/update-mouse-pos w x y)))))
+    (when @mouse-locked?*
+      (let [half-w (/ window-width 2)
+            half-h (/ window-height 2)
+            dx (- x half-w)
+            dy (- y half-h)]
+        (swap! world-inputs conj
+               (fn mouse-delta [w] (input/update-mouse-delta w dx dy)))
+        (GLFW/glfwSetCursorPos window half-w half-h)))))
 
-(defn on-mouse-click! [window button action mods])
+(defn on-mouse-click! [window _button _action _mods]
+  (when-not @mouse-locked?*
+    (let [*window-width (MemoryUtil/memAllocInt 1)
+          *window-height (MemoryUtil/memAllocInt 1)
+          _ (GLFW/glfwGetWindowSize window *window-width *window-height)
+          window-width (.get *window-width)
+          window-height (.get *window-height)
+          half-w (/ window-width 2)
+          half-h (/ window-height 2)]
+      (MemoryUtil/memFree *window-width)
+      (MemoryUtil/memFree *window-height)
+      (GLFW/glfwSetCursorPos window half-w half-h)))
+  (reset! mouse-locked?* true))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
-    GLFW/GLFW_KEY_LEFT :left
-    GLFW/GLFW_KEY_RIGHT :right
-    GLFW/GLFW_KEY_UP :up
-    GLFW/GLFW_KEY_DOWN :down
+    GLFW/GLFW_KEY_LEFT         :left
+    GLFW/GLFW_KEY_RIGHT        :right
+    GLFW/GLFW_KEY_UP           :up
+    GLFW/GLFW_KEY_DOWN         :down
+    GLFW/GLFW_KEY_ESCAPE       :esc
+    GLFW/GLFW_KEY_W            :w
+    GLFW/GLFW_KEY_A            :a
+    GLFW/GLFW_KEY_S            :s
+    GLFW/GLFW_KEY_D            :d
+    GLFW/GLFW_KEY_LEFT_SHIFT   :shift
+    GLFW/GLFW_KEY_LEFT_CONTROL :ctrl
     nil))
 
-(defn on-key! [window keycode scancode action mods]
+(defn on-key! [_window keycode _scancode action _mods]
   (when-let [k (keycode->keyword keycode)]
     (condp = action
-      GLFW/GLFW_PRESS (println k)
-      GLFW/GLFW_RELEASE (println k)
+      GLFW/GLFW_PRESS   (cond
+                          (= :esc k)
+                          (reset! mouse-locked?* false)
+
+                          (#{:w :a :s :d :shift :ctrl} k)
+                          (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
+
+                          :else :noop)
+      GLFW/GLFW_RELEASE (cond
+                          (#{:w :a :s :d :shift :ctrl} k)
+                          (swap! world-inputs conj (fn keyup [w] (input/key-on-keyup w k)))
+
+                          :else :noop)
       nil)))
 
 (defn on-char! [window codepoint])
