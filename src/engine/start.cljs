@@ -5,12 +5,20 @@
    [goog.events :as events]
    [rules.interface.input :as input]))
 
-(def world-queue (atom #queue []))
+;; reason, it seems the rate of events is faster than the gameloop rate
+;; previously, queue is used and num of input events > num of frames
+(def world-init-inputs
+  {::mousemove {:dx 0 :dy 0}})
+(def world-inputs (atom world-init-inputs))
 
 (defn update-world [game]
-  (when (seq @world-queue)
-    (let [world-fn (peek @world-queue)]
-      (swap! world-queue pop)
+  (when-let [inputs (seq @world-inputs)]
+    (let [world-fn (reduce
+                    (fn [afn [input-key input-fn]]
+                      (case input-key
+                        ::mousemove (comp (fn mouse-move [w] (input/update-mouse-delta w (:dx input-fn) (:dy input-fn))) afn)
+                        afn))
+                    identity inputs)]
       (swap! (::world/atom* game) world-fn))))
 
 (defn game-loop
@@ -32,32 +40,57 @@
     2 :right
     nil))
 
+(def mousemove-timer (atom nil))
+(def locked?*        (atom nil))
+
 (defn listen-for-mouse [canvas]
-  (events/listen js/window "mousemove"
-                 (fn [event]
-                   (let [bounds (.getBoundingClientRect canvas)
-                         x (- (.-clientX event) (.-left bounds))
-                         y (- (.-clientY event) (.-top bounds))]
-                     (swap! world-queue conj (fn mouse-move [w] (input/update-mouse-pos w x y))))))
-  (events/listen js/window "mousedown"
-                 (fn [event]))
-  (events/listen js/window "mouseup"
-                 (fn [event])))
+  (.addEventListener canvas "mousemove"
+                     (fn [event]
+                       (when @locked?*
+                         (some->> @mousemove-timer (.clearTimeout js/window))
+                         (let [next-dx (.-movementX event)
+                               next-dy (.-movementY event)]
+                           (swap! world-inputs update ::mousemove
+                                  (fn mouse-delta [prev] (-> prev (assoc :dx next-dx) (assoc :dy next-dy)))) 
+                           (reset! mousemove-timer
+                                   (.setTimeout js/window
+                                                (fn mouse-stop [] 
+                                                  (swap! world-inputs update ::mousemove (fn [prev] (-> prev (assoc :dx 0) (assoc :dy 0)))))
+                                                20))))))
+  (.addEventListener canvas "mousedown"
+                     (fn [_event]))
+  (.addEventListener canvas "mouseup"
+                     (fn [_event])))
+
+(defn listen-for-pointer-lock [canvas]
+  (.addEventListener js/document "pointerlockchange"
+                     (fn []
+                       (let [canvas-locked? (= (.. js/document -pointerLockElement)
+                                               (.querySelector js/document "canvas"))]
+                         (reset! locked?* canvas-locked?)
+                         (when (not canvas-locked?)
+                           (reset! world-inputs world-init-inputs)))))
+  (.addEventListener canvas "click"
+                     (fn [_event] 
+                       (when (nil? @locked?*)
+                         (listen-for-mouse canvas))
+                       (.requestPointerLock canvas (clj->js {:unadjustedMovement true})))))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
     37 :left
     39 :right
     38 :up
+    81 :q
     nil))
 
 (defn listen-for-keys []
   (events/listen js/window "keydown"
                  (fn [event]
-                   (when-let [k (keycode->keyword (.-keyCode event))])))
+                   (when-let [_k (keycode->keyword (.-keyCode event))])))
   (events/listen js/window "keyup"
                  (fn [event]
-                   (when-let [k (keycode->keyword (.-keyCode event))]))))
+                   (when-let [_k (keycode->keyword (.-keyCode event))]))))
 
 (defn resize [context]
   (let [display-width context.canvas.clientWidth
@@ -85,8 +118,8 @@
          initial-game (assoc (engine/->game context)
                              :delta-time 0
                              :total-time (js/performance.now))]
+     (listen-for-pointer-lock canvas)
      (engine/init initial-game)
-     (listen-for-mouse canvas)
      (listen-for-keys)
      (resize context)
      (listen-for-resize context)

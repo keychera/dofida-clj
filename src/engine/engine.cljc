@@ -278,25 +278,22 @@
       (let [[game-width game-height] (utils/get-size game)
             {:keys [delta-time 
                     horiz-angle verti-angle
-                    prev-mouse-x prev-mouse-y
                     ::global*]
              :or {horiz-angle Math/PI
-                  verti-angle 0.0
-                  prev-mouse-x 0
-                  prev-mouse-y 0}} game
+                  verti-angle 0.0}} game
             {:keys [vao]} @global*
 
             world (swap! (::world/atom* game)
                          #(-> %
                               o/fire-rules))
 
-            position [0 0 0 ]
+            position [0 0 5]
             initial-fov (m/deg->rad 45)
-            mouse-speed 0.0005
+            mouse-speed 0.001
 
-            {:keys [mouse-x mouse-y]} (first (o/query-all world ::input/mouse))
-            horiz-angle (+ horiz-angle (* mouse-speed delta-time (- prev-mouse-x (or mouse-x prev-mouse-x))))
-            verti-angle (+ verti-angle (* mouse-speed delta-time (- prev-mouse-y (or mouse-y prev-mouse-y))))
+            {:keys [mouse-dx mouse-dy]} (first (o/query-all world ::input/mouse-delta))
+            horiz-angle (+ horiz-angle (* mouse-speed delta-time (or (- mouse-dx) 0)))
+            verti-angle (+ verti-angle (* mouse-speed delta-time (or mouse-dy 0)))
             direction   [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                          (Math/sin verti-angle)
                          (* (Math/cos verti-angle) (Math/cos horiz-angle))]
@@ -309,7 +306,7 @@
 
             aspect-ratio (/ game-width game-height)
             projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
-            camera       (m/look-at-matrix-3d [2 4 3] (mapv + position direction) up)
+            camera       (m/look-at-matrix-3d position (mapv + position direction) up)
             view         (m/inverse-matrix-3d camera)
             p*v          (m/multiply-matrices-3d view projection)
             mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) p*v)]
@@ -358,9 +355,7 @@
             
             (assoc game
                    :horiz-angle horiz-angle 
-                   :verti-angel verti-angle
-                   :prev-mouse-x (or mouse-x prev-mouse-x)
-                   :prev-mouse-y (or mouse-y prev-mouse-y)))
+                   :verti-angel verti-angle))
 
       #?(:clj  (catch Exception err (throw err))
          :cljs (catch js/Error err

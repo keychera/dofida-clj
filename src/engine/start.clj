@@ -18,12 +18,12 @@
    [org.lwjgl.system MemoryUtil])
   (:gen-class))
 
-(defonce world-queue (atom clojure.lang.PersistentQueue/EMPTY))
+(defonce world-inputs (atom clojure.lang.PersistentQueue/EMPTY))
 
 (defn update-world [game]
-  (when (seq @world-queue)
-    (let [world-fn (peek @world-queue)]
-      (swap! world-queue pop)
+  (when (seq @world-inputs)
+    (let [world-fn (peek @world-inputs)]
+      (swap! world-inputs pop)
       (swap! (::world/atom* game) world-fn))))
 
 (defn mousecode->keyword [mousecode]
@@ -51,7 +51,7 @@
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
     (MemoryUtil/memFree *window-height)
-    (swap! world-queue conj (fn mouse-move [w]
+    (swap! world-inputs conj (fn mouse-move [w]
                               (input/update-mouse-pos w x y)))))
 
 (defn on-mouse-click! [window button action mods])

@@ -13,7 +13,15 @@
     {::mouse
      [:what
       [::mouse ::x mouse-x]
-      [::mouse ::y mouse-y]]})})
+      [::mouse ::y mouse-y]]
+     
+     ::mouse-delta
+     [:what
+      [::mouse-delta ::x mouse-dx]
+      [::mouse-delta ::y mouse-dy]]})})
 
 (defn update-mouse-pos [world x y]
   (o/insert world ::mouse {::x x ::y y}))
+
+(defn update-mouse-delta [world dx dy]
+  (o/insert world ::mouse-delta {::x dx ::y dy}))
