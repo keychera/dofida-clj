@@ -5,8 +5,13 @@
  {:game
   {:target :browser
    :output-dir "resources/public/js"
-   :modules {:main {:entries [engine.start-dev]}}
    :compiler-options {:infer-externs :auto}
    :devtools
    {:http-root "resources/public"
-    :http-port 9333}}}}
+    :http-port 9333}
+
+   :dev     {:modules {:main {:entries [start-dev]}}}
+
+   :release {:modules {:main {:entries [engine.start]
+                              :init-fn engine.start/-main}}
+             :compiler-options {:optimizations :advanced}}}}}

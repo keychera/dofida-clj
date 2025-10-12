@@ -1,13 +1,11 @@
-(ns systems.time 
+(ns rules.time 
   (:require
    [clojure.spec.alpha :as s]
    [odoyle.rules :as o]))
 
-;; specs
-(s/def ::total number?)
+(s/def ::now number?)
 (s/def ::delta number?)
-
-(def rules [])
+(s/def ::total number?)
 
 (defn insert [world total delta]
   (o/insert world ::now {::total total ::delta delta}))

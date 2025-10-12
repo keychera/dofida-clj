@@ -45,8 +45,16 @@
      :cljs [(-> game :context .-canvas .-clientWidth)
             (-> game :context .-canvas .-clientHeight)]))
 
-(defn merge-shader-fn [& maps]
-  (let [res        (apply merge-with merge maps)
-        has-main?  (get-in res [:signatures 'main])]
-    (when (not has-main?) (throw (#?(:clj Exception. :cljs js/Error.) "shader has no main")))
-    res))
+#?(:cljs
+   (defn make-limited-logger [limit]
+     (let [counter (atom 0)]
+       (fn [err & args]
+         (let [messages (apply str args)]
+           (when (< @counter limit)
+             (js/console.error (.-stack err))
+             (swap! counter inc))
+           (when (= @counter limit)
+             (println "[SUPRESSED]" messages)
+             (swap! counter inc)))))))
+
+#?(:cljs (def log-limited (make-limited-logger 8)))

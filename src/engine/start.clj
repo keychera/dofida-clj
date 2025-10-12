@@ -1,20 +1,40 @@
 (ns engine.start
-  (:require [engine.engine :as engine]
-            [play-cljc.gl.core :as pc]
-            [systems.window :as window])
-  (:import  [org.lwjgl.glfw GLFW Callbacks
-             GLFWCursorPosCallbackI GLFWKeyCallbackI GLFWMouseButtonCallbackI
-             GLFWCharCallbackI GLFWFramebufferSizeCallbackI GLFWWindowCloseCallbackI
-             GLFWScrollCallbackI]
-            [org.lwjgl.opengl GL GL33]
-            [org.lwjgl.system MemoryUtil])
+  (:require
+   [engine.engine :as engine]
+   [engine.world :as world]
+   [rules.interface.input :as input])
+  (:import
+   [org.lwjgl.glfw
+    Callbacks
+    GLFW
+    GLFWCharCallbackI
+    GLFWCursorPosCallbackI
+    GLFWFramebufferSizeCallbackI
+    GLFWKeyCallbackI
+    GLFWMouseButtonCallbackI
+    GLFWScrollCallbackI
+    GLFWWindowCloseCallbackI]
+   [org.lwjgl.opengl GL GL33]
+   [org.lwjgl.system MemoryUtil])
   (:gen-class))
+
+;; I think java can still use queue here because 
+;; the rate of update is the same due to GLFW/PollEvents?
+(defonce world-inputs (atom clojure.lang.PersistentQueue/EMPTY))
+
+(defn update-world [game]
+  (when (seq @world-inputs)
+    (let [world-fn (peek @world-inputs)]
+      (swap! world-inputs pop)
+      (swap! (::world/atom* game) world-fn))))
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
     GLFW/GLFW_MOUSE_BUTTON_LEFT :left
     GLFW/GLFW_MOUSE_BUTTON_RIGHT :right
     nil))
+
+(defonce mouse-locked?* (atom nil))
 
 (defn on-mouse-move! [window xpos ypos]
   (let [*fb-width (MemoryUtil/memAllocInt 1)
@@ -35,31 +55,65 @@
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
     (MemoryUtil/memFree *window-height)
-    (engine/update-mouse-coords! x y)))
+    (when @mouse-locked?*
+      (let [half-w (/ window-width 2)
+            half-h (/ window-height 2)
+            dx (- x half-w)
+            dy (- y half-h)]
+        (swap! world-inputs conj
+               (fn mouse-delta [w] (input/update-mouse-delta w dx dy)))
+        (GLFW/glfwSetCursorPos window half-w half-h)))))
 
-(defn on-mouse-click! [window button action mods]
-  #_(swap! engine/*state assoc :mouse-button (when (= action GLFW/GLFW_PRESS)
-                                               (mousecode->keyword button))))
+(defn on-mouse-click! [window _button _action _mods]
+  (when-not @mouse-locked?*
+    (let [*window-width (MemoryUtil/memAllocInt 1)
+          *window-height (MemoryUtil/memAllocInt 1)
+          _ (GLFW/glfwGetWindowSize window *window-width *window-height)
+          window-width (.get *window-width)
+          window-height (.get *window-height)
+          half-w (/ window-width 2)
+          half-h (/ window-height 2)]
+      (MemoryUtil/memFree *window-width)
+      (MemoryUtil/memFree *window-height)
+      (GLFW/glfwSetCursorPos window half-w half-h)))
+  (reset! mouse-locked?* true))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
-    GLFW/GLFW_KEY_LEFT :left
-    GLFW/GLFW_KEY_RIGHT :right
-    GLFW/GLFW_KEY_UP :up
-    GLFW/GLFW_KEY_DOWN :down
+    GLFW/GLFW_KEY_LEFT         :left
+    GLFW/GLFW_KEY_RIGHT        :right
+    GLFW/GLFW_KEY_UP           :up
+    GLFW/GLFW_KEY_DOWN         :down
+    GLFW/GLFW_KEY_ESCAPE       :esc
+    GLFW/GLFW_KEY_W            :w
+    GLFW/GLFW_KEY_A            :a
+    GLFW/GLFW_KEY_S            :s
+    GLFW/GLFW_KEY_D            :d
+    GLFW/GLFW_KEY_LEFT_SHIFT   :shift
+    GLFW/GLFW_KEY_LEFT_CONTROL :ctrl
     nil))
 
-(defn on-key! [window keycode scancode action mods]
+(defn on-key! [_window keycode _scancode action _mods]
   (when-let [k (keycode->keyword keycode)]
-    #_(condp = action
-        GLFW/GLFW_PRESS (swap! engine/*state update :pressed-keys conj k)
-        GLFW/GLFW_RELEASE (swap! engine/*state update :pressed-keys disj k)
-        nil)))
+    (condp = action
+      GLFW/GLFW_PRESS   (cond
+                          (= :esc k)
+                          (reset! mouse-locked?* false)
+
+                          (#{:w :a :s :d :shift :ctrl} k)
+                          (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
+
+                          :else :noop)
+      GLFW/GLFW_RELEASE (cond
+                          (#{:w :a :s :d :shift :ctrl} k)
+                          (swap! world-inputs conj (fn keyup [w] (input/key-on-keyup w k)))
+
+                          :else :noop)
+      nil)))
 
 (defn on-char! [window codepoint])
 
-(defn on-resize! [window width height]
-  (engine/update-window-size! width height))
+(defn on-resize! [window width height])
 
 (defn on-scroll! [window xoffset yoffset])
 
@@ -89,6 +143,7 @@
   (on-scroll [{:keys [handle]} xoffset yoffset]
     (on-scroll! handle xoffset yoffset))
   (on-tick [this game]
+    (update-world game)
     (engine/tick game)))
 
 (defn listen-for-events [{:keys [handle] :as window}]
@@ -122,51 +177,55 @@
        (invoke [this window]
          (System/exit 0))))))
 
-(defn ->window []
-  (GLFW/glfwSetErrorCallback
-   (org.lwjgl.glfw.GLFWErrorCallback/createPrint System/err))
-  (when-not (GLFW/glfwInit)
-    (throw (Exception. "Unable to initialize GLFW")))
-  (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
-  (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
-  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
-  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
-  (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL33/GL_TRUE)
-  (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
-  (if-let [window (GLFW/glfwCreateWindow 1024 768 "Hello, world!" 0 0)]
-    (do
-      (GLFW/glfwMakeContextCurrent window)
-      (GLFW/glfwSwapInterval 1)
-      (GL/createCapabilities)
-      (->Window window))
-    (throw (Exception. "Failed to create window"))))
+(defn ->window
+  ([] (->window false))
+  ([floating?]
+   (when-not (GLFW/glfwInit)
+     (throw (Exception. "Unable to initialize GLFW")))
+   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
+   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
+   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
+   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
+   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL33/GL_TRUE)
+   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
+   (if-let [window (GLFW/glfwCreateWindow 1024 768 "Hello, dofida!" 0 0)]
+     (do
+       (GLFW/glfwMakeContextCurrent window)
+       (GLFW/glfwSwapInterval 1)
+       (GL/createCapabilities)
+       (when floating? (GLFW/glfwSetWindowAttrib window GLFW/GLFW_FLOATING GLFW/GLFW_TRUE))
+       (->Window window))
+     (throw (Exception. "Failed to create window")))))
 
 (defn start
   ([game window] (start game window nil))
-  ([game window stop-flag*]
+  ([game window {::keys [init-fn frame-fn destroy-fn stop-flag*]}]
    (let [handle (:handle window)
-         game (assoc game :delta-time 0 :total-time (GLFW/glfwGetTime))]
+         game (assoc game :delta-time 0 :total-time (* (GLFW/glfwGetTime) 1000))]
      (GLFW/glfwShowWindow handle)
      (engine/init game)
      (listen-for-events window)
-     (println "game loop starting...")
-     (loop [game game]
-       (when-not (or (GLFW/glfwWindowShouldClose handle)
-                     (and (some? stop-flag*) @stop-flag*))
-         (let [ts (GLFW/glfwGetTime)
-               game (assoc game
-                           :delta-time (- ts (:total-time game))
-                           :total-time ts)
-               game (on-tick window game)]
-           (GLFW/glfwSwapBuffers handle)
-           (GLFW/glfwPollEvents)
-           (recur game))))
-     (println "game loop ending...")
-     (Callbacks/glfwFreeCallbacks handle)
-     (GLFW/glfwDestroyWindow handle)
-     (GLFW/glfwTerminate))))
+     (when init-fn (init-fn window))
+     (try
+       (loop [game game]
+         (when-not (or (GLFW/glfwWindowShouldClose handle)
+                       (and (some? stop-flag*) @stop-flag*))
+           (let [ts (* (GLFW/glfwGetTime) 1000)
+                 game (assoc game
+                             :delta-time (- ts (:total-time game))
+                             :total-time ts)
+                 game (on-tick window game)]
+             (when frame-fn (frame-fn))
+             (GLFW/glfwSwapBuffers handle)
+             (GLFW/glfwPollEvents)
+             (recur game))))
+       (finally
+         (when destroy-fn (destroy-fn))
+         (Callbacks/glfwFreeCallbacks handle)
+         (GLFW/glfwDestroyWindow handle)
+         (GLFW/glfwTerminate))))))
 
 (defn -main [& args]
   (let [window (->window)]
-    (start (pc/->game (:handle window)) window)))
+    (start (engine/->game (:handle window)) window)))
 

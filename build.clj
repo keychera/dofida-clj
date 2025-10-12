@@ -1,5 +1,5 @@
 (ns build
-  (:require 
+  (:require
    [clojure.tools.build.api :as b]))
 
 (def game 'dofida-clj)
@@ -7,7 +7,9 @@
 (def class-dir "target/classes")
 (def jar-file (format "target/%s-%s.jar" (name game) version))
 
-(def basis (delay (b/create-basis {:project "deps.edn"})))
+(def basis (delay (b/create-basis {:project "deps.edn" :aliases [:jvm]})))
+
+
 
 (defn clean [& _]
   (println "cleaning target...")
@@ -26,6 +28,14 @@
   (let [cmd (b/java-command {:basis @basis
                              :main  'clojure.main
                              :main-args ["-m" "engine.start"]})]
+    (b/process cmd)))
+
+(defn repl [& _]
+  ;; (compile-java-repl)
+  (println "running desktop game with repl...")
+  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl]})
+                             :main  'clojure.main
+                             :main-args ["-m" "start-dev"]})]
     (b/process cmd)))
 
 (defn jar [& _]

@@ -2,127 +2,350 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   #?(:cljs [systems.dev.leva-rules :as leva-rules])
    [com.rpl.specter :as sp]
-   [dofida.dofida :as dofida]
-   [engine.esse :as esse]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
+   [iglu.core :as iglu]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
-   [play-cljc.gl.entities-2d :as entities-2d]
-   [play-cljc.transforms :as t]
-   [systems.dev.dev-only :as dev-only]
-   [systems.input :as input]
-   [systems.time :as time]
-   [systems.window :as window]))
+   [play-cljc.gl.utils :as gl-utils]
+   [rules.firstperson :as firstperson]
+   [rules.interface.input :as input]
+   [rules.time :as time]
+   [rules.window :as window]))
 
-(defn update-window-size! [width height]
-  (swap! world/world* window/set-window width height))
+;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
-(defn update-mouse-coords! [x y]
-  (swap! world/world* input/insert-mouse x y))
+(def glsl-version #?(:clj "330" :cljs "300 es"))
 
-(defn compile-shader [game world*]
-  (doseq [{:keys [esse-id compile-fn]} (o/query-all @world* ::dofida/compile-shader)]
-    (swap! world* #(o/insert % esse-id ::esse/compiling-shader true))
-    (let [compiled-shader (compile-fn game)]
-      (swap! world* #(-> %
-                         (o/retract esse-id ::esse/compiling-shader)
-                         (o/insert esse-id ::esse/compiled-shader compiled-shader)
-                         (o/fire-rules))))))
+(def triangle-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [-1.0 -1.0 0.0
+    1.0 -1.0 0.0
+    0.0  1.0 0.0]))
 
-(defn load-image [game world*]
-  (doseq [{:keys [esse-id image-path]} (o/query-all @world* ::dofida/load-image)]
-    (swap! world* #(o/insert % esse-id ::esse/loading-image true))
-    (println "loading image" esse-id image-path)
-    (utils/get-image
-     image-path
-     (fn [{:keys [data width height]}]
-       (let [image-entity (entities-2d/->image-entity game data width height)
-             image-entity (c/compile game image-entity)
-             loaded-image (assoc image-entity :width width :height height)]
-         (swap! world*
-                #(-> %
-                     (o/retract esse-id ::esse/loading-image)
-                     (o/insert esse-id ::esse/current-sprite loaded-image)
-                     (o/fire-rules))))))))
+(def vertex-shader
+  {:precision  "mediump float"
+   :inputs     '{a_vertex_pos vec3}
+   :uniforms   '{mvp mat4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= gl_Position (* mvp (vec4 a_vertex_pos "1.0"))))}})
 
-(defn compile-all [game world*]
-  (compile-shader game world*)
-  (load-image game world*))
+(def fragment-shader
+  {:precision  "mediump float"
+   :outputs    '{o_color vec4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([] (= o_color (vec4 "0.42" "1.0" "0.69" "0.5")))}})
+
+(def cube-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [-1.0 -1.0 -1.0
+    -1.0 -1.0  1.0
+    -1.0  1.0  1.0
+    1.0  1.0 -1.0
+    -1.0 -1.0 -1.0
+    -1.0  1.0 -1.0
+
+    1.0 -1.0  1.0
+    -1.0 -1.0 -1.0
+    1.0 -1.0 -1.0
+    1.0  1.0 -1.0
+    1.0 -1.0 -1.0
+    -1.0 -1.0 -1.0
+
+    -1.0 -1.0 -1.0
+    -1.0  1.0  1.0
+    -1.0  1.0 -1.0
+    1.0 -1.0  1.0
+    -1.0 -1.0  1.0
+    -1.0 -1.0 -1.0
+
+    -1.0  1.0  1.0
+    -1.0 -1.0  1.0
+    1.0 -1.0  1.0
+    1.0  1.0  1.0
+    1.0 -1.0 -1.0
+    1.0  1.0 -1.0
+
+    1.0 -1.0 -1.0
+    1.0  1.0  1.0
+    1.0 -1.0  1.0
+    1.0  1.0  1.0
+    1.0  1.0 -1.0
+    -1.0  1.0 -1.0
+
+    1.0  1.0  1.0
+    -1.0  1.0 -1.0
+    -1.0  1.0  1.0
+    1.0  1.0  1.0
+    -1.0  1.0  1.0
+    1.0 -1.0  1.0]))
+
+(def cube-uvs
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [;; I DONT UNDERSTAND UV
+    0 1
+    1 1
+    1 0
+
+    1 0
+    0 1
+    0 0
+    ;; what
+    0 0
+    0 0
+    0 0
+
+    1 0
+    1 1
+    0 1
+    ;; why
+    0 1
+    1 0
+    0 0
+
+    0 0
+    0 0
+    0 0
+    ;; how
+    1 0
+    1 1
+    0 1
+
+    1 0
+    0 1
+    0 0
+
+    ;; when
+    0 1
+    1 0
+    1 1
+
+    0 0
+    0 0
+    0 0
+    ;; where
+    0 0
+    0 0
+    0 0
+
+    0 0
+    1 0
+    0 1]))
+
+(def cube-vertex-shader
+  {:precision  "mediump float"
+   :inputs     '{a_vertex_pos vec3
+                 a_uv         vec2}
+   :outputs    '{uv      vec2}
+   :uniforms   '{mvp mat4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= gl_Position (* mvp (vec4 a_vertex_pos "1.0")))
+           (= uv a_uv))}})
+
+(def cube-fragment-shader
+  {:precision  "mediump float"
+   :inputs     '{v_color vec3
+                 uv      vec2}
+   :outputs    '{o_color vec4}
+   :uniforms   '{textureSampler sampler2D}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           ("if" (> uv.x "0.001") (= o_color (texture textureSampler uv)))
+           ("else" (= o_color (vec4 "1.0" "1.0" "1.0" "0.2"))))}})
+
+(defn ->game [context]
+  (merge
+   (c/->game context)
+   {::global* (atom {})}
+   (world/->init)))
 
 (def all-systems
   [window/system
    input/system
-   dofida/system
-   dev-only/system
-   #?(:cljs leva-rules/system)])
+   firstperson/system])
 
 (defn init [game]
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-  (let [[game-width game-height] (utils/get-size game)
-        all-rules (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
-        all-init  (sp/select [sp/ALL ::world/init some?] all-systems)]
-    (swap! world/world*
+
+  (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
+        all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
+        reload-fns (sp/select [sp/ALL ::world/reload-fn some?] all-systems)
+        render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)]
+
+    (swap! (::world/init-cnt* game) inc)
+    (swap! (::global* game) assoc ::render-fns render-fns)
+    (swap! (::world/atom* game)
            (fn [world]
-             (-> (world/init-world world all-rules)
-                 (as-> w (reduce (fn [w init-fn] (init-fn w)) w all-init))
-                 (window/set-window game-width game-height)
-                 (o/fire-rules))))
-    (compile-all game world/world*)))
+             (-> (world/init-world world game all-rules reload-fns)
+                 (as-> w (reduce (fn [w' init-fn] (init-fn w' game)) w all-init))
+                 (o/fire-rules)))))
 
-(def screen-entity
-  {:viewport {:x 0 :y 0 :width 0 :height 0}
-   :clear {:color [(/ 242 255) (/ 242 255) (/ 248 255) 1] :depth 1}})
+  (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
+    (swap! (::global* game) assoc :vao vao))
 
-(defn make-limited-logger [limit]
-  (let [counter (atom 0)]
-    (fn [& args]
-      (when (< @counter limit)
-        (apply #?(:clj println :cljs js/console.error) args)
-        (swap! counter inc)))))
+  (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
+        fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
+        triangle-program (gl-utils/create-program game vertex-source fragment-source)
+        triangle-buffer  (gl-utils/create-buffer game)
+        _                (gl game bindBuffer (gl game ARRAY_BUFFER) triangle-buffer)
+        _                (gl game bufferData (gl game ARRAY_BUFFER) triangle-data (gl game STATIC_DRAW))
+        attr-name        (-> vertex-shader :inputs keys first str)
+        vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)
+        uniform-name     (-> vertex-shader :uniforms keys first str)
+        uniform-loc      (gl game getUniformLocation triangle-program uniform-name)]
+    (swap! (::global* game) assoc
+           :program     triangle-program
+           :vbo         triangle-buffer
+           :attr-loc    vertex-attr-loc
+           :uniform-loc uniform-loc))
 
-(def log-once (make-limited-logger 24))
+  (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
+        fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
+        cube-program     (gl-utils/create-program game vertex-source fragment-source)
+
+        cube-buffer      (gl-utils/create-buffer game)
+        _                (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
+        _                (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
+        vertex-attr      (-> cube-vertex-shader :inputs keys first str)
+        vertex-attr-loc  (gl game getAttribLocation cube-program vertex-attr)
+
+        uniform-name     (-> cube-vertex-shader :uniforms keys first str)
+        uniform-loc      (gl game getUniformLocation cube-program uniform-name)]
+    (swap! (::global* game) assoc
+           :cube-program     cube-program
+           :cube-vbo         cube-buffer
+           :cube-attr-loc    vertex-attr-loc
+           :cube-uniform-loc uniform-loc)
+
+    (utils/get-image
+     "dofida.png"
+     (fn [{:keys [data width height]}]
+       (let [uv-buffer    (gl-utils/create-buffer game)
+             _            (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+             _            (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
+             uv-attr      (-> cube-vertex-shader :inputs keys second str)
+             uv-attr-loc  (gl game getAttribLocation cube-program uv-attr)
+
+             texture-unit  (dec (swap! (:tex-count game) inc))
+             texture      (gl game #?(:clj genTextures :cljs createTexture))
+
+             texture-name (-> cube-fragment-shader :uniforms keys first str)
+             texture-loc  (gl game getUniformLocation cube-program texture-name)]
+
+         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+         (gl game bindTexture (gl game TEXTURE_2D) texture)
+
+         (gl game texImage2D (gl game TEXTURE_2D)
+             #_:mip-level    0
+             #_:internal-fmt (gl game RGBA)
+             (int width)
+             (int height)
+             #_:border       0
+             #_:src-fmt      (gl game RGBA)
+             #_:src-type     (gl game UNSIGNED_BYTE)
+             data)
+
+         (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
+         (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
+
+         (swap! (::global* game) assoc
+                :uv-buffer uv-buffer
+                :uv-attr-loc uv-attr-loc
+                :texture-unit texture-unit
+                :texture texture
+                :texture-loc texture-loc))))))
+
+;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
+;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
 
 (defn tick [game]
+  (def hmm game)
   (if @*refresh?
     (try (println "calling (init game)")
          (swap! *refresh? not)
          (init game)
-         (catch #?(:clj Exception :cljs js/Error) err
-           (log-once "init-error" err)))
+         #?(:clj  (catch Exception err (throw err))
+            :cljs (catch js/Error err
+                    (utils/log-limited err "[init-error]"))))
     (try
-      (let [{:keys [delta-time total-time]} game
-            world (swap! world/world*
+      (let [[game-width game-height] (utils/get-size game)
+            {:keys [total-time delta-time ::global*]} game
+            {:keys [vao]} @global*
+
+            world (swap! (::world/atom* game)
                          #(-> %
+                              (window/set-window game-width game-height)
                               (time/insert total-time delta-time)
-                              o/fire-rules))
-            {game-width :width game-height :height} (first (o/query-all world ::window/window))
-            shader-esses (o/query-all world ::dofida/shader-esse)
-            sprite-esses (o/query-all world ::dofida/sprite-esse)]
-        (when (and (pos? game-width) (pos? game-height))
-          (c/render game (-> screen-entity
-                             (update :viewport assoc :width game-width :height game-height)))
-          (doseq [shader-esse shader-esses]
-            (c/render game (-> (:compiled-shader shader-esse)
-                               (t/project 1 1) ;; still not sure why this work
-                               (t/translate 0 0.1)
-                               (t/scale 1 0.8))))
-          (doseq [sprite-esse sprite-esses]
-            (let [{:keys [x y current-sprite]} sprite-esse]
-              (c/render game
-                        (-> current-sprite
-                            (t/project game-width game-height)
-                            (t/translate x y)
-                            (t/scale (:width current-sprite)
-                                     (:height current-sprite))))))))
-      (catch #?(:clj Exception :cljs js/Error) err
-        (log-once "tick-error" err))))
+                              (o/fire-rules)))
+            mvp    (:mvp (first (o/query-all world ::firstperson/state)))]
+
+        (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+        (gl game viewport 0 0 game-width game-height)
+        (gl game bindVertexArray vao)
+
+        ;; triangle
+        (let [{:keys [program vbo attr-loc uniform-loc]} @global*]
+
+          (gl game useProgram program)
+          (gl game enableVertexAttribArray attr-loc)
+          (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
+          (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
+          (gl game uniformMatrix4fv uniform-loc false mvp)
+          (gl game drawArrays (gl game TRIANGLES) 0 3)
+          (gl game disableVertexAttribArray attr-loc))
+
+        ;; cube
+        (let [{:keys [cube-program
+                      cube-attr-loc cube-vbo
+                      cube-uniform-loc
+
+                      uv-attr-loc uv-buffer
+                      texture-loc texture-unit texture]} @global*]
+          (when (and uv-attr-loc uv-buffer)
+            (gl game useProgram cube-program)
+
+            (gl game enableVertexAttribArray cube-attr-loc)
+            (gl game bindBuffer (gl game ARRAY_BUFFER) cube-vbo)
+            (gl game vertexAttribPointer cube-attr-loc 3 (gl game FLOAT) false 0 0)
+
+            (gl game enableVertexAttribArray uv-attr-loc)
+            (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+            (gl game vertexAttribPointer uv-attr-loc 2 (gl game FLOAT) false 0 0)
+
+            (gl game uniformMatrix4fv cube-uniform-loc false mvp)
+
+            (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+            (gl game bindTexture (gl game TEXTURE_2D) texture)
+            (gl game uniform1i texture-loc texture-unit)
+
+            (gl game drawArrays (gl game TRIANGLES) 0 (* 3 12))
+            (gl game disableVertexAttribArray cube-attr-loc))))
+
+      #?(:clj  (catch Exception err (throw err))
+         :cljs (catch js/Error err
+                 (utils/log-limited err "[tick-error]")))))
   game)
 
-
 (comment
-  (o/query-all @world/world* ::input/mouse))
+  (let [game hmm
+        vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
+        fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
+        cube-program     (gl-utils/create-program game vertex-source fragment-source)]
+    (gl game getAttribLocation cube-program "a_color")
+    [(gl game getParameter (gl game MAX_TEXTURE_IMAGE_UNITS))
+     (gl game getParameter (gl game MAX_VERTEX_TEXTURE_IMAGE_UNITS))
+     (gl game getParameter (gl game MAX_COMBINED_TEXTURE_IMAGE_UNITS))
+     (gl game TEXTURE0)
+     (gl game getUniformLocation cube-program "textureSampler")])
+
+  (let [world @(::world/atom* hmm)]
+    (o/query-all world ::input/mouse)))

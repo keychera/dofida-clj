@@ -8,7 +8,7 @@ todo:
 ☐ sidestream
     ✔ macros s-> refactor @done(25-08-25 21:26)
     ✔ build-java @done(25-08-25 06:45)
-        ☐ make the shader and everything else works in java
+        ✔ make the shader and everything else works in java @done(25-10-11 19:47) slowly but surely we get to be familiar with the idiosyncracies
     ✔ world system @done(25-08-25 21:16)
     ☐ esse/asset
 
@@ -17,10 +17,38 @@ todo:
 ☐ transform3d
 
 ☐ jvm reloaded
-    ☐ tools.namespace
-    ☐ fps imgui
-    ☐ hot-reload JVM side
+    ✘ tools.namespace @cancelled(25-10-11 19:47)
+    ✔ fps imgui @done(25-10-11 19:47)
+    ✔ hot-reload JVM side @done(25-10-11 19:47)
     ☐ clj-memory-meter
+
+play-cljc.gl:
+    ☐ from zero
+        ☐ somehow we continued the tutorial (https://www.opengl-tutorial.org/beginners-tutorials)
+            ✔ firstperson movement @done(25-10-13 00:01)
+            ☐ movement with gravity
+            ✔ jvm control, because it will be wildly different @done(25-10-13 01:46) not that wild apparently
+            ✔ input dependency inversion @done(25-10-13 01:46)
+            ☐ model loading, try use kenney 3d assets
+                ☐ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html)
+                ☐ clicky-clicky (https://x.com/tsoding/status/1975233872221610206)   
+                ☐ play with fire (https://x.com/cmzw_/status/1730593875545477617/video/1)
+            ☐ sidestream particle
+            ☐ particle 3d 
+            ☐ text particle
+            ☐ sidestream anime
+            ☐ sidestream scene tree
+            ☐ sidestream asset rules
+                ☐ find a way to structure 3d assets/scenes
+        ☐ text render
+        ☐ dialogue render
+        ☐ 3d text
+        ☐ think of abstraction... 
+        ☐ reintro odoyle
+        ☐ UI
+        ☐ button
+        ☐ circle transition
+        ☐ director
 
 cmzw_:
 ✔ second esse @done(25-06-13 01:25)
