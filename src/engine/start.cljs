@@ -1,5 +1,7 @@
 (ns engine.start
   (:require
+   [clojure.set :refer [difference]]
+   [clojure.string :as string]
    [engine.engine :as engine]
    [engine.world :as world]
    [goog.events :as events]
@@ -8,18 +10,30 @@
 ;; reason, it seems the rate of events is faster than the gameloop rate
 ;; previously, queue is used and num of input events > num of frames
 (def world-init-inputs
-  {::mousemove {:dx 0 :dy 0}})
+  {::mousemove    {:dx 0 :dy 0}
+   ::keydown      #{}
+   ::prev-keydown #{}})
 (def world-inputs (atom world-init-inputs))
 
 (defn update-world [game]
-  (when-let [inputs (seq @world-inputs)]
-    (let [world-fn (reduce
-                    (fn [afn [input-key input-fn]]
-                      (case input-key
-                        ::mousemove (comp (fn mouse-move [w] (input/update-mouse-delta w (:dx input-fn) (:dy input-fn))) afn)
-                        afn))
-                    identity inputs)]
-      (swap! (::world/atom* game) world-fn))))
+  (let [inputs   @world-inputs
+        input-fn (reduce
+                  (fn [prev-fn [input-key input-data]]
+                    (case input-key
+                      ::mousemove (comp (fn mouse-move [world] (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
+                      ::keydown   (loop [[k & remains] input-data acc-fn prev-fn]
+                                    (if k
+                                      (recur remains (comp (fn keydown [world] (input/key-on-keydown world k)) acc-fn))
+                                      acc-fn))
+                      prev-fn))
+                  identity inputs)
+        keyups   (difference (::prev-keydown inputs) (::keydown inputs))
+        _        (swap! world-inputs assoc ::prev-keydown (::keydown inputs))
+        input-fn (loop [[k & remains] keyups acc-fn input-fn]
+                   (if k
+                     (recur remains (comp (fn keyup [world] (input/key-on-keyup world k)) acc-fn))
+                     acc-fn))]
+    (swap! (::world/atom* game) input-fn)))
 
 (defn game-loop
   ([game] (game-loop game nil))
@@ -51,10 +65,10 @@
                          (let [next-dx (.-movementX event)
                                next-dy (.-movementY event)]
                            (swap! world-inputs update ::mousemove
-                                  (fn mouse-delta [prev] (-> prev (assoc :dx next-dx) (assoc :dy next-dy)))) 
+                                  (fn mouse-delta [prev] (-> prev (assoc :dx next-dx) (assoc :dy next-dy))))
                            (reset! mousemove-timer
                                    (.setTimeout js/window
-                                                (fn mouse-stop [] 
+                                                (fn mouse-stop []
                                                   (swap! world-inputs update ::mousemove (fn [prev] (-> prev (assoc :dx 0) (assoc :dy 0)))))
                                                 20))))))
   (.addEventListener canvas "mousedown"
@@ -71,26 +85,39 @@
                          (when (not canvas-locked?)
                            (reset! world-inputs world-init-inputs)))))
   (.addEventListener canvas "click"
-                     (fn [_event] 
+                     (fn [_event]
                        (when (nil? @locked?*)
                          (listen-for-mouse canvas))
                        (.requestPointerLock canvas (clj->js {:unadjustedMovement true})))))
 
 (defn keycode->keyword [keycode]
-  (condp = keycode
-    37 :left
-    39 :right
-    38 :up
-    81 :q
-    nil))
+  (cond
+    ;; arrow keys
+    (= keycode 37) :left
+    (= keycode 38) :up
+    (= keycode 39) :right
+    (= keycode 40) :down
+
+    ;; numbers 0–9
+    (<= 48 keycode 57)
+    (keyword (str (char keycode)))
+
+    ;; letters A–Z
+    (<= 65 keycode 90)
+    (keyword (-> keycode char str string/lower-case))
+
+    :else nil))
+
 
 (defn listen-for-keys []
   (events/listen js/window "keydown"
                  (fn [event]
-                   (when-let [_k (keycode->keyword (.-keyCode event))])))
+                   (when-let [keyname (keycode->keyword (.-keyCode event))]
+                     (swap! world-inputs update ::keydown (fn [s] (conj s keyname))))))
   (events/listen js/window "keyup"
                  (fn [event]
-                   (when-let [_k (keycode->keyword (.-keyCode event))]))))
+                   (when-let [keyname (keycode->keyword (.-keyCode event))]
+                     (swap! world-inputs update ::keydown (fn [s] (disj s keyname)))))))
 
 (defn resize [context]
   (let [display-width context.canvas.clientWidth

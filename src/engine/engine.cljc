@@ -10,8 +10,9 @@
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
    [play-cljc.gl.utils :as gl-utils]
-   [play-cljc.math :as m]
-   [rules.interface.input :as input]))
+   [rules.firstperson :as firstperson]
+   [rules.interface.input :as input]
+   [rules.time :as time]))
 
 ;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
@@ -166,11 +167,12 @@
    (world/->init)))
 
 (def all-systems
-  [input/system])
+  [input/system
+   firstperson/system])
 
 (defn init [game]
   (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA)) 
+  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
 
   (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
         all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
@@ -269,47 +271,19 @@
     (try (println "calling (init game)")
          (swap! *refresh? not)
          (init game)
-         game
          #?(:clj  (catch Exception err (throw err))
-            :cljs (catch js/Error err 
-                    (utils/log-limited err "[init-error]")
-                    game)))
+            :cljs (catch js/Error err
+                    (utils/log-limited err "[init-error]"))))
     (try
       (let [[game-width game-height] (utils/get-size game)
-            {:keys [delta-time 
-                    horiz-angle verti-angle
-                    ::global*]
-             :or {horiz-angle Math/PI
-                  verti-angle 0.0}} game
+            {:keys [total-time delta-time ::global*]} game
             {:keys [vao]} @global*
 
             world (swap! (::world/atom* game)
                          #(-> %
-                              o/fire-rules))
-
-            position [0 0 5]
-            initial-fov (m/deg->rad 45)
-            mouse-speed 0.001
-
-            {:keys [mouse-dx mouse-dy]} (first (o/query-all world ::input/mouse-delta))
-            horiz-angle (+ horiz-angle (* mouse-speed delta-time (or (- mouse-dx) 0)))
-            verti-angle (+ verti-angle (* mouse-speed delta-time (or mouse-dy 0)))
-            direction   [(* (Math/cos verti-angle) (Math/sin horiz-angle))
-                         (Math/sin verti-angle)
-                         (* (Math/cos verti-angle) (Math/cos horiz-angle))]
-            
-            right       [(Math/sin (- horiz-angle (/ Math/PI 2)))
-                         0
-                         (Math/cos (- horiz-angle (/ Math/PI 2)))]
-            
-            up           (#'m/cross right direction)
-
-            aspect-ratio (/ game-width game-height)
-            projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
-            camera       (m/look-at-matrix-3d position (mapv + position direction) up)
-            view         (m/inverse-matrix-3d camera)
-            p*v          (m/multiply-matrices-3d view projection)
-            mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) p*v)]
+                              (time/insert total-time delta-time)
+                              (o/fire-rules)))
+            mvp    (:mvp (first (o/query-all world ::firstperson/state)))]
 
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 game-width game-height)
@@ -351,16 +325,12 @@
             (gl game uniform1i texture-loc texture-unit)
 
             (gl game drawArrays (gl game TRIANGLES) 0 (* 3 12))
-            (gl game disableVertexAttribArray cube-attr-loc)))
-            
-            (assoc game
-                   :horiz-angle horiz-angle 
-                   :verti-angel verti-angle))
+            (gl game disableVertexAttribArray cube-attr-loc))))
 
       #?(:clj  (catch Exception err (throw err))
          :cljs (catch js/Error err
-                 (utils/log-limited err "[tick-error]")
-                 game)))))
+                 (utils/log-limited err "[tick-error]")))))
+  game)
 
 (comment
   (let [game hmm
@@ -373,7 +343,6 @@
      (gl game getParameter (gl game MAX_COMBINED_TEXTURE_IMAGE_UNITS))
      (gl game TEXTURE0)
      (gl game getUniformLocation cube-program "textureSampler")])
-  
-  
+
   (let [world @(::world/atom* hmm)]
     (o/query-all world ::input/mouse)))
