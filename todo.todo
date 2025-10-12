@@ -24,15 +24,22 @@ todo:
 
 play-cljc.gl:
     ☐ from zero
-        ☐ somehow we continued the tutorial
+        ☐ somehow we continued the tutorial (https://www.opengl-tutorial.org/beginners-tutorials)
             ✔ firstperson movement @done(25-10-13 00:01)
             ☐ movement with gravity
-            ☐ jvm control, because it will be wildly different
-            ☐ input dependency inversion
-            ☐ model loading, try use kenney 3ds
+            ✔ jvm control, because it will be wildly different @done(25-10-13 01:46) not that wild apparently
+            ✔ input dependency inversion @done(25-10-13 01:46)
+            ☐ model loading, try use kenney 3d assets
+                ☐ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html)
+                ☐ clicky-clicky (https://x.com/tsoding/status/1975233872221610206)   
+                ☐ play with fire (https://x.com/cmzw_/status/1730593875545477617/video/1)
             ☐ sidestream particle
             ☐ particle 3d 
             ☐ text particle
+            ☐ sidestream anime
+            ☐ sidestream scene tree
+            ☐ sidestream asset rules
+                ☐ find a way to structure 3d assets/scenes
         ☐ text render
         ☐ dialogue render
         ☐ 3d text
