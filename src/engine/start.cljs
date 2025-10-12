@@ -92,11 +92,17 @@
 
 (defn keycode->keyword [keycode]
   (cond
-    ;; arrow keys
+    (= keycode 32) :space
     (= keycode 37) :left
     (= keycode 38) :up
     (= keycode 39) :right
     (= keycode 40) :down
+
+    (= keycode 16) :shift
+    (= keycode 17) :ctrl
+    (= keycode 18) :alt
+    (= keycode 91) :meta   ; Command on macOS / Windows key on Windows
+    (= keycode 93) :meta   ; Right Command / Menu key
 
     ;; numbers 0–9
     (<= 48 keycode 57)
@@ -107,7 +113,6 @@
     (keyword (-> keycode char str string/lower-case))
 
     :else nil))
-
 
 (defn listen-for-keys []
   (events/listen js/window "keydown"

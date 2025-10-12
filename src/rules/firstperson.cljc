@@ -43,15 +43,16 @@
       [::player ::right right {:then false}]
       [keyname ::input/keystate keystate {:then false}]
       :then
-      (println "moving..." position)
       (let [speed 0.01
             move  (case keyname
-                    :w (mapv #(* % speed delta-time) direction)
-                    :a (mapv #(* % speed delta-time -1) right)
-                    :s (mapv #(* % speed delta-time -1) direction)
-                    :d (mapv #(* % speed delta-time) right)
+                    :w     (mapv #(* % speed delta-time) direction)
+                    :a     (mapv #(* % speed delta-time -1) right)
+                    :s     (mapv #(* % speed delta-time -1) direction)
+                    :d     (mapv #(* % speed delta-time) right)
+                    :shift (mapv #(* % speed delta-time) [0 1 0])
+                    :ctrl  (mapv #(* % speed delta-time) [0 -1 0])
                     nil)]
-        (when move 
+        (when move
           (insert! ::player ::position (mapv + position move))))]
 
      ::mouse-camera
