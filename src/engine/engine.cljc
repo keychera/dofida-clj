@@ -268,6 +268,7 @@
 ;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
 
 (defn tick [game]
+  #_{:clj-kondo/ignore [:inline-def]}
   (def hmm game)
   (if @*refresh?
     (try (println "calling (init game)")

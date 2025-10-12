@@ -111,11 +111,11 @@
                           :else :noop)
       nil)))
 
-(defn on-char! [window codepoint])
+(defn on-char! [_window _codepoint])
 
-(defn on-resize! [window width height])
+(defn on-resize! [_window _width _height])
 
-(defn on-scroll! [window xoffset yoffset])
+(defn on-scroll! [_window _xoffset _yoffset])
 
 (defprotocol Events
   (on-mouse-move [this xpos ypos])
@@ -142,7 +142,7 @@
     (on-resize! handle width height))
   (on-scroll [{:keys [handle]} xoffset yoffset]
     (on-scroll! handle xoffset yoffset))
-  (on-tick [this game]
+  (on-tick [_this game]
     (update-world game)
     (engine/tick game)))
 
@@ -150,31 +150,31 @@
   (doto handle
     (GLFW/glfwSetCursorPosCallback
      (reify GLFWCursorPosCallbackI
-       (invoke [this _ xpos ypos]
+       (invoke [_this _ xpos ypos]
          (on-mouse-move window xpos ypos))))
     (GLFW/glfwSetMouseButtonCallback
      (reify GLFWMouseButtonCallbackI
-       (invoke [this _ button action mods]
+       (invoke [_this _ button action mods]
          (on-mouse-click window button action mods))))
     (GLFW/glfwSetKeyCallback
      (reify GLFWKeyCallbackI
-       (invoke [this _ keycode scancode action mods]
+       (invoke [_this _ keycode scancode action mods]
          (on-key window keycode scancode action mods))))
     (GLFW/glfwSetCharCallback
      (reify GLFWCharCallbackI
-       (invoke [this _ codepoint]
+       (invoke [_this _ codepoint]
          (on-char window codepoint))))
     (GLFW/glfwSetFramebufferSizeCallback
      (reify GLFWFramebufferSizeCallbackI
-       (invoke [this _ width height]
+       (invoke [_this _ width height]
          (on-resize window width height))))
     (GLFW/glfwSetScrollCallback
      (reify GLFWScrollCallbackI
-       (invoke [this _ xoffset yoffset]
+       (invoke [_this _ xoffset yoffset]
          (on-scroll window xoffset yoffset))))
     (GLFW/glfwSetWindowCloseCallback
      (reify GLFWWindowCloseCallbackI
-       (invoke [this window]
+       (invoke [_this _window]
          (System/exit 0))))))
 
 (defn ->window
@@ -225,7 +225,7 @@
          (GLFW/glfwDestroyWindow handle)
          (GLFW/glfwTerminate))))))
 
-(defn -main [& args]
+(defn -main [& _args]
   (let [window (->window)]
     (start (engine/->game (:handle window)) window)))
 
