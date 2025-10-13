@@ -110,9 +110,9 @@
            uvs        (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 2))
            normals    (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 3))]
       (if (some? v-i)
-        (let [[v1 v2 v3] (nth all-vertices (dec v-i))
-              [uv1 uv2]  (nth all-uvs (dec uv-i))
-              [n1 n2 n3] (nth all-normals (dec n-i))]
+        (let [[^float v1 ^float v2 ^float v3] (nth all-vertices (dec v-i))
+              [^float uv1 ^float uv2] (nth all-uvs (dec uv-i))
+              [^float n1 ^float n2 ^float n3] (nth all-normals (dec n-i))]
           (aset vertices (* i 3) v1)
           (aset vertices (+ (* i 3) 1) v2)
           (aset vertices (+ (* i 3) 2) v3)
