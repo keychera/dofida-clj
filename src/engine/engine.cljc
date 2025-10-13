@@ -41,59 +41,21 @@
    :functions
    '{main ([] (= o_color (vec4 "0.42" "1.0" "0.69" "0.5")))}})
 
-(def cube-data
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [-1.0 -1.0 -1.0
-    -1.0 -1.0  1.0
-    -1.0  1.0  1.0
-    1.0  1.0 -1.0
-    -1.0 -1.0 -1.0
-    -1.0  1.0 -1.0
-
-    1.0 -1.0  1.0
-    -1.0 -1.0 -1.0
-    1.0 -1.0 -1.0
-    1.0  1.0 -1.0
-    1.0 -1.0 -1.0
-    -1.0 -1.0 -1.0
-
-    -1.0 -1.0 -1.0
-    -1.0  1.0  1.0
-    -1.0  1.0 -1.0
-    1.0 -1.0  1.0
-    -1.0 -1.0  1.0
-    -1.0 -1.0 -1.0
-
-    -1.0  1.0  1.0
-    -1.0 -1.0  1.0
-    1.0 -1.0  1.0
-    1.0  1.0  1.0
-    1.0 -1.0 -1.0
-    1.0  1.0 -1.0
-
-    1.0 -1.0 -1.0
-    1.0  1.0  1.0
-    1.0 -1.0  1.0
-    1.0  1.0  1.0
-    1.0  1.0 -1.0
-    -1.0  1.0 -1.0
-
-    1.0  1.0  1.0
-    -1.0  1.0 -1.0
-    -1.0  1.0  1.0
-    1.0  1.0  1.0
-    -1.0  1.0  1.0
-    1.0 -1.0  1.0]))
+(def cube-model
+  (-> (utils/load-model-on-compile "assets/defaultcube.obj")
+      (utils/model->vertex-data)))
 
 (def cube-uvs
   (#?(:clj float-array :cljs #(js/Float32Array. %))
    [;; I DONT UNDERSTAND UV
-    0 1
-    1 1
     1 0
+    0 1
+    0 0
+    
+    1 1 ;; deliberate wrong data, broken but looks kinda cool
 
-    1 0
-    0 1
+    0 0
+    0 0
     0 0
     ;; what
     0 0
@@ -214,6 +176,7 @@
 
         cube-buffer      (gl-utils/create-buffer game)
         _                (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
+        cube-data        (first cube-model)
         _                (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
         vertex-attr      (-> cube-vertex-shader :inputs keys first str)
         vertex-attr-loc  (gl game getAttribLocation cube-program vertex-attr)
@@ -235,7 +198,7 @@
              uv-attr      (-> cube-vertex-shader :inputs keys second str)
              uv-attr-loc  (gl game getAttribLocation cube-program uv-attr)
 
-             texture-unit  (dec (swap! (:tex-count game) inc))
+             texture-unit #_(swap! (:tex-count game) inc) 0 ;; disabling multi texture for reloading-ease
              texture      (gl game #?(:clj genTextures :cljs createTexture))
 
              texture-name (-> cube-fragment-shader :uniforms keys first str)
@@ -271,7 +234,7 @@
   #_{:clj-kondo/ignore [:inline-def]}
   (def hmm game)
   (if @*refresh?
-    (try (println "calling (init game)")
+    (try (println "refresh game")
          (swap! *refresh? not)
          (init game)
          #?(:clj  (catch Exception err (throw err))
