@@ -47,12 +47,10 @@
       :then
       (let [speed 0.01
             move  (case control
-                    ::forward  (mapv #(* % speed delta-time) direction)
-                    ::backward (mapv #(* % speed delta-time -1) direction)
-                    ::strafe-l (mapv #(* % speed delta-time -1) right)
-                    ::strafe-r (mapv #(* % speed delta-time) right)
-                    ::ascend   (mapv #(* % speed delta-time) [0 1 0])
-                    ::descend  (mapv #(* % speed delta-time) [0 -1 0])
+                    ::forward  (mapv #(* % speed delta-time) (-> direction (assoc 1 0)))
+                    ::backward (mapv #(* % speed delta-time -1) (-> direction (assoc 1 0)))
+                    ::strafe-l (mapv #(* % speed delta-time -1) (-> right (assoc 1 0)))
+                    ::strafe-r (mapv #(* % speed delta-time) (-> right (assoc 1 0)))
                     nil)]
         (when move
           (insert! ::player ::position (mapv + position move))))]
