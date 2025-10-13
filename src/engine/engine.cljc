@@ -45,60 +45,6 @@
   (-> (utils/load-model-on-compile "assets/defaultcube.obj")
       (utils/model->vertex-data)))
 
-(def cube-uvs
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [;; I DONT UNDERSTAND UV
-    1 0
-    0 1
-    0 0
-    
-    1 1 ;; deliberate wrong data, broken but looks kinda cool
-
-    0 0
-    0 0
-    0 0
-    ;; what
-    0 0
-    0 0
-    0 0
-
-    1 0
-    1 1
-    0 1
-    ;; why
-    0 1
-    1 0
-    0 0
-
-    0 0
-    0 0
-    0 0
-    ;; how
-    1 0
-    1 1
-    0 1
-
-    1 0
-    0 1
-    0 0
-
-    ;; when
-    0 1
-    1 0
-    1 1
-
-    0 0
-    0 0
-    0 0
-    ;; where
-    0 0
-    0 0
-    0 0
-
-    0 0
-    1 0
-    0 1]))
-
 (def cube-vertex-shader
   {:precision  "mediump float"
    :inputs     '{a_vertex_pos vec3
@@ -176,7 +122,7 @@
 
         cube-buffer      (gl-utils/create-buffer game)
         _                (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
-        cube-data        (first cube-model)
+        cube-data        (:vertices cube-model)
         _                (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
         vertex-attr      (-> cube-vertex-shader :inputs keys first str)
         vertex-attr-loc  (gl game getAttribLocation cube-program vertex-attr)
@@ -184,16 +130,18 @@
         uniform-name     (-> cube-vertex-shader :uniforms keys first str)
         uniform-loc      (gl game getUniformLocation cube-program uniform-name)]
     (swap! (::global* game) assoc
-           :cube-program     cube-program
-           :cube-vbo         cube-buffer
-           :cube-attr-loc    vertex-attr-loc
-           :cube-uniform-loc uniform-loc)
+           :cube-program      cube-program
+           :cube-vbo          cube-buffer
+           :cube-vertex-count (:vertex-count cube-model)
+           :cube-attr-loc     vertex-attr-loc
+           :cube-uniform-loc  uniform-loc)
 
     (utils/get-image
      "dofida.png"
      (fn [{:keys [data width height]}]
        (let [uv-buffer    (gl-utils/create-buffer game)
              _            (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+             cube-uvs     (:uvs cube-model)
              _            (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
              uv-attr      (-> cube-vertex-shader :inputs keys second str)
              uv-attr-loc  (gl game getAttribLocation cube-program uv-attr)
@@ -271,6 +219,7 @@
         (let [{:keys [cube-program
                       cube-attr-loc cube-vbo
                       cube-uniform-loc
+                      cube-vertex-count
 
                       uv-attr-loc uv-buffer
                       texture-loc texture-unit texture]} @global*]
@@ -291,7 +240,7 @@
             (gl game bindTexture (gl game TEXTURE_2D) texture)
             (gl game uniform1i texture-loc texture-unit)
 
-            (gl game drawArrays (gl game TRIANGLES) 0 (* 3 12))
+            (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
             (gl game disableVertexAttribArray cube-attr-loc))))
 
       #?(:clj  (catch Exception err (throw err))

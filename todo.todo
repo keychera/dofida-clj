@@ -29,7 +29,12 @@ play-cljc.gl:
             ☐ movement with gravity
             ✔ jvm control, because it will be wildly different @done(25-10-13 01:46) not that wild apparently
             ✔ input dependency inversion @done(25-10-13 01:46)
-            ☐ model loading, try using kenney 3d assets
+            ☐ model loading, 
+                ✔ cube @done(25-10-13 23:55)
+                ☐ better texture
+                ☐ use normals, direction lighting and stuff
+                ☐ following this as well https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
+                ☐ try using kenney 3d assets
                 ☐ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html)
                 ☐ clicky-clicky (https://x.com/tsoding/status/1975233872221610206)   
                 ☐ play with fire (https://x.com/cmzw_/status/1730593875545477617/video/1)

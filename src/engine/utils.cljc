@@ -1,12 +1,15 @@
 (ns engine.utils
-  (:require #?@(:clj [[clojure.java.io :as io]
-                      [clojure.string :as str]])
-            [clojure.edn :as edn])
+  (:require
+   #?@(:clj [[clojure.java.io :as io]
+             [clojure.string :as str]])
+   [clojure.edn :as edn]
+   [engine.macros :refer [vars->map]])
   #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
-  #?(:clj (:import [java.nio ByteBuffer]
-                   [org.lwjgl.glfw GLFW]
-                   [org.lwjgl.system MemoryUtil]
-                   [org.lwjgl.stb STBImage])))
+  #?(:clj (:import
+           [java.nio ByteBuffer]
+           [org.lwjgl.glfw GLFW]
+           [org.lwjgl.stb STBImage]
+           [org.lwjgl.system MemoryUtil])))
 
 (defn get-image [fname callback]
   #?(:clj  (let [is (io/input-stream (io/resource (str "public/" fname)))
@@ -87,10 +90,19 @@
                              (update-vals (fn [v] (mapv rest v))))]
        (-> grouped pr-str))))
 
+(defn triangulate [verts]
+  (mapcat (fn [i]
+            [(first verts)
+             (nth verts i)
+             (nth verts (inc i))])
+          (range 1 (dec (count verts)))))
+
 (defn model->vertex-data
   "call this with (load-model-on-compile).
    they need to be called separately because load-model-on-compile will
-   produce string data of the model at compile time 
+   produce string data of the model at compile time
+
+   very simple. triangulate vertices 4 and above.
    
      e.g.
    
@@ -99,7 +111,7 @@
   [load-model-here]
   (let [grouped       (-> load-model-here
                           (edn/read-string))
-        faces         (mapcat identity (get grouped "f"))
+        faces         (mapcat triangulate (get grouped "f"))
         all-vertices  (get grouped "v")
         all-uvs       (get grouped "vt")
         all-normals   (get grouped "vn")
@@ -122,4 +134,4 @@
           (aset normals (+ (* i 3) 1) n2)
           (aset normals (+ (* i 3) 2) n3)
           (recur (inc i) remains vertices uvs normals))
-        [vertices uvs normals]))))
+        (vars->map vertex-count vertices uvs normals)))))
