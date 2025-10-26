@@ -99,3 +99,4 @@ startaker:
 
 devx:
     ☐  deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
+    ☐ sidestream twoway, text as interface
