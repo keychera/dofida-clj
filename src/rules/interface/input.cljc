@@ -54,3 +54,8 @@
 
 (defn key-on-keyup [world keyname]
   (o/retract world keyname ::keystate))
+
+(defn cleanup-input [world]
+  (reduce
+   (fn [w' k] (o/retract w' (:keyname k) ::keystate))
+   world (o/query-all world ::keys)))

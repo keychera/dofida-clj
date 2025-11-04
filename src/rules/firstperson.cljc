@@ -54,7 +54,7 @@
                     nil)]
         (when move
           (insert! ::player ::position (mapv + position move))))]
-
+     
      ::mouse-camera
      [:what
       [::time/now ::time/delta delta-time]
@@ -67,8 +67,10 @@
       :then
       (let [initial-fov  (m/deg->rad 45)
             mouse-speed  0.001
-            horiz-angle  (+ horiz-angle (* mouse-speed delta-time (or (- view-dx) 0)))
-            verti-angle  (+ verti-angle (* mouse-speed delta-time (or (- view-dy) 0)))
+            horiz-angle  (+ horiz-angle (* mouse-speed (or (- view-dx) 0)))
+            verti-angle (-> (+ verti-angle (* mouse-speed (or (- view-dy) 0)))
+                            (max (- (/ Math/PI 2)))
+                            (min (/ Math/PI 2))) 
             direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                           (Math/sin verti-angle)
                           (* (Math/cos verti-angle) (Math/cos horiz-angle))]

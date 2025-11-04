@@ -18,9 +18,12 @@
    [org.lwjgl.system MemoryUtil])
   (:gen-class))
 
+;; in JS, we can't use queue becaue the different rate between input callback and framerate
 ;; I think java can still use queue here because 
 ;; the rate of update is the same due to GLFW/PollEvents?
 (defonce world-inputs (atom clojure.lang.PersistentQueue/EMPTY))
+(defonce mouse-state (atom {::last-mousemove (System/nanoTime) ::stopped? true}))
+(defonce mousestop-threshold-nanos 50000000) ;; 50ms
 
 (defn update-world [game]
   (when (seq @world-inputs)
@@ -36,7 +39,12 @@
 
 (defonce mouse-locked?* (atom nil))
 
+(defn on-mouse-stop! []
+  (swap! world-inputs conj
+         (fn mouse-delta [w] (input/update-mouse-delta w 0.0 0.0))))
+
 (defn on-mouse-move! [window xpos ypos]
+  (swap! mouse-state assoc ::last-mousemove (System/nanoTime) ::stopped? false)
   (let [*fb-width (MemoryUtil/memAllocInt 1)
         *fb-height (MemoryUtil/memAllocInt 1)
         *window-width (MemoryUtil/memAllocInt 1)
@@ -75,7 +83,9 @@
           half-h (/ window-height 2)]
       (MemoryUtil/memFree *window-width)
       (MemoryUtil/memFree *window-height)
-      (GLFW/glfwSetCursorPos window half-w half-h)))
+      (GLFW/glfwSetCursorPos window half-w half-h)
+      ;; HIDDEN doesn't work somehow
+      (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
   (reset! mouse-locked?* true))
 
 (defn keycode->keyword [keycode]
@@ -93,12 +103,14 @@
     GLFW/GLFW_KEY_LEFT_CONTROL :ctrl
     nil))
 
-(defn on-key! [_window keycode _scancode action _mods]
+(defn on-key! [window keycode _scancode action _mods]
   (when-let [k (keycode->keyword keycode)]
     (condp = action
       GLFW/GLFW_PRESS   (cond
                           (= :esc k)
-                          (reset! mouse-locked?* false)
+                          (do (swap! world-inputs conj (fn keydown [w] (input/cleanup-input w)))
+                              (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_NORMAL)
+                              (reset! mouse-locked?* false))
 
                           (#{:w :a :s :d :shift :ctrl} k)
                           (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
@@ -218,6 +230,10 @@
              (when frame-fn (frame-fn))
              (GLFW/glfwSwapBuffers handle)
              (GLFW/glfwPollEvents)
+             (let [{::keys [stopped? last-mousemove]} @mouse-state]
+               (when (and (not stopped?) (> (- (System/nanoTime) last-mousemove) mousestop-threshold-nanos))
+                 (swap! mouse-state assoc ::stopped? true)
+                 (on-mouse-stop!)))
              (recur game))))
        (finally
          (when destroy-fn (destroy-fn))
