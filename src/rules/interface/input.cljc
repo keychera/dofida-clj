@@ -11,7 +11,7 @@
 (s/def ::keystate any?)
 (s/def ::keydown any?)
 
-(world/system system
+(def system
   {::world/rules
    (o/ruleset
     {::mouse

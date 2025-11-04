@@ -21,7 +21,7 @@
 (s/def ::view-dx float?)
 (s/def ::view-dy float?)
 
-(world/system system
+(def system
   {::world/init-fn
    (fn [world _game]
      (-> world

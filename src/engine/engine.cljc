@@ -8,7 +8,6 @@
    [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
-   [play-cljc.gl.entities-2d :as e]
    [rules.dofida :as dofida]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
@@ -28,21 +27,25 @@
    dofida/system])
 
 (defn init [game]
+  (println "init game")
   (gl game enable (gl game BLEND))
   (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
 
   (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
         all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
-        reload-fns (sp/select [sp/ALL ::world/reload-fn some?] all-systems)
+        before-fns (sp/select [sp/ALL ::world/before-load-fn some?] all-systems)
+        after-fns  (sp/select [sp/ALL ::world/after-load-fn some?] all-systems)
         render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)]
 
     (swap! (::world/init-cnt* game) inc)
     (reset! (::render-fns* game) render-fns)
     (swap! (::world/atom* game)
            (fn [world]
-             (-> (world/init-world world game all-rules reload-fns)
+             (-> (world/init-world world game all-rules before-fns after-fns)
                  (as-> w (reduce (fn [w' init-fn] (init-fn w' game)) w all-init))
-                 (o/fire-rules))))))
+                 (o/fire-rules))))
+    
+    (dofida/load-texture (::world/atom* game) game)))
 
 (defn tick [game]
   (if @*refresh?
@@ -65,7 +68,7 @@
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 game-width game-height)
 
-        (doseq [render-fn @(::render-fns* game)] 
+        (doseq [render-fn @(::render-fns* game)]
           (render-fn world game)))
 
       #?(:clj  (catch Exception err (throw err))

@@ -7,7 +7,7 @@
 ;; specs
 (s/def ::dimension map?)
 
-(world/system system
+(def system
   {::world/rules
    (o/ruleset
     {::window

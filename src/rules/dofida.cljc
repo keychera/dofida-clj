@@ -69,15 +69,62 @@
 
 (s/def ::esse-3d map?)
 (s/def ::texture map?)
+(s/def ::texture-to-load string?)
+
+(defn load-texture [world* game]
+  (let [{:keys [esse-id texture-to-load esse-3d]} (first (o/query-all @world* ::texture-to-load))]
+    (utils/get-image
+     texture-to-load
+     (fn on-image-load [{:keys [data width height]}]
+       (let [cube-program (:cube-program esse-3d)
+             uv-buffer    (gl-utils/create-buffer game)
+             _            (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+             cube-uvs     (:uvs cube-model)
+             _            (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
+             uv-attr      (-> cube-vertex-shader :inputs keys second str)
+             uv-attr-loc  (gl game getAttribLocation cube-program uv-attr)
+
+             texture-unit #_(swap! (:tex-count game) inc) 0 ;; disabling multi texture for reloading-ease
+             texture      (gl game #?(:clj genTextures :cljs createTexture))
+
+             texture-name (-> cube-fragment-shader :uniforms keys first str)
+             texture-loc  (gl game getUniformLocation cube-program texture-name)]
+
+         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+         (gl game bindTexture (gl game TEXTURE_2D) texture)
+
+         (gl game texImage2D (gl game TEXTURE_2D)
+             #_:mip-level    0
+             #_:internal-fmt (gl game RGBA)
+             (int width)
+             (int height)
+             #_:border       0
+             #_:src-fmt      (gl game RGBA)
+             #_:src-type     (gl game UNSIGNED_BYTE)
+             data)
+
+         (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
+         (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
+
+         (swap! world*
+                (fn [world]
+                  (-> world
+                      (o/insert esse-id ::texture
+                                {:uv-buffer uv-buffer
+                                 :uv-attr-loc uv-attr-loc
+                                 :texture-unit texture-unit
+                                 :texture texture
+                                 :texture-loc texture-loc})
+                      (o/retract esse-id ::texture-to-load)))))))))
 
 (def system
   {::world/init-fn
    (fn [world game]
      (-> {}
-         ((fn [esse-3d]
+         ((fn set-vao [esse-3d]
             (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
               (assoc esse-3d :vao vao))))
-         ((fn [esse-3d]
+         ((fn set-triangle [esse-3d]
             (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
                   fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
                   triangle-program (gl-utils/create-program game vertex-source fragment-source)
@@ -93,7 +140,7 @@
                      :vbo         triangle-buffer
                      :attr-loc    vertex-attr-loc
                      :uniform-loc uniform-loc))))
-         ((fn [esse-3d]
+         ((fn set-cube [esse-3d]
             (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
                   fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
                   cube-program     (gl-utils/create-program game vertex-source fragment-source)
@@ -108,65 +155,30 @@
                   uniform-name     (-> cube-vertex-shader :uniforms keys first str)
                   uniform-loc      (gl game getUniformLocation cube-program uniform-name)]
 
-              (utils/get-image
-               "dofida.png"
-               (fn [{:keys [data width height]}]
-                 (let [uv-buffer    (gl-utils/create-buffer game)
-                       _            (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-                       cube-uvs     (:uvs cube-model)
-                       _            (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
-                       uv-attr      (-> cube-vertex-shader :inputs keys second str)
-                       uv-attr-loc  (gl game getAttribLocation cube-program uv-attr)
-
-                       texture-unit #_(swap! (:tex-count game) inc) 0 ;; disabling multi texture for reloading-ease
-                       texture      (gl game #?(:clj genTextures :cljs createTexture))
-
-                       texture-name (-> cube-fragment-shader :uniforms keys first str)
-                       texture-loc  (gl game getUniformLocation cube-program texture-name)]
-
-                   (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
-                   (gl game bindTexture (gl game TEXTURE_2D) texture)
-
-                   (gl game texImage2D (gl game TEXTURE_2D)
-                       #_:mip-level    0
-                       #_:internal-fmt (gl game RGBA)
-                       (int width)
-                       (int height)
-                       #_:border       0
-                       #_:src-fmt      (gl game RGBA)
-                       #_:src-type     (gl game UNSIGNED_BYTE)
-                       data)
-
-                   (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
-                   (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
-
-                   ;; this is inside callback so need to insert fact to world/atom 
-                   (swap! (::world/atom* game)
-                          o/insert ::herself ::texture
-                          {:uv-buffer uv-buffer
-                           :uv-attr-loc uv-attr-loc
-                           :texture-unit texture-unit
-                           :texture texture
-                           :texture-loc texture-loc}))))
-
               (assoc esse-3d
                      :cube-program      cube-program
                      :cube-vbo          cube-buffer
                      :cube-vertex-count (:vertex-count cube-model)
                      :cube-attr-loc     vertex-attr-loc
                      :cube-uniform-loc  uniform-loc))))
-         ((fn [esse-3d]
-            (o/insert world ::herself ::esse-3d esse-3d)))))
+         ((fn enter-the-world [esse-3d]
+            (o/insert world ::herself {::esse-3d esse-3d
+                                       ::texture-to-load "dofida.png"})))))
 
    ::world/rules
    (o/ruleset
-    {::esse-3d
+    {::texture-to-load
+     [:what
+      [esse-id ::esse-3d esse-3d]
+      [esse-id ::texture-to-load texture-to-load]]
+
+     ::esse-3d
      [:what
       [esse-id ::esse-3d esse-3d] ;; contains vao, program, vbo etc, will decomplect later
       [esse-id ::texture texture]]})
 
    ::world/render-fn
-   (fn [world game _camera]
+   (fn render [world game]
      (let [dofida  (first (o/query-all world ::esse-3d)) ;; only dofida herself for now 
            esse-3d (:esse-3d dofida)
            texture (:texture dofida)
@@ -176,8 +188,7 @@
        (gl game bindVertexArray (:vao esse-3d))
 
        ;; triangle
-       (let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
-
+       (when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
          (gl game useProgram program)
          (gl game enableVertexAttribArray attr-loc)
          (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
