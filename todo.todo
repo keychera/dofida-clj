@@ -5,12 +5,43 @@ todo:
 ✘ collect assets @cancelled(25-06-12 23:10)
 ✘ incorporate assets @cancelled(25-06-12 23:10)
 
-☐ sidestream
+☐ it begins
+    ☐ reconstruct atlas asset with our current gl knowledge
+    ☐ alpha clipping, probably need to learn render-to-texture
+    ☐ sidestream: t2d, non-destructive
+        ☐ t3d?
+    ☐ sidestream: anime, non destructive
+    ☐ sidestream twod-picking
+        ☐ threed-picking?
+    ☐ load proper mesh
+        ☐ does assimp make sense in clojure?
+    ☐ maybe try implementing opengl tutorial again regarding light and materials
+    ☐ sidestream: dialogue
+    ☐ rethink director
+
+    ☐ make a SCENE 
+        "do you even realize how lucky you are."
+
+    ☐ we realized we made some todo as well down there, consider them the same
+        ☐ wedesoft
+        ☐ cmzw_
+        ☐ tsoding
+
+☐ we keep wanting to reach the unreachable
+    ☐ does box2d make sense in clojure?
+    ☐ clojure basilisp
+        ☐ blender
+    ☐ graalvm
+    ☐ understanding performance and profiling tools again
+        ☐ the browser's performance tab
+        ☐ jvm world's tools
+
+
+✔ sidestream @done(25-11-04 07:25) moved
     ✔ macros s-> refactor @done(25-08-25 21:26)
     ✔ build-java @done(25-08-25 06:45)
         ✔ make the shader and everything else works in java @done(25-10-11 19:47) slowly but surely we get to be familiar with the idiosyncracies
     ✔ world system @done(25-08-25 21:16)
-    ☐ esse/asset
 
 ☐ cube
 ☐ sphere
