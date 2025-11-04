@@ -11,7 +11,7 @@
 (s/def ::game map?)
 (s/def ::init-fn   fn? #_(fn [world game] world))
 (s/def ::reload-fn fn? #_(fn [world game] world))
-(s/def ::render-fn fn? #_(fn [world game camera game-width game-height] world))
+(s/def ::render-fn fn? #_(fn [world game] world))
 
 (s/def ::rule #(instance? odoyle.rules.Rule %))
 (expound/defmsg ::rule  "rules must be odoyle.rules/ruleset\n  e.g. (o/ruleset {...})")

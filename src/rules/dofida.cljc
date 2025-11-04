@@ -166,7 +166,7 @@
       [esse-id ::texture texture]]})
 
    ::world/render-fn
-   (fn [world game _camera _game-width _game-height]
+   (fn [world game _camera]
      (let [dofida  (first (o/query-all world ::esse-3d)) ;; only dofida herself for now 
            esse-3d (:esse-3d dofida)
            texture (:texture dofida)

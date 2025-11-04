@@ -44,8 +44,6 @@
                  (as-> w (reduce (fn [w' init-fn] (init-fn w' game)) w all-init))
                  (o/fire-rules))))))
 
-(def camera (e/->camera true))
-
 (defn tick [game]
   (if @*refresh?
     (try (println "refresh game")
@@ -67,8 +65,8 @@
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 game-width game-height)
 
-        (doseq [render-fn @(::render-fns* game)]
-          (render-fn world game camera game-width game-height)))
+        (doseq [render-fn @(::render-fns* game)] 
+          (render-fn world game)))
 
       #?(:clj  (catch Exception err (throw err))
          :cljs (catch js/Error err
