@@ -5,6 +5,7 @@
    [com.rpl.specter :as sp]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
+   [assets.asset :as asset]
    [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
@@ -21,7 +22,9 @@
    (world/->init)))
 
 (def all-systems
-  [window/system
+  [asset/system
+   
+   window/system
    input/system
    firstperson/system
    dofida/system])
@@ -44,8 +47,7 @@
              (-> (world/init-world world game all-rules before-fns after-fns)
                  (as-> w (reduce (fn [w' init-fn] (init-fn w' game)) w all-init))
                  (o/fire-rules))))
-    
-    (dofida/load-texture (::world/atom* game) game)))
+    (asset/load-asset (::world/atom* game) game)))
 
 (defn tick [game]
   (if @*refresh?

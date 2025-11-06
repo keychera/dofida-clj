@@ -21,7 +21,7 @@
   (o/wrap-rule rule
                {:what
                 (fn [f session new-fact old-fact]
-                  (when (#{:rules.dofida/texture-to-load} (:name rule))
+                  (when (#{} (:name rule))
                     (println (:name rule) "is comparing" (dissoc old-fact :value) "=>" (dissoc new-fact :value)))
                   (f session new-fact old-fact))
                 :when
@@ -31,7 +31,7 @@
                   (f session match))
                 :then
                 (fn [f session match]
-                  (when (#{:rules.dofida/texture-to-load} (:name rule))
+                  (when (#{} (:name rule))
                     (println "firing" (:name rule) "for" (keys match)))
                   (f session match))
                 :then-finally

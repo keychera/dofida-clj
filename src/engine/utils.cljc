@@ -135,3 +135,8 @@
           (aset normals (+ (* i 3) 2) n3)
           (recur (inc i) remains vertices uvs normals))
         (vars->map vertex-count vertices uvs normals)))))
+
+(defn deep-merge [a & maps]
+  (if (map? a)
+    (apply merge-with deep-merge a maps)
+    (apply merge-with deep-merge maps)))
