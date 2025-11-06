@@ -7,6 +7,9 @@ todo:
 
 ☐ it begins
     ☐ reconstruct atlas asset with our current gl knowledge
+        ☐ try to understand texture again
+            ☐ 2d plane texture
+            ☐ sidestream asset involving texture
     ☐ alpha clipping, probably need to learn render-to-texture
     ☐ sidestream: t2d, non-destructive
         ☐ t3d?
