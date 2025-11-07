@@ -65,15 +65,12 @@
         (process-asset world* game asset-id asset-data)))))
 
 (defmethod process-asset ::texture
-  [world* game asset-id {::keys [asset-to-load program]}]
+  [world* game asset-id {::keys [asset-to-load]}]
   (utils/get-image
    asset-to-load
    (fn on-image-load [{:keys [data width height]}]
      (let [texture-unit #_(swap! (:tex-count game) inc) 0 ;; disabling multi texture for reloading-ease
-           texture      (gl game #?(:clj genTextures :cljs createTexture))
-
-           texture-name "textureSampler" ;; from fragment's shader uniform. maybe with layout modifier, we dont need this
-           texture-loc  (gl game getUniformLocation program texture-name)]
+           texture      (gl game #?(:clj genTextures :cljs createTexture))]
 
        (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
        (gl game bindTexture (gl game TEXTURE_2D) texture)
@@ -97,6 +94,5 @@
                               {::loaded? true
                                ::texture
                                {:texture-unit texture-unit
-                                :texture texture
-                                :texture-loc texture-loc}}))))))))
+                                :texture texture}}))))))))
 

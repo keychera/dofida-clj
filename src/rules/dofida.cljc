@@ -70,7 +70,6 @@
 
 (s/def ::esse-3d map?)
 
-
 (def system
   {::world/init-fn
    (fn [world game]
@@ -112,8 +111,11 @@
                   _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
                   cube-uvs        (:uvs cube-model)
                   _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
-                  uv-attr         (-> cube-vertex-shader :inputs keys second str) 
-                  uv-attr-loc     (gl game getAttribLocation cube-program uv-attr)]
+                  uv-attr         (-> cube-vertex-shader :inputs keys second str)
+                  uv-attr-loc     (gl game getAttribLocation cube-program uv-attr)
+
+                  texture-name    (-> cube-fragment-shader :uniforms keys first str)
+                  texture-loc     (gl game getUniformLocation cube-program texture-name)]
 
               (assoc esse-3d
                      :cube-program      cube-program
@@ -122,12 +124,12 @@
                      :cube-attr-loc     vertex-attr-loc
                      :cube-uniform-loc  uniform-loc
                      :uv-buffer         uv-buffer
-                     :uv-attr-loc       uv-attr-loc))))
+                     :uv-attr-loc       uv-attr-loc
+                     :tex-uniform-loc   texture-loc))))
          ((fn enter-the-world [esse-3d]
             (-> world
                 (asset ::dofida-texture
-                       #::asset{:type ::asset/texture :asset-to-load "dofida.png"
-                                :program (:cube-program esse-3d)})
+                       #::asset{:type ::asset/texture :asset-to-load "dofida.png"})
                 (o/insert ::herself {::esse-3d esse-3d
                                      ::asset/use ::dofida-texture}))))))
 
@@ -165,8 +167,9 @@
                      cube-attr-loc cube-vbo
                      cube-uniform-loc
                      cube-vertex-count
-                     uv-buffer uv-attr-loc]} esse-3d
-             {:keys [texture-unit texture-loc texture]} texture]
+                     uv-buffer uv-attr-loc
+                     tex-uniform-loc]} esse-3d
+             {:keys [texture-unit texture]} texture]
          (when (and uv-attr-loc uv-buffer)
            (gl game useProgram cube-program)
 
@@ -182,7 +185,7 @@
 
            (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
            (gl game bindTexture (gl game TEXTURE_2D) texture)
-           (gl game uniform1i texture-loc texture-unit)
+           (gl game uniform1i tex-uniform-loc texture-unit)
 
            (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
            (gl game disableVertexAttribArray cube-attr-loc)))))})
