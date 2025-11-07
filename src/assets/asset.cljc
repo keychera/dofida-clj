@@ -1,7 +1,5 @@
 (ns assets.asset
-  (:require
-   #?(:clj  [play-cljc.macros-java :refer [gl]]
-      :cljs [play-cljc.macros-js :refer-macros [gl]])
+  (:require 
    [clojure.spec.alpha :as s]
    [engine.utils :as utils]
    [engine.world :as world]
@@ -12,7 +10,6 @@
 
 ;; data
 (s/def ::use keyword?)
-(s/def ::texture any?)
 
 ;; asset
 (s/def ::loaded? boolean?)
@@ -64,35 +61,4 @@
         (println "loading" (::type asset-data) "asset for" asset-id)
         (process-asset world* game asset-id asset-data)))))
 
-(defmethod process-asset ::texture
-  [world* game asset-id {::keys [asset-to-load]}]
-  (utils/get-image
-   asset-to-load
-   (fn on-image-load [{:keys [data width height]}]
-     (let [texture-unit #_(swap! (:tex-count game) inc) 0 ;; disabling multi texture for reloading-ease
-           texture      (gl game #?(:clj genTextures :cljs createTexture))]
-
-       (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
-       (gl game bindTexture (gl game TEXTURE_2D) texture)
-
-       (gl game texImage2D (gl game TEXTURE_2D)
-           #_:mip-level    0
-           #_:internal-fmt (gl game RGBA)
-           (int width)
-           (int height)
-           #_:border       0
-           #_:src-fmt      (gl game RGBA)
-           #_:src-type     (gl game UNSIGNED_BYTE)
-           data)
-
-       (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
-       (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
-       (swap! world*
-              (fn [world]
-                (-> world
-                    (o/insert asset-id
-                              {::loaded? true
-                               ::texture
-                               {:texture-unit texture-unit
-                                :texture texture}}))))))))
 

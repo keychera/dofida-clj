@@ -3,6 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
+   [assets.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.utils :as utils]
    [engine.world :as world]
@@ -139,7 +140,7 @@
      [:what
       [esse-id ::esse-3d esse-3d] ;; contains vao, program, vbo etc, will decomplect later
       [esse-id ::asset/use tex-id]
-      [tex-id  ::asset/texture texture] ;; contains texture stuff
+      [tex-id  ::texture/data texture] ;; (vars->map texture texture-unit)
       [tex-id ::asset/loaded? true]]})
 
    ::world/render-fn
