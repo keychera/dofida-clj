@@ -42,6 +42,10 @@
   (-> (utils/load-model-on-compile "assets/defaultcube.obj")
       (utils/model->vertex-data)))
 
+(def dofida-plane
+  (-> (utils/load-model-on-compile "assets/dofida-plane.obj")
+      (utils/model->vertex-data)))
+
 (def cube-vertex-shader
   {:precision  "mediump float"
    :inputs     '{a_vertex_pos vec3
@@ -63,7 +67,7 @@
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           ("if" (> uv.x "0.001") (= o_color (texture textureSampler uv)))
+           ("if" (> uv.x "0.387") (= o_color (texture textureSampler uv)))
            ("else" (= o_color (vec4 "1.0" "1.0" "1.0" "0.2"))))}})
 
 ;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
@@ -127,6 +131,43 @@
                      :uv-buffer         uv-buffer
                      :uv-attr-loc       uv-attr-loc
                      :tex-uniform-loc   texture-loc))))
+         ((fn set-plane [esse-3d]
+            (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
+                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
+                  program         (gl-utils/create-program game vertex-source fragment-source)
+
+                  model           dofida-plane
+
+                  vbo             (gl-utils/create-buffer game)
+                  _               (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
+                  vertices-data   (:vertices model)
+                  _               (gl game bufferData (gl game ARRAY_BUFFER) vertices-data (gl game STATIC_DRAW))
+                  vertex-attr     (-> cube-vertex-shader :inputs keys first str)
+                  vertex-attr-loc (gl game getAttribLocation program vertex-attr)
+
+                  uniform-name    (-> cube-vertex-shader :uniforms keys first str)
+                  uniform-loc     (gl game getUniformLocation program uniform-name)
+                  uv-buffer       (gl-utils/create-buffer game)
+                  _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+                  cube-uvs        (:uvs model)
+                  _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
+                  uv-attr         (-> cube-vertex-shader :inputs keys second str)
+                  uv-attr-loc     (gl game getAttribLocation program uv-attr)
+
+                  texture-name    (-> cube-fragment-shader :uniforms keys first str)
+                  texture-loc     (gl game getUniformLocation program texture-name)]
+
+              (assoc esse-3d
+                     :dofida-plane
+                     {:just-program      program
+                      :just-vbo          vbo
+                      :just-vertex-count (:vertex-count cube-model)
+                      :just-attr-loc     vertex-attr-loc
+                      :just-uniform-loc  uniform-loc
+
+                      :just-uv-buffer       uv-buffer
+                      :just-uv-attr-loc     uv-attr-loc
+                      :just-tex-uniform-loc texture-loc}))))
          ((fn enter-the-world [esse-3d]
             (-> world
                 (asset ::dofida-texture
@@ -189,7 +230,35 @@
          (gl game uniform1i tex-uniform-loc texture-unit)
 
          (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
-         (gl game disableVertexAttribArray cube-attr-loc))))})
+         (gl game disableVertexAttribArray cube-attr-loc))
+
+       ;; plane
+       (let [plane-3d (:dofida-plane esse-3d)
+             {:keys [just-program
+                     just-attr-loc just-vbo
+                     just-uniform-loc
+                     just-vertex-count
+                     just-uv-buffer just-uv-attr-loc
+                     just-tex-uniform-loc]} plane-3d
+             {:keys [texture-unit texture]} texture]
+         (gl game useProgram just-program)
+
+         (gl game enableVertexAttribArray just-attr-loc)
+         (gl game bindBuffer (gl game ARRAY_BUFFER) just-vbo)
+         (gl game vertexAttribPointer just-attr-loc 3 (gl game FLOAT) false 0 0)
+
+         (gl game enableVertexAttribArray just-uv-attr-loc)
+         (gl game bindBuffer (gl game ARRAY_BUFFER) just-uv-buffer)
+         (gl game vertexAttribPointer just-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+
+         (gl game uniformMatrix4fv just-uniform-loc false mvp)
+
+         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+         (gl game bindTexture (gl game TEXTURE_2D) texture)
+         (gl game uniform1i just-tex-uniform-loc texture-unit)
+
+         (gl game drawArrays (gl game TRIANGLES) 0 just-vertex-count)
+         (gl game disableVertexAttribArray just-attr-loc))))})
 
 (comment
   (let [game hmm
