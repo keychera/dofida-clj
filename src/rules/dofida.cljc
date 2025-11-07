@@ -142,7 +142,7 @@
       [esse-id ::esse-3d esse-3d] ;; contains vao, program, vbo etc, will decomplect later
       [esse-id ::asset/use tex-id]
       [tex-id  ::texture/data texture] ;; (vars->map texture texture-unit)
-      [tex-id ::asset/loaded? true]]})
+      [tex-id  ::asset/loaded? true]]})
 
    ::world/render-fn
    (fn render [world game]
@@ -172,25 +172,24 @@
                      uv-buffer uv-attr-loc
                      tex-uniform-loc]} esse-3d
              {:keys [texture-unit texture]} texture]
-         (when (and uv-attr-loc uv-buffer)
-           (gl game useProgram cube-program)
+         (gl game useProgram cube-program)
 
-           (gl game enableVertexAttribArray cube-attr-loc)
-           (gl game bindBuffer (gl game ARRAY_BUFFER) cube-vbo)
-           (gl game vertexAttribPointer cube-attr-loc 3 (gl game FLOAT) false 0 0)
+         (gl game enableVertexAttribArray cube-attr-loc)
+         (gl game bindBuffer (gl game ARRAY_BUFFER) cube-vbo)
+         (gl game vertexAttribPointer cube-attr-loc 3 (gl game FLOAT) false 0 0)
 
-           (gl game enableVertexAttribArray uv-attr-loc)
-           (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-           (gl game vertexAttribPointer uv-attr-loc 2 (gl game FLOAT) false 0 0)
+         (gl game enableVertexAttribArray uv-attr-loc)
+         (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+         (gl game vertexAttribPointer uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-           (gl game uniformMatrix4fv cube-uniform-loc false mvp)
+         (gl game uniformMatrix4fv cube-uniform-loc false mvp)
 
-           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
-           (gl game bindTexture (gl game TEXTURE_2D) texture)
-           (gl game uniform1i tex-uniform-loc texture-unit)
+         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+         (gl game bindTexture (gl game TEXTURE_2D) texture)
+         (gl game uniform1i tex-uniform-loc texture-unit)
 
-           (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
-           (gl game disableVertexAttribArray cube-attr-loc)))))})
+         (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
+         (gl game disableVertexAttribArray cube-attr-loc))))})
 
 (comment
   (let [game hmm
