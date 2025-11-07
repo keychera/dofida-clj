@@ -60,5 +60,3 @@
       (let [asset-data (get db asset-id)]
         (println "loading" (::type asset-data) "asset for" asset-id)
         (process-asset world* game asset-id asset-data)))))
-
-

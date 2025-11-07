@@ -17,7 +17,7 @@
    asset-to-load
    (fn on-image-load [{:keys [data width height]}]
      (let [texture (gl game #?(:clj genTextures :cljs createTexture))]
-       (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+       #?(:clj (gl game activeTexture (+ (gl game TEXTURE0) texture-unit)))
        (gl game bindTexture (gl game TEXTURE_2D) texture)
 
        (gl game texImage2D (gl game TEXTURE_2D)

@@ -130,7 +130,8 @@
          ((fn enter-the-world [esse-3d]
             (-> world
                 (asset ::dofida-texture
-                       #::asset{:type ::asset/texture :asset-to-load "dofida.png"})
+                       #::asset{:type ::asset/texture :asset-to-load "dofida.png"}
+                       #::texture{:texture-unit 0})
                 (o/insert ::herself {::esse-3d esse-3d
                                      ::asset/use ::dofida-texture}))))))
 
