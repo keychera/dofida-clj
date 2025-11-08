@@ -31,8 +31,7 @@
 
 (defn init [game]
   (println "init game")
-  (gl game enable (gl game BLEND))
-  (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+  (gl game enable (gl game BLEND)) 
 
   (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
         all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
@@ -66,7 +65,8 @@
                               (window/set-window game-width game-height)
                               (time/insert total-time delta-time)
                               (o/fire-rules)))]
-
+        (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+        (gl game clearColor 0.02 0.02 0.12 1.0)
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 game-width game-height)
 
