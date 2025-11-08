@@ -1,43 +1,43 @@
 todo:
-✔ isolate star shader (and clean up a bit) @done(25-06-12 22:48)
-✔ specter @done(25-06-12 22:48)
-✘ revisit hsr level's up UI @cancelled(25-06-12 23:10) old files not in hand
-✘ collect assets @cancelled(25-06-12 23:10)
-✘ incorporate assets @cancelled(25-06-12 23:10)
+    ✔ isolate star shader (and clean up a bit) @done(25-06-12 22:48)
+    ✔ specter @done(25-06-12 22:48)
+    ✘ revisit hsr level's up UI @cancelled(25-06-12 23:10) old files not in hand
+    ✘ collect assets @cancelled(25-06-12 23:10)
+    ✘ incorporate assets @cancelled(25-06-12 23:10)
 
-☐ it begins
-    ☐ reconstruct atlas asset with our current gl knowledge
-        ☐ try to understand texture again
-            ☐ 2d plane texture
-            ☐ sidestream asset involving texture
-    ☐ alpha clipping, probably need to learn render-to-texture
-    ☐ sidestream: t2d, non-destructive
-        ☐ t3d?
-    ☐ sidestream: anime, non destructive
-    ☐ sidestream twod-picking
-        ☐ threed-picking?
-    ☐ load proper mesh
-        ☐ does assimp make sense in clojure?
-    ☐ maybe try implementing opengl tutorial again regarding light and materials
-    ☐ sidestream: dialogue
-    ☐ rethink director
+    ☐ it begins
+        ✔ reconstruct atlas asset with our current gl knowledge @done(25-11-08 15:07), not atlas yet but good enough
+            ✔ try to understand texture again @done(25-11-08 15:07)
+                ✔ 2d plane texture @done(25-11-08 15:07)
+                ✔ sidestream asset involving texture @done(25-11-08 15:07)
+        ☐ alpha clipping, probably need to learn render-to-texture
+        ☐ sidestream: t2d, non-destructive
+            ☐ t3d?
+        ☐ sidestream: anime, non destructive
+        ☐ sidestream twod-picking
+            ☐ threed-picking?
+        ☐ load proper mesh
+            ☐ does assimp make sense in clojure?
+        ☐ maybe try implementing opengl tutorial again regarding light and materials
+        ☐ sidestream: dialogue
+        ☐ rethink director
 
-    ☐ make a SCENE 
-        "do you even realize how lucky you are."
+        ☐ make a SCENE 
+            "do you even realize how lucky you are."
 
-    ☐ we realized we made some todo as well down there, consider them the same
-        ☐ wedesoft
-        ☐ cmzw_
-        ☐ tsoding
+        ☐ we realized we made some todo as well down there, consider them the same
+            ☐ wedesoft
+            ☐ cmzw_
+            ☐ tsoding
 
-☐ we keep wanting to reach the unreachable
-    ☐ does box2d make sense in clojure?
-    ☐ clojure basilisp
-        ☐ blender
-    ☐ graalvm
-    ☐ understanding performance and profiling tools again
-        ☐ the browser's performance tab
-        ☐ jvm world's tools
+    ☐ we keep wanting to reach the unreachable
+        ☐ does box2d make sense in clojure?
+        ☐ clojure basilisp
+            ☐ blender
+        ☐ graalvm
+        ☐ understanding performance and profiling tools again
+            ☐ the browser's performance tab
+            ☐ jvm world's tools
 
 
 ✔ sidestream @done(25-11-04 07:25) moved
@@ -46,15 +46,15 @@ todo:
         ✔ make the shader and everything else works in java @done(25-10-11 19:47) slowly but surely we get to be familiar with the idiosyncracies
     ✔ world system @done(25-08-25 21:16)
 
-☐ cube
-☐ sphere
-☐ transform3d
+    ☐ cube
+    ☐ sphere
+    ☐ transform3d
 
-☐ jvm reloaded
-    ✘ tools.namespace @cancelled(25-10-11 19:47)
-    ✔ fps imgui @done(25-10-11 19:47)
-    ✔ hot-reload JVM side @done(25-10-11 19:47)
-    ☐ clj-memory-meter
+    ☐ jvm reloaded
+        ✘ tools.namespace @cancelled(25-10-11 19:47)
+        ✔ fps imgui @done(25-10-11 19:47)
+        ✔ hot-reload JVM side @done(25-10-11 19:47)
+        ☐ clj-memory-meter
 
 play-cljc.gl:
     ☐ from zero
@@ -90,45 +90,48 @@ play-cljc.gl:
         ☐ director
 
 cmzw_:
-✔ second esse @done(25-06-13 01:25)
-✘ understand position and transforms @cancelled(25-06-28 16:15)
-    ✔ how to center di..entity in the canvas @done(25-07-06 23:40) kinda?
-    ☐ make grid based movement
-    ☐ scour from kenney for free-assets
-✔ why is it flipped @done(25-06-28 23:53) dont use viewport, use project + translate + scale
-✔ remove the white outline @done(25-07-03 00:18) (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
-    (the image is forced to be premultiplied by webgl https://stackoverflow.com/q/23497925/8812880 https://www.youtube.com/watch?v=XobSAXZaKJ8)
-✘ portal @cancelled(25-07-03 00:46)
-✘ portal weird require error @cancelled(25-07-03 00:46) drop portal for now
-✘ ecs @cancelled(25-06-28 16:11)
-✔ rules engine @done(25-06-28 16:11) 
-    ✔ let's see if this also works as an ECS @done(25-07-06 23:41) Paranim readme says rules engine is similar to ECS
-✘ ecs + rules engine? @cancelled(25-06-28 16:11)
-✔ clerk or leva.cljs @done(25-07-06 23:40)
-☐ eye
-☐ twitter embed
-✔ shadow-cljs? @done(25-07-03 22:15)
-✔ remove figwheel-main? @done(25-07-28 13:09)
-    ☐ fix .start-dev, build, and maybe remove lein in favor of tools.build
+    ✔ second esse @done(25-06-13 01:25)
+    ✘ understand position and transforms @cancelled(25-06-28 16:15)
+        ✔ how to center di..entity in the canvas @done(25-07-06 23:40) kinda?
+        ☐ make grid based movement
+        ☐ scour from kenney for free-assets
+    ✔ why is it flipped @done(25-06-28 23:53) dont use viewport, use project + translate + scale
+    ✔ remove the white outline @done(25-07-03 00:18) (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
+        (the image is forced to be premultiplied by webgl https://stackoverflow.com/q/23497925/8812880 https://www.youtube.com/watch?v=XobSAXZaKJ8)
+    ✘ portal @cancelled(25-07-03 00:46)
+    ✘ portal weird require error @cancelled(25-07-03 00:46) drop portal for now
+    ✘ ecs @cancelled(25-06-28 16:11)
+    ✔ rules engine @done(25-06-28 16:11) 
+        ✔ let's see if this also works as an ECS @done(25-07-06 23:41) Paranim readme says rules engine is similar to ECS
+    ✘ ecs + rules engine? @cancelled(25-06-28 16:11)
+    ✔ clerk or leva.cljs @done(25-07-06 23:40)
+    ☐ eye
+    ☐ twitter embed
+    ✔ shadow-cljs? @done(25-07-03 22:15)
+    ✔ remove figwheel-main? @done(25-07-28 13:09)
+        ☐ fix .start-dev, build, and maybe remove lein in favor of tools.build
 
 I don't think you realized how blessed you are:
-☐ text
-☐ dialogues
-☐ controls
-☐ animated gif
-☐ animation
-✔ the rules engine as ecs and thinking of loading and prep @done(25-07-16 22:36)
-    ☐ thinking of what to hot-reload
-    ☐ more efficient image loading, maybe decouple sprite and loaded image
-☐ redraw dofida
+    ☐ text
+    ☐ dialogues
+    ☐ controls
+    ☐ animated gif
+    ☐ animation
+    ✔ the rules engine as ecs and thinking of loading and prep @done(25-07-16 22:36)
+        ☐ thinking of what to hot-reload
+        ☐ more efficient image loading, maybe decouple sprite and loaded image
+    ☐ redraw dofida
 
 startaker:
-☐ mouse inputs
-☐ ripple effecct
-☐ sprite
-☐ the logic
-☐ vfx
-☐ publish
+    ☐ mouse inputs
+    ☐ ripple effecct
+    ☐ sprite
+    ☐ the logic
+    ☐ vfx
+    ☐ publish
+
+bug:
+    ☐ (JS err) Uncaught (in promise) SecurityError: The user has exited the lock before this request was completed. 
 
 
 devx:
