@@ -187,78 +187,78 @@
 
    ::world/render-fn
    (fn render [world game]
-     (let [dofida  (first (o/query-all world ::esse-3d)) ;; only dofida herself for now 
-           esse-3d (:esse-3d dofida)
-           texture (:texture dofida)
-           mvp     (:mvp (first (o/query-all world ::firstperson/state)))]
-       #_{:clj-kondo/ignore [:inline-def]}
-       (def hmm game)
-       (gl game bindVertexArray (:vao esse-3d))
+     (when-let [dofida  (first (o/query-all world ::esse-3d))]
+       (let [esse-3d (:esse-3d dofida)
+             texture (:texture dofida)
+             mvp     (:mvp (first (o/query-all world ::firstperson/state)))]
+         #_{:clj-kondo/ignore [:inline-def]}
+         (def hmm game)
+         (gl game bindVertexArray (:vao esse-3d))
 
-       ;; triangle
-       (when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
-         (gl game useProgram program)
-         (gl game enableVertexAttribArray attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
-         (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
-         (gl game uniformMatrix4fv uniform-loc false mvp)
-         (gl game drawArrays (gl game TRIANGLES) 0 3)
-         (gl game disableVertexAttribArray attr-loc))
+         ;; triangle
+         (when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
+           (gl game useProgram program)
+           (gl game enableVertexAttribArray attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
+           (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
+           (gl game uniformMatrix4fv uniform-loc false mvp)
+           (gl game drawArrays (gl game TRIANGLES) 0 3)
+           (gl game disableVertexAttribArray attr-loc))
 
-       ;; cube
-       (let [{:keys [cube-program
-                     cube-attr-loc cube-vbo
-                     cube-uniform-loc
-                     cube-vertex-count
-                     uv-buffer uv-attr-loc
-                     tex-uniform-loc]} esse-3d
-             {:keys [texture-unit texture]} texture]
-         (gl game useProgram cube-program)
+         ;; cube
+         (let [{:keys [cube-program
+                       cube-attr-loc cube-vbo
+                       cube-uniform-loc
+                       cube-vertex-count
+                       uv-buffer uv-attr-loc
+                       tex-uniform-loc]} esse-3d
+               {:keys [texture-unit texture]} texture]
+           (gl game useProgram cube-program)
 
-         (gl game enableVertexAttribArray cube-attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) cube-vbo)
-         (gl game vertexAttribPointer cube-attr-loc 3 (gl game FLOAT) false 0 0)
+           (gl game enableVertexAttribArray cube-attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) cube-vbo)
+           (gl game vertexAttribPointer cube-attr-loc 3 (gl game FLOAT) false 0 0)
 
-         (gl game enableVertexAttribArray uv-attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-         (gl game vertexAttribPointer uv-attr-loc 2 (gl game FLOAT) false 0 0)
+           (gl game enableVertexAttribArray uv-attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+           (gl game vertexAttribPointer uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-         (gl game uniformMatrix4fv cube-uniform-loc false mvp)
+           (gl game uniformMatrix4fv cube-uniform-loc false mvp)
 
-         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
-         (gl game bindTexture (gl game TEXTURE_2D) texture)
-         (gl game uniform1i tex-uniform-loc texture-unit)
+           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+           (gl game bindTexture (gl game TEXTURE_2D) texture)
+           (gl game uniform1i tex-uniform-loc texture-unit)
 
-         (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
-         (gl game disableVertexAttribArray cube-attr-loc))
+           (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
+           (gl game disableVertexAttribArray cube-attr-loc))
 
-       ;; plane
-       (let [plane-3d (:dofida-plane esse-3d)
-             {:keys [just-program
-                     just-attr-loc just-vbo
-                     just-uniform-loc
-                     just-vertex-count
-                     just-uv-buffer just-uv-attr-loc
-                     just-tex-uniform-loc]} plane-3d
-             {:keys [texture-unit texture]} texture]
-         (gl game useProgram just-program)
+         ;; plane
+         (let [plane-3d (:dofida-plane esse-3d)
+               {:keys [just-program
+                       just-attr-loc just-vbo
+                       just-uniform-loc
+                       just-vertex-count
+                       just-uv-buffer just-uv-attr-loc
+                       just-tex-uniform-loc]} plane-3d
+               {:keys [texture-unit texture]} texture]
+           (gl game useProgram just-program)
 
-         (gl game enableVertexAttribArray just-attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) just-vbo)
-         (gl game vertexAttribPointer just-attr-loc 3 (gl game FLOAT) false 0 0)
+           (gl game enableVertexAttribArray just-attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) just-vbo)
+           (gl game vertexAttribPointer just-attr-loc 3 (gl game FLOAT) false 0 0)
 
-         (gl game enableVertexAttribArray just-uv-attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) just-uv-buffer)
-         (gl game vertexAttribPointer just-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+           (gl game enableVertexAttribArray just-uv-attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) just-uv-buffer)
+           (gl game vertexAttribPointer just-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-         (gl game uniformMatrix4fv just-uniform-loc false mvp)
+           (gl game uniformMatrix4fv just-uniform-loc false mvp)
 
-         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
-         (gl game bindTexture (gl game TEXTURE_2D) texture)
-         (gl game uniform1i just-tex-uniform-loc texture-unit)
+           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+           (gl game bindTexture (gl game TEXTURE_2D) texture)
+           (gl game uniform1i just-tex-uniform-loc texture-unit)
 
-         (gl game drawArrays (gl game TRIANGLES) 0 just-vertex-count)
-         (gl game disableVertexAttribArray just-attr-loc))))})
+           (gl game drawArrays (gl game TRIANGLES) 0 just-vertex-count)
+           (gl game disableVertexAttribArray just-attr-loc)))))})
 
 (comment
   (let [game hmm
