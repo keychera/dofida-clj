@@ -132,16 +132,16 @@
                   #_:border       0
                   #_:src-fmt      (gl game RGBA)
                   #_:src-type     (gl game UNSIGNED_BYTE)
-                  nil)
+                  #?(:clj 0 :cljs nil))
               (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
               (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
-              (gl game bindTexture (gl game TEXTURE_2D) nil)
+              (gl game bindTexture (gl game TEXTURE_2D) #?(:clj 0 :cljs nil))
 
               (gl game framebufferTexture2D (gl game FRAMEBUFFER) (gl game COLOR_ATTACHMENT0) (gl game TEXTURE_2D) texture 0)
 
               (when (not= (gl game checkFramebufferStatus (gl game FRAMEBUFFER)) (gl game FRAMEBUFFER_COMPLETE))
                 (println "warning: framebuffer creation incomplete"))
-              (gl game bindFramebuffer (gl game FRAMEBUFFER) nil)
+              (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
 
               (assoc esse-3d
                      :fbo fbo
@@ -340,7 +340,7 @@
            (gl game disableVertexAttribArray attr-loc))
 
          #_"render to default fbo"
-         (gl game bindFramebuffer (gl game FRAMEBUFFER) nil)
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
          (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
          
          (#_"plane to render from our offscreen texture"
