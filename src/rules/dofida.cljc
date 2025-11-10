@@ -72,23 +72,17 @@
 
 (def off-vb-data
   (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [-1.0 -1.0 0.0
-    1.0 -1.0 0.0
-    -1.0 1.0 0.0
-    -1.0 1.0 0.0
-    1.0 -1.0 0.0
-    1.0  1.0 0.0]))
+   [-1.0 -1.0,  1.0 -1.0, -1.0  1.0,
+    -1.0  1.0,  1.0 -1.0,  1.0  1.0]))
 
 (def off-uv-data
   (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [0.0 0.0
-    1.0 0.0 
-    1.0 1.0 
-    1.0 1.0]))
+   [0.0 0.0, 1.0 0.0, 0.0 1.0,
+    0.0 1.0, 1.0 0.0, 1.0 1.0]))
 
 (def passthrough-shader
   {:precision  "mediump float"
-   :inputs     '{a_vertex_pos vec3
+   :inputs     '{a_vertex_pos vec2
                  a_uv         vec2}
    :outputs    '{uv      vec2}
    :signatures '{main ([] void)}
@@ -302,6 +296,7 @@
 
          ;; render to our fbo
          (gl game bindFramebuffer (gl game FRAMEBUFFER) (:fbo esse-3d))
+         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
 
          ;; triangle
          (when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
@@ -355,7 +350,7 @@
            
            (gl game enableVertexAttribArray off-attr-loc)
            (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-           (gl game vertexAttribPointer off-attr-loc 3 (gl game FLOAT) false 0 0)
+           (gl game vertexAttribPointer off-attr-loc 2 (gl game FLOAT) false 0 0)
            
            (gl game enableVertexAttribArray off-uv-attr-loc)
            (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
@@ -365,7 +360,7 @@
            (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
            (gl game uniform1i off-texture-loc fbo-tex-unit)
            
-           (gl game drawArrays (gl game TRIANGLES) 0 3)
+           (gl game drawArrays (gl game TRIANGLES) 0 6)
            (gl game disableVertexAttribArray off-attr-loc))
 
          ;; dofida plane
