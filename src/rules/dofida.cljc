@@ -36,7 +36,7 @@
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (vec4 "0.42" "1.0" "0.69" "0.5")))}})
+   '{main ([] (= o_color (vec4 "0.42" "1.0" "0.69" "0.9")))}})
 
 (def cube-model
   (-> (utils/load-model-on-compile "assets/defaultcube.obj")
@@ -67,8 +67,7 @@
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           ("if" (> uv.x "0.387") (= o_color (texture textureSampler uv)))
-           ("else" (= o_color (vec4 "1.0" "1.0" "1.0" "0.2"))))}})
+           (= o_color (texture textureSampler uv)))}})
 
 (def off-vb-data
   (#?(:clj float-array :cljs #(js/Float32Array. %))
@@ -294,22 +293,13 @@
          (def hmm game)
          (gl game bindVertexArray (:vao esse-3d))
 
-         ;; render to our fbo
+         #_"render to our fbo"
          (gl game bindFramebuffer (gl game FRAMEBUFFER) (:fbo esse-3d))
-         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
-
-         ;; triangle
-         (when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
-           (gl game useProgram program)
-           (gl game enableVertexAttribArray attr-loc)
-           (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
-           (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
-           (gl game uniformMatrix4fv uniform-loc false mvp)
-           (gl game drawArrays (gl game TRIANGLES) 0 3)
-           (gl game disableVertexAttribArray attr-loc))
-
-         ;; cube
-         (let [{:keys [cube-program
+         (gl game clearColor 0.0 0.0 0.0 0.0)
+         (gl game clear (gl game COLOR_BUFFER_BIT))
+         
+         (#_cube
+          let [{:keys [cube-program
                        cube-attr-loc cube-vbo
                        cube-uniform-loc
                        cube-vertex-count
@@ -335,11 +325,26 @@
            (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
            (gl game disableVertexAttribArray cube-attr-loc))
 
-         ;; render to default fbo
-         (gl game bindFramebuffer (gl game FRAMEBUFFER) nil)
+         (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ZERO) (gl game ONE))
+         
 
-         ;; plane to render from our offscreen texture
-         (let [off-plane (:off-plane esse-3d)
+         
+         (#_triangle
+          when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
+           (gl game useProgram program)
+           (gl game enableVertexAttribArray attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
+           (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
+           (gl game uniformMatrix4fv uniform-loc false mvp)
+           (gl game drawArrays (gl game TRIANGLES) 0 3)
+           (gl game disableVertexAttribArray attr-loc))
+
+         #_"render to default fbo"
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) nil)
+         (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+         
+         (#_"plane to render from our offscreen texture"
+          let [off-plane (:off-plane esse-3d)
                {:keys [off-program
                        off-attr-loc off-vbo
                        off-uv-attr-loc off-uv-buffer
@@ -347,24 +352,24 @@
                fbo-tex      (:fbo-tex esse-3d)
                fbo-tex-unit (:fbo-tex-unit esse-3d)]
            (gl game useProgram off-program)
-           
+
            (gl game enableVertexAttribArray off-attr-loc)
            (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
            (gl game vertexAttribPointer off-attr-loc 2 (gl game FLOAT) false 0 0)
-           
+
            (gl game enableVertexAttribArray off-uv-attr-loc)
            (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
            (gl game vertexAttribPointer off-uv-attr-loc 2 (gl game FLOAT) false 0 0)
-           
+
            (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
            (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
            (gl game uniform1i off-texture-loc fbo-tex-unit)
-           
+
            (gl game drawArrays (gl game TRIANGLES) 0 6)
            (gl game disableVertexAttribArray off-attr-loc))
-
-         ;; dofida plane
-         (let [plane-3d (:dofida-plane esse-3d)
+         
+         (#_dofida-plane
+          let [plane-3d (:dofida-plane esse-3d)
                {:keys [just-program
                        just-attr-loc just-vbo
                        just-uniform-loc
