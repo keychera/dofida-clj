@@ -70,6 +70,43 @@
            ("if" (> uv.x "0.387") (= o_color (texture textureSampler uv)))
            ("else" (= o_color (vec4 "1.0" "1.0" "1.0" "0.2"))))}})
 
+(def off-vb-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [-1.0 -1.0 0.0
+    1.0 -1.0 0.0
+    -1.0 1.0 0.0
+    -1.0 1.0 0.0
+    1.0 -1.0 0.0
+    1.0  1.0 0.0]))
+
+(def off-uv-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [0.0 0.0
+    1.0 0.0 
+    1.0 1.0 
+    1.0 1.0]))
+
+(def passthrough-shader
+  {:precision  "mediump float"
+   :inputs     '{a_vertex_pos vec3
+                 a_uv         vec2}
+   :outputs    '{uv      vec2}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= gl_Position (vec4 a_vertex_pos.x a_vertex_pos.y "0.0" "1.0"))
+           (= uv a_uv))}})
+
+(def simple-texture-shader
+  {:precision  "mediump float"
+   :inputs     '{uv      vec2}
+   :outputs    '{o_color vec4}
+   :uniforms   '{textureSampler sampler2D}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= o_color (texture textureSampler uv)))}})
+
 ;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
 ;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
 
@@ -82,6 +119,71 @@
          ((fn set-vao [esse-3d]
             (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
               (assoc esse-3d :vao vao))))
+
+         ((fn set-fbo [esse-3d]
+            ;; why is it not always clear in the tutorials whether something is done only once or done every frame?? 
+            (let [[width height] (utils/get-size game)
+                  fbo      (gl game #?(:clj genFramebuffers :cljs createFramebuffer))
+                  _        (gl game bindFramebuffer (gl game FRAMEBUFFER) fbo)
+                  texture  (gl game #?(:clj genTextures :cljs createTexture))
+                  tex-unit 1]
+
+              ;; bind, do stuff, unbind, hmm hmm
+              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+              (gl game bindTexture (gl game TEXTURE_2D) texture)
+              (gl game texImage2D (gl game TEXTURE_2D)
+                  #_:mip-level    0
+                  #_:internal-fmt (gl game RGBA)
+                  (int width)
+                  (int height)
+                  #_:border       0
+                  #_:src-fmt      (gl game RGBA)
+                  #_:src-type     (gl game UNSIGNED_BYTE)
+                  nil)
+              (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
+              (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
+              (gl game bindTexture (gl game TEXTURE_2D) nil)
+
+              (gl game framebufferTexture2D (gl game FRAMEBUFFER) (gl game COLOR_ATTACHMENT0) (gl game TEXTURE_2D) texture 0)
+
+              (when (not= (gl game checkFramebufferStatus (gl game FRAMEBUFFER)) (gl game FRAMEBUFFER_COMPLETE))
+                (println "warning: framebuffer creation incomplete"))
+              (gl game bindFramebuffer (gl game FRAMEBUFFER) nil)
+
+              (assoc esse-3d
+                     :fbo fbo
+                     :fbo-tex texture
+                     :fbo-tex-unit tex-unit))))
+
+         ((fn set-texture-plane [esse-3d]
+            (let [vertex-source       (iglu/iglu->glsl (merge {:version glsl-version} passthrough-shader))
+                  fragment-source     (iglu/iglu->glsl (merge {:version glsl-version} simple-texture-shader))
+                  off-program         (gl-utils/create-program game vertex-source fragment-source)
+
+                  off-vbo             (gl-utils/create-buffer game)
+                  _                   (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
+                  _                   (gl game bufferData (gl game ARRAY_BUFFER) off-vb-data (gl game STATIC_DRAW))
+                  vertex-attr         (-> cube-vertex-shader :inputs keys first str)
+                  off-vertex-attr-loc (gl game getAttribLocation off-program vertex-attr)
+
+                  off-uv-buffer       (gl-utils/create-buffer game)
+                  _                   (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer) 
+                  _                   (gl game bufferData (gl game ARRAY_BUFFER) off-uv-data (gl game STATIC_DRAW))
+                  uv-attr             (-> cube-vertex-shader :inputs keys second str)
+                  off-uv-attr-loc     (gl game getAttribLocation off-program uv-attr)
+                  
+                  texture-name        (-> simple-texture-shader :uniforms keys first str)
+                  off-texture-loc     (gl game getUniformLocation off-program texture-name)]
+
+              (assoc esse-3d
+                     :off-plane
+                     {:off-program     off-program
+                      :off-vbo         off-vbo
+                      :off-attr-loc    off-vertex-attr-loc
+                      :off-uv-buffer   off-uv-buffer
+                      :off-uv-attr-loc off-uv-attr-loc
+                      :off-texture-loc off-texture-loc}))))
+
          ((fn set-triangle [esse-3d]
             (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
                   fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
@@ -98,6 +200,7 @@
                      :vbo         triangle-buffer
                      :attr-loc    vertex-attr-loc
                      :uniform-loc uniform-loc))))
+
          ((fn set-cube [esse-3d]
             (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
                   fragment-source (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
@@ -131,6 +234,7 @@
                      :uv-buffer         uv-buffer
                      :uv-attr-loc       uv-attr-loc
                      :tex-uniform-loc   texture-loc))))
+
          ((fn set-plane [esse-3d]
             (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
                   fragment-source (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
@@ -168,6 +272,7 @@
                       :just-uv-buffer       uv-buffer
                       :just-uv-attr-loc     uv-attr-loc
                       :just-tex-uniform-loc texture-loc}))))
+
          ((fn enter-the-world [esse-3d]
             (-> world
                 (asset ::dofida-texture
@@ -194,6 +299,9 @@
          #_{:clj-kondo/ignore [:inline-def]}
          (def hmm game)
          (gl game bindVertexArray (:vao esse-3d))
+
+         ;; render to our fbo
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) (:fbo esse-3d))
 
          ;; triangle
          (when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
@@ -232,7 +340,35 @@
            (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
            (gl game disableVertexAttribArray cube-attr-loc))
 
-         ;; plane
+         ;; render to default fbo
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) nil)
+
+         ;; plane to render from our offscreen texture
+         (let [off-plane (:off-plane esse-3d)
+               {:keys [off-program
+                       off-attr-loc off-vbo
+                       off-uv-attr-loc off-uv-buffer
+                       off-texture-loc]} off-plane
+               fbo-tex      (:fbo-tex esse-3d)
+               fbo-tex-unit (:fbo-tex-unit esse-3d)]
+           (gl game useProgram off-program)
+           
+           (gl game enableVertexAttribArray off-attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
+           (gl game vertexAttribPointer off-attr-loc 3 (gl game FLOAT) false 0 0)
+           
+           (gl game enableVertexAttribArray off-uv-attr-loc)
+           (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
+           (gl game vertexAttribPointer off-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+           
+           (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
+           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
+           (gl game uniform1i off-texture-loc fbo-tex-unit)
+           
+           (gl game drawArrays (gl game TRIANGLES) 0 3)
+           (gl game disableVertexAttribArray off-attr-loc))
+
+         ;; dofida plane
          (let [plane-3d (:dofida-plane esse-3d)
                {:keys [just-program
                        just-attr-loc just-vbo
