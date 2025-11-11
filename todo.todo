@@ -10,7 +10,7 @@ todo:
             ✔ try to understand texture again @done(25-11-08 15:07)
                 ✔ 2d plane texture @done(25-11-08 15:07)
                 ✔ sidestream asset involving texture @done(25-11-08 15:07)
-        ☐ alpha clipping, probably need to learn render-to-texture
+        ✔ alpha clipping, probably need to learn render-to-texture @done(25-11-11 20:31)
         ☐ sidestream: t2d, non-destructive
             ☐ t3d?
         ☐ sidestream: anime, non destructive
@@ -18,9 +18,13 @@ todo:
             ☐ threed-picking?
         ☐ load proper mesh
             ☐ does assimp make sense in clojure?
+            ☐ load model that is not compile-time for js
         ☐ maybe try implementing opengl tutorial again regarding light and materials
         ☐ sidestream: dialogue
         ☐ rethink director
+
+        ☐ skybox
+        ☐ better first person control feel
 
         ☐ make a SCENE 
             "do you even realize how lucky you are."
