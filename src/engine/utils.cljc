@@ -1,7 +1,8 @@
 (ns engine.utils
   (:require
    #?@(:clj [[clojure.java.io :as io]
-             [clojure.string :as str]])
+             [clojure.string :as str]
+             [cheshire.core :as json]])
    [clojure.edn :as edn]
    [engine.macros :refer [vars->map]])
   #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
@@ -140,3 +141,13 @@
   (if (map? a)
     (apply merge-with deep-merge a maps)
     (apply merge-with deep-merge maps)))
+
+(defn get-json [fname callback]
+  #?(:clj (let [json (json/parse-stream (io/reader (io/resource (str "public/" fname))) true)]
+            (callback json))
+     :cljs (.then
+            (js/fetch fname)
+            (fn [resp]
+              (.then
+               (.json resp)
+               (fn [data] (callback (js->clj data :keywordize-keys true))))))))

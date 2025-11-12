@@ -2,16 +2,18 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
+   [assets.asset :as asset]
+   [assets.atlas :as atlas]
    [com.rpl.specter :as sp]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
-   [assets.asset :as asset]
    [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
    [rules.dofida :as dofida]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
+   [rules.test-atlas :as test-atlas]
    [rules.time :as time]
    [rules.window :as window]))
 
@@ -24,6 +26,9 @@
 (def all-systems
   [asset/system
    
+   atlas/system
+   test-atlas/system
+
    window/system
    input/system
    firstperson/system
@@ -66,7 +71,7 @@
                               (time/insert total-time delta-time)
                               (o/fire-rules)))]
         (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-        (gl game clearColor 0.02 0.02 0.12 1.0)
+        (gl game clearColor 0.62 0.62 0.82 1.0)
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 game-width game-height)
 

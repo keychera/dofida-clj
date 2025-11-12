@@ -6,7 +6,7 @@
    [odoyle.rules :as o]))
 
 (s/def ::asset-to-load any?)
-(s/def ::type #{::texture})
+(s/def ::type #{::texture ::atlas})
 
 ;; data
 (s/def ::use keyword?)
@@ -55,8 +55,9 @@
 
 (defn load-asset [world* game]
   (let [world @world*
-        db    @(:db* (first (o/query-all world ::db*)))]
+        db*   (:db* (first (o/query-all world ::db*)))]
     (doseq [{:keys [asset-id]} (o/query-all world ::to-load)]
-      (let [asset-data (get db asset-id)]
+      (let [asset-data (get @db* asset-id)]
         (println "loading" (::type asset-data) "asset for" asset-id)
-        (process-asset world* game asset-id asset-data)))))
+        ;; i dont quite like assoc'ing db here
+        (process-asset world* (assoc game ::db* db*) asset-id asset-data)))))

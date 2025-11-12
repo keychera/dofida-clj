@@ -26,8 +26,9 @@
         com.rpl/specter {:mvn/version "1.1.4"}}
  :aliases {:shadow-cljs {:extra-paths ["src-dev-js"]
                          :extra-deps {thheller/shadow-cljs {:mvn/version "3.2.1"}
-                                      org.mentat/leva.cljs {:mvn/version "0.3.0"}}}
-           :jvm         {}
+                                      org.mentat/leva.cljs {:mvn/version "0.3.0"}
+                                      cheshire/cheshire {:mvn/version "6.0.0"}}}
+           :jvm         {:extra-deps {cheshire/cheshire {:mvn/version "6.0.0"}}}
            :repl        {:extra-paths ["src-dev-jvm"]
                          :extra-deps  {cider/cider-nrepl                          {:mvn/version "0.57.0"}
                                        io.github.spair/imgui-java-binding         {:mvn/version "1.89.0"}
