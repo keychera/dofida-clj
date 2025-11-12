@@ -119,7 +119,7 @@
                   fbo      (gl game #?(:clj genFramebuffers :cljs createFramebuffer))
                   _        (gl game bindFramebuffer (gl game FRAMEBUFFER) fbo)
                   texture  (gl game #?(:clj genTextures :cljs createTexture))
-                  tex-unit 1]
+                  tex-unit 2]
 
               ;; bind, do stuff, unbind, hmm hmm
               (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
@@ -270,7 +270,7 @@
             (-> world
                 (asset ::dofida-texture
                        #::asset{:type ::asset/texture :asset-to-load "dofida.png"}
-                       #::texture{:texture-unit 0})
+                       #::texture{:texture-unit 1})
                 (o/insert ::herself {::esse-3d esse-3d
                                      ::asset/use ::dofida-texture}))))))
 
