@@ -27,12 +27,13 @@
   [asset/system
    
    atlas/system
-   test-atlas/system
 
    window/system
    input/system
    firstperson/system
-   dofida/system])
+   dofida/system
+   
+   test-atlas/system])
 
 (defn init [game]
   (println "init game")

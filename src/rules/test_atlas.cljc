@@ -31,7 +31,7 @@
    (fn [world game]
      (when (seq (o/query-all world ::atlas-loaded?))
        (let [atlas-id   ::eye-atlas
-             frame-name "sclera.png"
+             frame-name "pupil.png"
              asset-db   @(:db* (first (o/query-all world ::asset/db*)))
              atlas      (get asset-db ::eye-atlas)
              atlas-inst (::atlas/instanced (get asset-db atlas-id))
@@ -43,7 +43,6 @@
 
              [width height] (utils/get-size game)
              project        (m/projection-matrix width height)
-             _ (println frame)
 
              instance-esses
              (into [] (map (fn [frame]
@@ -52,7 +51,7 @@
                                    crop-y       (:y frame)
                                    frame-width  (:w frame)
                                    frame-height (:h frame)
-                                   translate    (m/translation-matrix 100 100)
+                                   translate    (m/translation-matrix (/ width 3) (/ height 3))
                                    rotate       (m/rotation-matrix 0.0)
                                    sprite-scale (m/scaling-matrix frame-width frame-height)
                                    model-matrix (reduce m/multiply-matrices
