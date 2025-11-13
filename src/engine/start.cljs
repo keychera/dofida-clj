@@ -14,28 +14,41 @@
    ::keydown      #{}
    ::prev-keydown #{}})
 (def world-inputs (atom world-init-inputs))
+(def current-mode (atom ::input/blende))
 
 (defn update-world [game]
-  (if-let [inputs   @world-inputs]
-    (let [input-fn (reduce
-                    (fn [prev-fn [input-key input-data]]
-                      (case input-key
-                        ::mousemove (comp (fn mouse-move [world] (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
-                        ::keydown   (loop [[k & remains] input-data acc-fn prev-fn]
-                                      (if k
-                                        (recur remains (comp (fn keydown [world] (input/key-on-keydown world k)) acc-fn))
-                                        acc-fn))
-                        prev-fn))
-                    identity inputs)
-          keyups   (difference (::prev-keydown inputs) (::keydown inputs))
-          _        (swap! world-inputs assoc ::prev-keydown (::keydown inputs))
-          input-fn (loop [[k & remains] keyups acc-fn input-fn]
-                     (if k
-                       (recur remains (comp (fn keyup [world] (input/key-on-keyup world k)) acc-fn))
-                       acc-fn))]
-      (swap! (::world/atom* game) input-fn))
-    (do (swap! (::world/atom* game) input/cleanup-input)
-        (reset! world-inputs world-init-inputs))))
+  (let [inputs @world-inputs]
+    (case (::flag inputs) 
+      ::lockchange
+      (let [new-mode (case @current-mode
+                       ::input/blende      ::input/firstperson
+                       ::input/firstperson ::input/blende)]
+        (println "newmode!" inputs)
+        (reset! current-mode new-mode)
+        (swap! (::world/atom* game)
+               (fn [world']
+                 (-> world'
+                     (input/cleanup-input)
+                     (input/set-mode new-mode))))
+        (reset! world-inputs world-init-inputs))
+
+      (let [input-fn (reduce
+                      (fn [prev-fn [input-key input-data]]
+                        (case input-key
+                          ::mousemove (comp (fn mouse-move [world] (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
+                          ::keydown   (loop [[k & remains] input-data acc-fn prev-fn]
+                                        (if k
+                                          (recur remains (comp (fn keydown [world] (input/key-on-keydown world k)) acc-fn))
+                                          acc-fn))
+                          prev-fn))
+                      identity inputs)
+            keyups   (difference (::prev-keydown inputs) (::keydown inputs))
+            _        (swap! world-inputs assoc ::prev-keydown (::keydown inputs))
+            input-fn (loop [[k & remains] keyups acc-fn input-fn]
+                       (if k
+                         (recur remains (comp (fn keyup [world] (input/key-on-keyup world k)) acc-fn))
+                         acc-fn))]
+        (swap! (::world/atom* game) input-fn)))))
 
 (defn game-loop
   ([game] (game-loop game nil))
@@ -52,45 +65,50 @@
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
-    0 :left
-    2 :right
+    0 ::input/mouse-left
+    1 ::input/mouse-middle
+    2 ::input/mouse-right
     nil))
 
 (def mousemove-timer (atom nil))
 (def locked?*        (atom nil))
 
+(defn listen-for-pointer-lock []
+  (.addEventListener js/document "pointerlockchange"
+                     (fn []
+                       (let [canvas-locked? (= (.. js/document -pointerLockElement)
+                                               (.querySelector js/document "canvas"))]
+                         (reset! locked?* canvas-locked?)
+                         (println "lockchange!" @world-inputs)
+                         (swap! world-inputs assoc ::flag ::lockchange)))))
+
 (defn listen-for-mouse [canvas]
   (.addEventListener canvas "mousemove"
                      (fn [event]
-                       (when @locked?*
-                         (some->> @mousemove-timer (.clearTimeout js/window))
+                       (if @locked?*
                          (let [next-dx (.-movementX event)
                                next-dy (.-movementY event)]
+                           (some->> @mousemove-timer (.clearTimeout js/window))
                            (swap! world-inputs update ::mousemove
                                   (fn mouse-delta [prev] (-> prev (assoc :dx next-dx) (assoc :dy next-dy))))
                            (reset! mousemove-timer
                                    (.setTimeout js/window
                                                 (fn mouse-stop []
                                                   (swap! world-inputs update ::mousemove (fn [prev] (-> prev (assoc :dx 0) (assoc :dy 0)))))
-                                                20))))))
+                                                20)))
+                         (let [bounds (.getBoundingClientRect canvas)
+                               x (- (.-clientX event) (.-left bounds))
+                               y (- (.-clientY event) (.-top bounds))]
+                           (swap! world-inputs update ::mousemove
+                                  (fn mouse-delta [prev] (-> prev (assoc :dx x) (assoc :dy y))))))))
   (.addEventListener canvas "mousedown"
-                     (fn [_event]))
+                     (fn [event]
+                       (when-let [mouse (mousecode->keyword (.-button event))]
+                         (swap! world-inputs update ::keydown (fn [s] (conj s mouse))))))
   (.addEventListener canvas "mouseup"
-                     (fn [_event])))
-
-(defn listen-for-pointer-lock [canvas]
-  (.addEventListener js/document "pointerlockchange"
-                     (fn []
-                       (let [canvas-locked? (= (.. js/document -pointerLockElement)
-                                               (.querySelector js/document "canvas"))]
-                         (reset! locked?* canvas-locked?)
-                         (when (not canvas-locked?)
-                           (reset! world-inputs nil)))))
-  (.addEventListener canvas "click"
-                     (fn [_event]
-                       (when (nil? @locked?*)
-                         (listen-for-mouse canvas))
-                       (.requestPointerLock canvas (clj->js {:unadjustedMovement true})))))
+                     (fn [event]
+                       (when-let [mouse (mousecode->keyword (.-button event))]
+                         (swap! world-inputs update ::keydown (fn [s] (disj s mouse)))))))
 
 (defn keycode->keyword [keycode]
   (cond
@@ -108,7 +126,7 @@
 
     ;; numbers 0–9
     (<= 48 keycode 57)
-    (keyword (str (char keycode)))
+    (keyword (str "num" (char keycode)))
 
     ;; letters A–Z
     (<= 65 keycode 90)
@@ -116,11 +134,17 @@
 
     :else nil))
 
-(defn listen-for-keys []
+(defn listen-for-keys [canvas]
   (events/listen js/window "keydown"
                  (fn [event]
+                   (js/console.log event)
                    (when-let [keyname (keycode->keyword (.-keyCode event))]
-                     (swap! world-inputs update ::keydown (fn [s] (conj s keyname))))))
+                     (case keyname
+                       :num1 ;; we stop all 1 to world-inputs for now
+                       (when (not @locked?*)
+                         (.requestPointerLock canvas (clj->js {:unadjustedMovement true})))
+
+                       (swap! world-inputs update ::keydown (fn [s] (conj s keyname)))))))
   (events/listen js/window "keyup"
                  (fn [event]
                    (when-let [keyname (keycode->keyword (.-keyCode event))]
@@ -152,9 +176,10 @@
          initial-game (assoc (engine/->game context)
                              :delta-time 0
                              :total-time (js/performance.now))]
-     (listen-for-pointer-lock canvas)
+     (listen-for-mouse canvas)
+     (listen-for-pointer-lock)
      (engine/init initial-game)
-     (listen-for-keys)
+     (listen-for-keys canvas)
      (resize context)
      (listen-for-resize context)
      (game-loop initial-game

@@ -6,6 +6,7 @@
    [odoyle.rules :as o]
    [rules.firstperson :as firstperson]))
 
+(s/def ::mode #{::blende ::firstperson})
 (s/def ::x number?)
 (s/def ::y number?)
 (s/def ::keystate any?)
@@ -21,24 +22,34 @@
 
      ::mouse-delta
      [:what
+      [::global ::mode mode]
       [::mouse-delta ::x mouse-dx]
       [::mouse-delta ::y mouse-dy]
       :then
-      (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})]
+      (case mode
+        ::firstperson
+        (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
+
+        :noop)]
 
      ::keys
      [:what
+      [::global ::mode mode]
       [keyname ::keystate keystate]
       :then
-      (when-let [move (case keyname
-                        :w     ::firstperson/forward
-                        :a     ::firstperson/strafe-l
-                        :s     ::firstperson/backward
-                        :d     ::firstperson/strafe-r
-                        :shift ::firstperson/ascend
-                        :ctrl  ::firstperson/descend
-                        nil)]
-        (insert! ::firstperson/player ::firstperson/move-control move))
+      (case mode
+        ::firstperson
+        (when-let [move (case keyname
+                          :w     ::firstperson/forward
+                          :a     ::firstperson/strafe-l
+                          :s     ::firstperson/backward
+                          :d     ::firstperson/strafe-r
+                          :shift ::firstperson/ascend
+                          :ctrl  ::firstperson/descend
+                          nil)]
+          (insert! ::firstperson/player ::firstperson/move-control move))
+
+        :noop)
       :then-finally
       (when-not (seq (o/query-all session ::keys))
         (s-> session (o/retract ::firstperson/player ::firstperson/move-control)))]})})
@@ -59,3 +70,6 @@
   (reduce
    (fn [w' k] (o/retract w' (:keyname k) ::keystate))
    world (o/query-all world ::keys)))
+
+(defn set-mode [world mode]
+  (o/insert world ::global ::mode mode))
