@@ -21,15 +21,22 @@
 (s/def ::view-dx float?)
 (s/def ::view-dy float?)
 
+(defn player-reset [world]
+  (-> world
+      (o/insert ::player
+            {::position [0 0 5]
+             ::horiz-angle Math/PI
+             ::verti-angle 0.0})))
+
 (def system
   {::world/init-fn
    (fn [world _game]
      (-> world
          (o/insert ::player
                    {::mvp (#?(:clj float-array :cljs #(js/Float32Array. %)) (m/identity-matrix 4))
-                    ::position [0 0 5]
-                    ::horiz-angle Math/PI
-                    ::verti-angle 0.0})))
+                    ::view-dx 0
+                    ::view-dy 0})
+         (player-reset)))
 
    ::world/rules
    (o/ruleset
@@ -54,7 +61,7 @@
                     nil)]
         (when move
           (insert! ::player ::position (mapv + position move))))]
-     
+
      ::mouse-camera
      [:what
       [::time/now ::time/delta delta-time]
@@ -68,9 +75,9 @@
       (let [initial-fov  (m/deg->rad 45)
             mouse-speed  0.001
             horiz-angle  (+ horiz-angle (* mouse-speed (or (- view-dx) 0)))
-            verti-angle (-> (+ verti-angle (* mouse-speed (or (- view-dy) 0)))
-                            (max (- (/ Math/PI 2)))
-                            (min (/ Math/PI 2))) 
+            verti-angle  (-> (+ verti-angle (* mouse-speed (or (- view-dy) 0)))
+                             (max (- (/ Math/PI 2)))
+                             (min (/ Math/PI 2)))
             direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                           (Math/sin verti-angle)
                           (* (Math/cos verti-angle) (Math/cos horiz-angle))]

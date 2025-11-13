@@ -23,11 +23,11 @@
       (let [new-mode (case @current-mode
                        ::input/blende      ::input/firstperson
                        ::input/firstperson ::input/blende)]
-        (println "newmode!" inputs)
         (reset! current-mode new-mode)
         (swap! (::world/atom* game)
                (fn [world']
                  (-> world'
+                     (input/update-mouse-delta 0 0)
                      (input/cleanup-input)
                      (input/set-mode new-mode))))
         (reset! world-inputs world-init-inputs))
@@ -79,7 +79,6 @@
                        (let [canvas-locked? (= (.. js/document -pointerLockElement)
                                                (.querySelector js/document "canvas"))]
                          (reset! locked?* canvas-locked?)
-                         (println "lockchange!" @world-inputs)
                          (swap! world-inputs assoc ::flag ::lockchange)))))
 
 (defn listen-for-mouse [canvas]
@@ -99,8 +98,8 @@
                          (let [bounds (.getBoundingClientRect canvas)
                                x (- (.-clientX event) (.-left bounds))
                                y (- (.-clientY event) (.-top bounds))]
-                           (swap! world-inputs update ::mousemove
-                                  (fn mouse-delta [prev] (-> prev (assoc :dx x) (assoc :dy y))))))))
+                           (swap! world-inputs update ::mousepos
+                                  (fn mouse-delta [prev] (-> prev (assoc :x x) (assoc :y y))))))))
   (.addEventListener canvas "mousedown"
                      (fn [event]
                        (when-let [mouse (mousecode->keyword (.-button event))]
@@ -137,7 +136,6 @@
 (defn listen-for-keys [canvas]
   (events/listen js/window "keydown"
                  (fn [event]
-                   (js/console.log event)
                    (when-let [keyname (keycode->keyword (.-keyCode event))]
                      (case keyname
                        :num1 ;; we stop all 1 to world-inputs for now

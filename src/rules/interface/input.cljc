@@ -1,5 +1,7 @@
 (ns rules.interface.input
   (:require
+   #?(:clj  [clojure.core.match :refer [match]]
+      :cljs [cljs.core.match :refer-macros [match]])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! s->]]
    [engine.world :as world]
@@ -11,6 +13,25 @@
 (s/def ::y number?)
 (s/def ::keystate any?)
 (s/def ::keydown any?)
+
+(defn keys-event [session mode keyname _keystate]
+  ;; match macro cannot be inside odoyle/ruleset apparently
+  (match [mode keyname]
+    [_ :r]
+    (firstperson/player-reset session)
+
+    [::firstperson _]
+    (when-let [move (case keyname
+                      :w     ::firstperson/forward
+                      :a     ::firstperson/strafe-l
+                      :s     ::firstperson/backward
+                      :d     ::firstperson/strafe-r
+                      :shift ::firstperson/ascend
+                      :ctrl  ::firstperson/descend
+                      nil)]
+      (o/insert session ::firstperson/player ::firstperson/move-control move))
+
+    :else :noop))
 
 (def system
   {::world/rules
@@ -37,22 +58,12 @@
       [::global ::mode mode]
       [keyname ::keystate keystate]
       :then
-      (case mode
-        ::firstperson
-        (when-let [move (case keyname
-                          :w     ::firstperson/forward
-                          :a     ::firstperson/strafe-l
-                          :s     ::firstperson/backward
-                          :d     ::firstperson/strafe-r
-                          :shift ::firstperson/ascend
-                          :ctrl  ::firstperson/descend
-                          nil)]
-          (insert! ::firstperson/player ::firstperson/move-control move))
-
-        :noop)
+      (s-> session
+           (keys-event mode keyname keystate))
       :then-finally
       (when-not (seq (o/query-all session ::keys))
-        (s-> session (o/retract ::firstperson/player ::firstperson/move-control)))]})})
+        (when (seq (o/query-all session ::firstperson/movement))
+          (s-> session (o/retract ::firstperson/player ::firstperson/move-control))))]})})
 
 (defn update-mouse-pos [world x y]
   (o/insert world ::mouse {::x x ::y y}))
