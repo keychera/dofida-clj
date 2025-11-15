@@ -78,7 +78,11 @@
                      (fn []
                        (let [canvas-locked? (= (.. js/document -pointerLockElement)
                                                (.querySelector js/document "canvas"))]
-                         (reset! locked?* canvas-locked?)
+                         (if (false? canvas-locked?) ;; using false? to show intent, wait for 1.2s to sync locked?* to false
+                           ;; https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/4
+                           (.setTimeout js/window (fn reset-locked-back-to-true [] (reset! locked?* false)) 1200)
+                           (reset! locked?* canvas-locked?))
+                          
                          (swap! world-inputs assoc ::flag ::lockchange)))))
 
 (defn listen-for-mouse [canvas]
