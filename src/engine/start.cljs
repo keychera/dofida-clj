@@ -18,7 +18,7 @@
 
 (defn update-world [game]
   (let [inputs @world-inputs]
-    (case (::flag inputs) 
+    (case (::flag inputs)
       ::lockchange
       (let [new-mode (case @current-mode
                        ::input/blende      ::input/firstperson
@@ -71,7 +71,7 @@
     nil))
 
 (def mousemove-timer (atom nil))
-(def locked?*        (atom nil))
+(def locked?*        (atom false))
 
 (defn listen-for-pointer-lock []
   (.addEventListener js/document "pointerlockchange"
@@ -138,9 +138,13 @@
                  (fn [event]
                    (when-let [keyname (keycode->keyword (.-keyCode event))]
                      (case keyname
-                       :num1 ;; we stop all 1 to world-inputs for now
-                       (when (not @locked?*)
-                         (.requestPointerLock canvas (clj->js {:unadjustedMovement true})))
+                       :num1 ;; we stop all 1 to world-inputs for now 
+                       (let [lock-status @locked?*]
+                         (swap! locked?* :pending)
+                         (case lock-status
+                           true  (.exitPointerLock js/document)
+                           false (.requestPointerLock canvas (clj->js {:unadjustedMovement true}))
+                           :noop))
 
                        (swap! world-inputs update ::keydown (fn [s] (conj s keyname)))))))
   (events/listen js/window "keyup"

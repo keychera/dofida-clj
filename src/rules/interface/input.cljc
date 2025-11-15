@@ -11,6 +11,8 @@
 (s/def ::mode #{::blende ::firstperson})
 (s/def ::x number?)
 (s/def ::y number?)
+(s/def ::dx number?)
+(s/def ::dy number?)
 (s/def ::keystate any?)
 (s/def ::keydown any?)
 
@@ -21,17 +23,18 @@
     (firstperson/player-reset session)
 
     [::firstperson _]
-    (when-let [move (case keyname
-                      :w     ::firstperson/forward
-                      :a     ::firstperson/strafe-l
-                      :s     ::firstperson/backward
-                      :d     ::firstperson/strafe-r
-                      :shift ::firstperson/ascend
-                      :ctrl  ::firstperson/descend
-                      nil)]
-      (o/insert session ::firstperson/player ::firstperson/move-control move))
+    (if-let [move (case keyname
+                    :w     ::firstperson/forward
+                    :a     ::firstperson/strafe-l
+                    :s     ::firstperson/backward
+                    :d     ::firstperson/strafe-r
+                    :shift ::firstperson/ascend
+                    :ctrl  ::firstperson/descend
+                    nil)]
+      (o/insert session ::firstperson/player ::firstperson/move-control move)
+      session)
 
-    :else :noop))
+    :else session))
 
 (def system
   {::world/rules
@@ -44,14 +47,15 @@
      ::mouse-delta
      [:what
       [::global ::mode mode]
-      [::mouse-delta ::x mouse-dx]
-      [::mouse-delta ::y mouse-dy]
+      [::mouse-delta ::dx mouse-dx]
+      [::mouse-delta ::dy mouse-dy]
       :then
       (case mode
         ::firstperson
         (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
 
-        :noop)]
+        #_else
+        (insert! ::firstperson/player #::firstperson{:view-dx 0 :view-dy 0}))]
 
      ::keys
      [:what
@@ -69,7 +73,7 @@
   (o/insert world ::mouse {::x x ::y y}))
 
 (defn update-mouse-delta [world dx dy]
-  (o/insert world ::mouse-delta {::x dx ::y dy}))
+  (o/insert world ::mouse-delta {::dx dx ::dy dy}))
 
 (defn key-on-keydown [world keyname]
   (o/insert world keyname ::keystate ::keydown))
