@@ -8,7 +8,7 @@
    [odoyle.rules :as o]
    [rules.firstperson :as firstperson]))
 
-(s/def ::mode #{::blende ::firstperson})
+(s/def ::mode #{::blender ::firstperson})
 (s/def ::x number?)
 (s/def ::y number?)
 (s/def ::dx number?)

@@ -14,15 +14,15 @@
    ::keydown      #{}
    ::prev-keydown #{}})
 (def world-inputs (atom world-init-inputs))
-(def current-mode (atom ::input/blende))
+(def current-mode (atom ::input/blender))
 
 (defn update-world [game]
   (let [inputs @world-inputs]
     (case (::flag inputs)
       ::lockchange
       (let [new-mode (case @current-mode
-                       ::input/blende      ::input/firstperson
-                       ::input/firstperson ::input/blende)]
+                       ::input/blender     ::input/firstperson
+                       ::input/firstperson ::input/blender)]
         (reset! current-mode new-mode)
         (swap! (::world/atom* game)
                (fn [world']

@@ -6,7 +6,6 @@
 (s/def ::atom* (partial instance? #?(:clj clojure.lang.Atom :cljs Atom)))
 
 ;; game system
-(s/def ::game map?)
 (s/def ::init-fn   fn? #_(fn [world game] world))
 (s/def ::before-load-fn fn? #_(fn [world game] world)) ;; called before all rules are removed on code reload
 (s/def ::after-load-fn fn? #_(fn [world game] world))  ;; called after  all rules are removed on code reload
@@ -57,5 +56,4 @@
                           (map #'rules-debugger-wrap-fn)
                           (reduce o/add-rule before-world))
         after-world  (reduce (fn [world after-fn] (after-fn world game)) init-world after-load-fns)]
-    (-> after-world
-        (o/insert ::global ::game game))))
+    after-world))
