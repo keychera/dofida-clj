@@ -1,7 +1,7 @@
 (ns rules.firstperson
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [insert! s->]]
+   [engine.macros :refer [insert!]]
    [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.math :as m]
@@ -18,8 +18,6 @@
 (s/def ::verti-angle float?)
 
 (s/def ::move-control keyword?)
-(s/def ::view-mode #{::direct ::moving})
-(s/def ::frame-counter int?)
 (s/def ::view-dx float?)
 (s/def ::view-dy float?)
 
@@ -49,13 +47,11 @@
      ::right right}))
 
 (defn player-reset [world]
-  (let [dimension (:dimension (first (o/query-all world ::window/window)))]
-    (-> world
-        (o/insert ::player
-                  (merge (calc-mvp dimension [0 0 5] Math/PI 0.0)
-                         {::position [0 0 5]
-                          ::view-mode ::direct
-                          ::frame-counter 1})))))
+   (-> world
+      (o/insert ::player
+                {::horiz-angle Math/PI
+                 ::verti-angle 0.0
+                 ::position [0 0 5]})))
 
 (def system
   {::world/init-fn
@@ -67,8 +63,7 @@
                     ::horiz-angle Math/PI
                     ::verti-angle 0.0
                     ::view-dx 0
-                    ::view-dy 0
-                    ::view-mode ::moving})))
+                    ::view-dy 0})))
 
    ::world/rules
    (o/ruleset
@@ -79,7 +74,6 @@
      ::movement
      [:what
       [::time/now ::time/delta delta-time]
-      [::player ::view-mode ::moving]
       [::player ::position position {:then false}]
       [::player ::direction direction {:then false}]
       [::player ::right right {:then false}]
@@ -93,25 +87,13 @@
                     ::strafe-r (mapv #(* % speed delta-time) (-> right (assoc 1 0)))
                     nil)]
         (when move
-          (insert! ::player ::position (mapv + position move))))]
-
-     ::direct-for-n-frame
-     [:what
-      [::player ::view-mode ::direct]
-      [::window/window ::window/dimension dimension]
-      [::player ::frame-counter frame {:then false}]
-      :then
-      (if (> frame 0)
-        (insert! ::player ::frame-counter (dec frame))
-        (s-> session
-             (o/insert ::player ::view-mode ::moving)
-             (o/retract ::player ::frame-counter)))]
+          (insert! ::player ::position (mapv + position move))))] 
 
      ::mouse-camera
      [:what
       [::time/now ::time/delta delta-time]
+      [::time/now ::time/step 1]
       [::window/window ::window/dimension dimension]
-      [::player ::view-mode ::moving]
       [::player ::view-dx view-dx]
       [::player ::view-dy view-dy]
       [::player ::position position {:then false}]

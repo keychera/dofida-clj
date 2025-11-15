@@ -24,20 +24,21 @@
    (world/->init)))
 
 (def all-systems
-  [asset/system
+  [time/system
    
+   asset/system
    atlas/system
 
    window/system
    input/system
    firstperson/system
    dofida/system
-   
+
    test-atlas/system])
 
 (defn init [game]
   (println "init game")
-  (gl game enable (gl game BLEND)) 
+  (gl game enable (gl game BLEND))
 
   (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
         all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
