@@ -10,7 +10,8 @@
    [iglu.core :as iglu]
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]
-   [rules.firstperson :as firstperson]))
+   [rules.firstperson :as firstperson]
+   [play-cljc.math :as m]))
 
 ;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
@@ -46,6 +47,17 @@
   (-> (utils/load-model-on-compile "assets/dofida-plane.obj")
       (utils/model->vertex-data)))
 
+
+(def off-vb-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [-1.0 -1.0 0.0,  1.0 -1.0 0.0, -1.0  1.0 0.0,
+    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0,]))
+
+(def off-uv-data
+  (#?(:clj float-array :cljs #(js/Float32Array. %))
+   [0.0 0.0, 1.0 0.0, 0.0 1.0,
+    0.0 1.0, 1.0 0.0, 1.0 1.0]))
+
 (def cube-vertex-shader
   {:precision  "mediump float"
    :inputs     '{a_vertex_pos vec3
@@ -56,38 +68,6 @@
    :functions
    '{main ([]
            (= gl_Position (* mvp (vec4 a_vertex_pos "1.0")))
-           (= uv a_uv))}})
-
-(def cube-fragment-shader
-  {:precision  "mediump float"
-   :inputs     '{v_color vec3
-                 uv      vec2}
-   :outputs    '{o_color vec4}
-   :uniforms   '{textureSampler sampler2D}
-   :signatures '{main ([] void)}
-   :functions
-   '{main ([]
-           (= o_color (texture textureSampler uv)))}})
-
-(def off-vb-data
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [-1.0 -1.0,  1.0 -1.0, -1.0  1.0,
-    -1.0  1.0,  1.0 -1.0,  1.0  1.0]))
-
-(def off-uv-data
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [0.0 0.0, 1.0 0.0, 0.0 1.0,
-    0.0 1.0, 1.0 0.0, 1.0 1.0]))
-
-(def passthrough-shader
-  {:precision  "mediump float"
-   :inputs     '{a_vertex_pos vec2
-                 a_uv         vec2}
-   :outputs    '{uv      vec2}
-   :signatures '{main ([] void)}
-   :functions
-   '{main ([]
-           (= gl_Position (vec4 a_vertex_pos.x a_vertex_pos.y "0.0" "1.0"))
            (= uv a_uv))}})
 
 (def simple-texture-shader
@@ -148,8 +128,8 @@
                      :fbo-tex texture
                      :fbo-tex-unit tex-unit))))
 
-         ((fn set-texture-plane [esse-3d]
-            (let [vertex-source       (iglu/iglu->glsl (merge {:version glsl-version} passthrough-shader))
+         ((fn set-off-plane [esse-3d]
+            (let [vertex-source       (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
                   fragment-source     (iglu/iglu->glsl (merge {:version glsl-version} simple-texture-shader))
                   off-program         (gl-utils/create-program game vertex-source fragment-source)
 
@@ -165,6 +145,9 @@
                   uv-attr             (-> cube-vertex-shader :inputs keys second str)
                   off-uv-attr-loc     (gl game getAttribLocation off-program uv-attr)
 
+                  uniform-name        (-> cube-vertex-shader :uniforms keys first str)
+                  uniform-loc         (gl game getUniformLocation off-program uniform-name)
+
                   texture-name        (-> simple-texture-shader :uniforms keys first str)
                   off-texture-loc     (gl game getUniformLocation off-program texture-name)]
 
@@ -175,6 +158,7 @@
                       :off-attr-loc    off-vertex-attr-loc
                       :off-uv-buffer   off-uv-buffer
                       :off-uv-attr-loc off-uv-attr-loc
+                      :off-uniform-loc uniform-loc
                       :off-texture-loc off-texture-loc}))))
 
          ((fn set-triangle [esse-3d]
@@ -196,7 +180,7 @@
 
          ((fn set-cube [esse-3d]
             (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
-                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
+                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} simple-texture-shader))
                   cube-program    (gl-utils/create-program game vertex-source fragment-source)
 
                   cube-buffer     (gl-utils/create-buffer game)
@@ -215,7 +199,7 @@
                   uv-attr         (-> cube-vertex-shader :inputs keys second str)
                   uv-attr-loc     (gl game getAttribLocation cube-program uv-attr)
 
-                  texture-name    (-> cube-fragment-shader :uniforms keys first str)
+                  texture-name    (-> simple-texture-shader :uniforms keys first str)
                   texture-loc     (gl game getUniformLocation cube-program texture-name)]
 
               (assoc esse-3d
@@ -230,7 +214,7 @@
 
          ((fn set-plane [esse-3d]
             (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
-                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
+                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} simple-texture-shader))
                   program         (gl-utils/create-program game vertex-source fragment-source)
 
                   model           dofida-plane
@@ -251,7 +235,7 @@
                   uv-attr         (-> cube-vertex-shader :inputs keys second str)
                   uv-attr-loc     (gl game getAttribLocation program uv-attr)
 
-                  texture-name    (-> cube-fragment-shader :uniforms keys first str)
+                  texture-name    (-> simple-texture-shader :uniforms keys first str)
                   texture-loc     (gl game getUniformLocation program texture-name)]
 
               (assoc esse-3d
@@ -346,6 +330,7 @@
                {:keys [off-program
                        off-attr-loc off-vbo
                        off-uv-attr-loc off-uv-buffer
+                       off-uniform-loc
                        off-texture-loc]} off-plane
                fbo-tex      (:fbo-tex esse-3d)
                fbo-tex-unit (:fbo-tex-unit esse-3d)]
@@ -353,11 +338,13 @@
 
           (gl game enableVertexAttribArray off-attr-loc)
           (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-          (gl game vertexAttribPointer off-attr-loc 2 (gl game FLOAT) false 0 0)
+          (gl game vertexAttribPointer off-attr-loc 3 (gl game FLOAT) false 0 0)
 
           (gl game enableVertexAttribArray off-uv-attr-loc)
           (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
           (gl game vertexAttribPointer off-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+
+          (gl game uniformMatrix4fv off-uniform-loc false (m/identity-matrix 4))
 
           (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
@@ -407,7 +394,7 @@
 
   (let [game            (:game hmm)
         vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} cube-vertex-shader))
-        fragment-source (iglu/iglu->glsl (merge {:version glsl-version} cube-fragment-shader))
+        fragment-source (iglu/iglu->glsl (merge {:version glsl-version} simple-texture-shader))
         cube-program    (gl-utils/create-program game vertex-source fragment-source)]
     (gl game getAttribLocation cube-program "a_color")
     [(gl game getParameter (gl game MAX_TEXTURE_IMAGE_UNITS))
