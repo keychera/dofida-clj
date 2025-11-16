@@ -90,7 +90,7 @@
                       (Math/sin verti-angle)
                       (* (Math/cos verti-angle) (Math/cos horiz-angle))]
         right        [(Math/sin (- horiz-angle (/ Math/PI 2)))
-                      0
+                      0.0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
         up           (#'m/cross right direction)
 
@@ -115,17 +115,17 @@
               (assoc esse-3d :vao vao))))
 
          ((fn set-program [esse-3d]
-            (let [vertex-source       (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
-                  fragment-source     (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
-                  the-program         (gl-utils/create-program game vertex-source fragment-source)
-                  
-                  the-vertex-attr-loc (gl game getAttribLocation the-program "a_pos") 
-                  the-uv-attr-loc     (gl game getAttribLocation the-program "a_uv")
-                  the-mvp-loc         (gl game getUniformLocation the-program "u_mvp")
-                  the-texture-loc     (gl game getUniformLocation the-program "u_tex")]
+            (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
+                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
+                  the-program     (gl-utils/create-program game vertex-source fragment-source)
+
+                  the-attr-loc    (gl game getAttribLocation the-program "a_pos")
+                  the-uv-attr-loc (gl game getAttribLocation the-program "a_uv")
+                  the-mvp-loc     (gl game getUniformLocation the-program "u_mvp")
+                  the-texture-loc (gl game getUniformLocation the-program "u_tex")]
               (assoc esse-3d
                      :the-program
-                     (vars->map the-program the-vertex-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc)))))
+                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc)))))
 
          ((fn set-fbo [esse-3d]
             ;; why is it not always clear in the tutorials whether something is done only once or done every frame?? 
@@ -190,16 +190,16 @@
             (let [cube-buffer     (gl-utils/create-buffer game)
                   _               (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
                   cube-data       (:vertices cube-model)
-                  _               (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW)) 
-                  
+                  _               (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
+
                   uv-buffer       (gl-utils/create-buffer game)
                   _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
                   cube-uvs        (:uvs cube-model)
                   _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))]
 
-              (assoc esse-3d 
+              (assoc esse-3d
                      :cube-vbo          cube-buffer
-                     :cube-vertex-count (:vertex-count cube-model) 
+                     :cube-vertex-count (:vertex-count cube-model)
                      :uv-buffer         uv-buffer))))
 
          ((fn set-plane [esse-3d]
@@ -259,7 +259,7 @@
 
    ::world/render-fn
    (fn render [world game]
-     (when-let [dofida  (first (o/query-all world ::esse-3d))]
+     (when-let [dofida (first (o/query-all world ::esse-3d))]
        (let [esse-3d (:esse-3d dofida)
              texture (:texture dofida)
              dim     (:dimension (first (o/query-all world ::window/window)))
@@ -268,7 +268,7 @@
                      the-attr-loc
                      the-uv-attr-loc
                      the-mvp-loc
-                     the-texture-loc]} (:the-program esse-3d)] 
+                     the-texture-loc]} (:the-program esse-3d)]
          #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
          (def hmm {:world world :game game})
 
@@ -330,7 +330,9 @@
           (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
           (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-          (gl game uniformMatrix4fv the-mvp-loc false (m/identity-matrix 4))
+          (gl game uniformMatrix4fv the-mvp-loc false
+              #?(:clj (float-array (m/identity-matrix 4))
+                 :cljs (m/identity-matrix 4)))
 
           (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
@@ -355,7 +357,9 @@
                 aspect-ratio (/ (:width dim) (:height dim))
                 projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
                 mvp          (m/multiply-matrices-3d static-model-view-matrix projection)]
-            (gl game uniformMatrix4fv the-mvp-loc false mvp))
+            (gl game uniformMatrix4fv the-mvp-loc false
+                #?(:clj (float-array mvp)
+                   :cljs mvp)))
 
           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
           (gl game bindTexture (gl game TEXTURE_2D) texture)

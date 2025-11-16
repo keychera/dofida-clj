@@ -59,8 +59,8 @@
      (-> world
          (o/insert ::player
                    {::mvp (#?(:clj float-array :cljs #(js/Float32Array. %)) (m/identity-matrix 4)) 
-                    ::view-dx 0
-                    ::view-dy 0})
+                    ::view-dx 0.0
+                    ::view-dy 0.0})
          (player-reset)))
 
    ::world/rules

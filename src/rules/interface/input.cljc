@@ -55,7 +55,7 @@
         (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
 
         #_else
-        (insert! ::firstperson/player #::firstperson{:view-dx 0 :view-dy 0}))]
+        (insert! ::firstperson/player #::firstperson{:view-dx 0.0 :view-dy 0.0}))]
 
      ::keys
      [:what
@@ -79,11 +79,17 @@
   (o/insert world keyname ::keystate ::keydown))
 
 (defn key-on-keyup [world keyname]
-  (o/retract world keyname ::keystate))
+  (try
+    (o/retract world keyname ::keystate)
+    (catch #?(:clj Throwable :cljs js/Error) _
+      ;; noop when the key is cleanup on mouse-lock exit
+      world)))
 
 (defn cleanup-input [world]
   (reduce
-   (fn [w' k] (o/retract w' (:keyname k) ::keystate))
+   (fn [w' k]
+     (println "cleanup retracting" k)
+     (o/retract w' (:keyname k) ::keystate))
    world (o/query-all world ::keys)))
 
 (defn set-mode [world mode]

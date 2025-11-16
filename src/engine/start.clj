@@ -37,7 +37,20 @@
     GLFW/GLFW_MOUSE_BUTTON_RIGHT :right
     nil))
 
-(defonce mouse-locked?* (atom nil))
+(defonce mouse-locked?* (atom false))
+(defn on-lock-change [lock-state]
+  (let [new-mode (if lock-state ::input/firstperson ::input/blender)]
+    (swap! world-inputs conj
+           (fn [world']
+             (-> world'
+                 (input/update-mouse-delta 0.0 0.0)
+                 (input/cleanup-input)
+                 (input/set-mode new-mode))))))
+
+(add-watch mouse-locked?* :watcher
+           (fn [_ _ old-state new-state]
+             (when (not= old-state new-state) 
+               (on-lock-change new-state))))
 
 (defn on-mouse-stop! []
   (swap! world-inputs conj
@@ -99,6 +112,7 @@
     GLFW/GLFW_KEY_A            :a
     GLFW/GLFW_KEY_S            :s
     GLFW/GLFW_KEY_D            :d
+    GLFW/GLFW_KEY_R            :r
     GLFW/GLFW_KEY_LEFT_SHIFT   :shift
     GLFW/GLFW_KEY_LEFT_CONTROL :ctrl
     nil))
@@ -112,12 +126,12 @@
                               (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_NORMAL)
                               (reset! mouse-locked?* false))
 
-                          (#{:w :a :s :d :shift :ctrl} k)
+                          (#{:w :a :s :d :r :shift :ctrl} k)
                           (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
 
                           :else :noop)
       GLFW/GLFW_RELEASE (cond
-                          (#{:w :a :s :d :shift :ctrl} k)
+                          (#{:w :a :s :d :r :shift :ctrl} k)
                           (swap! world-inputs conj (fn keyup [w] (input/key-on-keyup w k)))
 
                           :else :noop)
