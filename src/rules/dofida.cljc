@@ -10,8 +10,9 @@
    [iglu.core :as iglu]
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]
+   [play-cljc.math :as m]
    [rules.firstperson :as firstperson]
-   [play-cljc.math :as m]))
+   [rules.window :as window]))
 
 ;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
@@ -47,11 +48,10 @@
   (-> (utils/load-model-on-compile "assets/dofida-plane.obj")
       (utils/model->vertex-data)))
 
-
 (def off-vb-data
   (#?(:clj float-array :cljs #(js/Float32Array. %))
    [-1.0 -1.0 0.0,  1.0 -1.0 0.0, -1.0  1.0 0.0,
-    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0,]))
+    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0]))
 
 (def off-uv-data
   (#?(:clj float-array :cljs #(js/Float32Array. %))
@@ -79,6 +79,26 @@
    :functions
    '{main ([]
            (= o_color (texture textureSampler uv)))}})
+
+(def static-model-view-matrix
+  (let [horiz-angle  (* Math/PI 1.5)
+        verti-angle  0.0
+        position     [2 0 0]
+  
+        direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
+                      (Math/sin verti-angle)
+                      (* (Math/cos verti-angle) (Math/cos horiz-angle))]
+        right        [(Math/sin (- horiz-angle (/ Math/PI 2)))
+                      0
+                      (Math/cos (- horiz-angle (/ Math/PI 2)))]
+        up           (#'m/cross right direction)
+  
+        look-at      (m/look-at-matrix-3d position (mapv + position direction) up)
+        view         (m/inverse-matrix-3d look-at) 
+  
+        ;; rotation is part of m
+        rotation     (m/z-rotation-matrix-3d (m/deg->rad 180))]
+    (m/multiply-matrices-3d rotation view)))
 
 ;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
 ;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
@@ -272,6 +292,7 @@
      (when-let [dofida  (first (o/query-all world ::esse-3d))]
        (let [esse-3d (:esse-3d dofida)
              texture (:texture dofida)
+             dim     (:dimension (first (o/query-all world ::window/window)))
              mvp     (:mvp (first (o/query-all world ::firstperson/state)))]
          #_{:clj-kondo/ignore [:inline-def]}
          (def hmm {:world world :game game})
@@ -372,7 +393,11 @@
           (gl game bindBuffer (gl game ARRAY_BUFFER) just-uv-buffer)
           (gl game vertexAttribPointer just-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-          (gl game uniformMatrix4fv just-uniform-loc false mvp)
+          (let [initial-fov  (m/deg->rad 45)
+                aspect-ratio (/ (:width dim) (:height dim))
+                projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100) 
+                mvp          (m/multiply-matrices-3d static-model-view-matrix projection)] 
+            (gl game uniformMatrix4fv just-uniform-loc false mvp))
 
           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
           (gl game bindTexture (gl game TEXTURE_2D) texture)

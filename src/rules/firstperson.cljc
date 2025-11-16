@@ -49,21 +49,19 @@
 (defn player-reset [world]
    (-> world
       (o/insert ::player
-                {::horiz-angle Math/PI
+                {::horiz-angle (* Math/PI 1.5)
                  ::verti-angle 0.0
-                 ::position [0 0 5]})))
+                 ::position [5 0 0]})))
 
 (def system
   {::world/init-fn
    (fn [world _game]
      (-> world
          (o/insert ::player
-                   {::mvp (#?(:clj float-array :cljs #(js/Float32Array. %)) (m/identity-matrix 4))
-                    ::position [0 0 5]
-                    ::horiz-angle Math/PI
-                    ::verti-angle 0.0
+                   {::mvp (#?(:clj float-array :cljs #(js/Float32Array. %)) (m/identity-matrix 4)) 
                     ::view-dx 0
-                    ::view-dy 0})))
+                    ::view-dy 0})
+         (player-reset)))
 
    ::world/rules
    (o/ruleset
