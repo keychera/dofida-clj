@@ -10,6 +10,7 @@
    [engine.world :as world]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
+   [rules.alive :as alive]
    [rules.dofida :as dofida]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
@@ -33,6 +34,8 @@
    input/system
    firstperson/system
    dofida/system
+
+   alive/system
 
    test-atlas/system])
 

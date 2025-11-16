@@ -1,9 +1,8 @@
 (ns assets.atlas
   (:require
-   #?(:clj [engine.macros :refer [s->]]
-      :cljs [engine.macros :refer-macros [s->]])
    [assets.asset :as asset]
    [clojure.spec.alpha :as s]
+   [engine.macros :refer [s->]]
    [engine.utils :as utils]
    [engine.world :as world]
    [odoyle.rules :as o]
