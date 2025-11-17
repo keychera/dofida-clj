@@ -15,7 +15,7 @@ todo:
         ☐ sidestream: t2d, non-destructive
             ☐ t3d?
             ☐ blender control instead of first-person movement
-            ☐ the alpha clipping + t3d + atlas/instancing
+            ✔ the alpha clipping + t3d + atlas/instancing @done(25-11-18 00:12)
         ☐ sidestream: anime, non destructive
         ☐ sidestream twod-picking
             ☐ threed-picking?
