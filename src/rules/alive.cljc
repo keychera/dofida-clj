@@ -50,10 +50,9 @@
            (= o_color (texture u_tex uv)))}})
 
 (def static-model-view-matrix
-  (let [horiz-angle  (* Math/PI 1.2)
+  (let [horiz-angle  Math/PI
         verti-angle  0.0
-        position     [2 0 1]
-        ;; still dont understand how to make a flat 2d ui plane... 
+        position     [0 0 5]
 
         direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                       (Math/sin verti-angle)
@@ -71,7 +70,20 @@
     (m/multiply-matrices-3d rotation view)))
 
 (s/def ::metadata-loaded? boolean?)
-(def db* (atom {}))
+(defonce db* (atom {}))
+
+(defn crop-matrix-from-atlas [atlas-metadata frame-name]
+  (let [{width  :w
+         height :h} (->> atlas-metadata :meta :size)
+        frame-crop  (->> atlas-metadata :frames
+                         (filter #(= (:filename %) frame-name))
+                         (first) :frame)
+        {:keys [x y w h]} frame-crop
+        scale3d-matrix (m/scaling-matrix-3d (/ w width) (/ h height) 1.0)
+        crop-matrix    (m/multiply-matrices
+                        (m/scaling-matrix (/ w width) (/ h height))
+                        (m/translation-matrix (/ x width) (/ y height)))]
+    [scale3d-matrix crop-matrix]))
 
 (def system
   {::world/init-fn
@@ -148,32 +160,58 @@
          (gl game bindBuffer (gl game ARRAY_BUFFER) alive-uv-buffer)
          (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-         (let [initial-fov  (m/deg->rad 45)
-               aspect-ratio (/ (:width window-dim) (:height window-dim))
-               projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
-               mvp          (m/multiply-matrices-3d static-model-view-matrix projection)]
+         (let [atlas-metadata (get-in @db* [::eye-atlas ::metadata])
+
+               initial-fov    (m/deg->rad 45)
+               aspect-ratio   (/ (:width window-dim) (:height window-dim))
+               projection     (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+
+               [sclera-scale sclera-crop]  (crop-matrix-from-atlas atlas-metadata "sclera.png")
+               sclera-mv      (m/multiply-matrices-3d sclera-scale static-model-view-matrix)
+               sclera-mvp     (m/multiply-matrices-3d sclera-mv projection)
+
+               [pupil-scale pupil-crop]   (crop-matrix-from-atlas atlas-metadata "pupil.png")
+               pupil-mv      (m/multiply-matrices-3d pupil-scale static-model-view-matrix)
+               pupil-mvp     (m/multiply-matrices-3d pupil-mv projection)
+
+               [lashes-scale lashes-crop] (crop-matrix-from-atlas atlas-metadata "lashes.png")
+               lashes-mv      (m/multiply-matrices-3d lashes-scale static-model-view-matrix)
+               lashes-mvp     (m/multiply-matrices-3d lashes-mv projection)]
+
+           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+           (gl game bindTexture (gl game TEXTURE_2D) texture)
+           (gl game uniform1i the-texture-loc texture-unit)
+
            (gl game uniformMatrix4fv the-mvp-loc false
-               #?(:clj (float-array mvp)
-                  :cljs mvp)))
+               #?(:clj (float-array sclera-mvp)
+                  :cljs sclera-mvp))
+           (gl game uniformMatrix3fv the-crop-loc false
+               #?(:clj (float-array sclera-crop)
+                  :cljs sclera-crop))
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
 
-         (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
-         (gl game bindTexture (gl game TEXTURE_2D) texture)
-         (gl game uniform1i the-texture-loc texture-unit)
+           (gl game uniformMatrix4fv the-mvp-loc false
+               #?(:clj (float-array pupil-mvp)
+                  :cljs pupil-mvp))
+           (gl game uniformMatrix3fv the-crop-loc false
+               #?(:clj (float-array pupil-crop)
+                  :cljs pupil-crop))
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
 
-         (gl game uniformMatrix3fv the-crop-loc false
-             #?(:clj (float-array (m/identity-matrix 3))
-                :cljs (m/identity-matrix 3)))
-
-         (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
-
-         #_(render    "sclera.png"))))})
+           (gl game uniformMatrix4fv the-mvp-loc false
+               #?(:clj (float-array lashes-mvp)
+                  :cljs lashes-mvp))
+           (gl game uniformMatrix3fv the-crop-loc false
+               #?(:clj (float-array lashes-crop)
+                  :cljs lashes-crop))
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)))))})
 
 (defmethod asset/process-asset ::asset/alive
-  [world* game asset-id {::asset/keys [metadata-to-load]}]
+  [world* _game asset-id {::asset/keys [metadata-to-load]}]
   (swap! world* #(-> % (o/insert asset-id ::metadata-loaded? false)))
   (utils/get-json
    metadata-to-load
    (fn [loaded-metadata]
      (println "metadata loaded" (:meta loaded-metadata))
-     (swap! (::asset/db* game) update-in [asset-id ::metadata] merge loaded-metadata)
+     (swap! db* update-in [asset-id ::metadata] merge loaded-metadata)
      (swap! world* #(-> % (o/insert asset-id ::metadata-loaded? true))))))

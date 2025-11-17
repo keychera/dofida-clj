@@ -3,7 +3,6 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset]
-   [assets.atlas :as atlas]
    [com.rpl.specter :as sp]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
@@ -13,8 +12,7 @@
    [rules.alive :as alive]
    [rules.dofida :as dofida]
    [rules.firstperson :as firstperson]
-   [rules.interface.input :as input]
-   [rules.test-atlas :as test-atlas]
+   [rules.interface.input :as input] 
    [rules.time :as time]
    [rules.window :as window]))
 
@@ -28,16 +26,13 @@
   [time/system
    
    asset/system
-   atlas/system
 
    window/system
    input/system
    firstperson/system
    dofida/system
 
-   alive/system
-
-   test-atlas/system])
+   alive/system])
 
 (defn init [game]
   (println "init game")

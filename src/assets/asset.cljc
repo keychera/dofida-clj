@@ -6,7 +6,7 @@
    [odoyle.rules :as o]))
 
 (s/def ::asset-to-load any?)
-(s/def ::type #{::texture ::atlas ::alive})
+(s/def ::type #{::texture ::alive})
 
 ;; data
 (s/def ::use keyword?)
