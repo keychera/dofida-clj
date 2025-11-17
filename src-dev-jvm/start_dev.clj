@@ -8,6 +8,7 @@
    [gui.debug-ui :as debug-ui]
    [nrepl.server :as nrepl-server])
   (:import
+   (imgui ImGui)
    (imgui.gl3 ImGuiImplGl3)
    (imgui.glfw ImGuiImplGlfw)))
 
@@ -23,14 +24,16 @@
 (defn start []
   (st/instrument)
   (reset! stop-flag* false)
-  (let [window (start/->window true)
-        game   (engine/->game (:handle window))
-        imguiGlfw (ImGuiImplGlfw.) imGuiGl3 (ImGuiImplGl3.)
-        callback #::start{:init-fn (partial debug-ui/init imguiGlfw imGuiGl3)
-                          :frame-fn (partial debug-ui/frame imguiGlfw imGuiGl3)
-                          :destroy-fn (partial debug-ui/destroy imguiGlfw imGuiGl3)
-                          :stop-flag* stop-flag*}]
-    (start/start game window callback)))
+  (with-redefs
+    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]
+    (let [window (start/->window true)
+          game   (engine/->game (:handle window))
+          imguiGlfw (ImGuiImplGlfw.) imGuiGl3 (ImGuiImplGl3.)
+          callback #::start{:init-fn (partial debug-ui/init imguiGlfw imGuiGl3)
+                            :frame-fn (partial debug-ui/frame imguiGlfw imGuiGl3)
+                            :destroy-fn (partial debug-ui/destroy imguiGlfw imGuiGl3)
+                            :stop-flag* stop-flag*}]
+      (start/start game window callback))))
 
 (defn -main []
   (let [nrepl-server (nrepl-server/start-server :handler cider-nrepl-handler)]

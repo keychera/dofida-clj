@@ -49,7 +49,7 @@
 
 (add-watch mouse-locked?* :watcher
            (fn [_ _ old-state new-state]
-             (when (not= old-state new-state) 
+             (when (not= old-state new-state)
                (on-lock-change new-state))))
 
 (defn on-mouse-stop! []
@@ -76,30 +76,36 @@
     (MemoryUtil/memFree *fb-height)
     (MemoryUtil/memFree *window-width)
     (MemoryUtil/memFree *window-height)
-    (when @mouse-locked?*
+    (if @mouse-locked?*
       (let [half-w (/ window-width 2)
             half-h (/ window-height 2)
             dx (- x half-w)
             dy (- y half-h)]
         (swap! world-inputs conj
                (fn mouse-delta [w] (input/update-mouse-delta w dx dy)))
-        (GLFW/glfwSetCursorPos window half-w half-h)))))
+        (GLFW/glfwSetCursorPos window half-w half-h))
+      (swap! world-inputs conj
+             (fn mouse-delta [w] (input/update-mouse-pos w x y))))))
+
+;; to be injected from debug for now using with-redefs
+(defn is-mouse-blocked? [] false)
 
 (defn on-mouse-click! [window _button _action _mods]
-  (when-not @mouse-locked?*
-    (let [*window-width (MemoryUtil/memAllocInt 1)
-          *window-height (MemoryUtil/memAllocInt 1)
-          _ (GLFW/glfwGetWindowSize window *window-width *window-height)
-          window-width (.get *window-width)
-          window-height (.get *window-height)
-          half-w (/ window-width 2)
-          half-h (/ window-height 2)]
-      (MemoryUtil/memFree *window-width)
-      (MemoryUtil/memFree *window-height)
-      (GLFW/glfwSetCursorPos window half-w half-h)
-      ;; HIDDEN doesn't work somehow
-      (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
-  (reset! mouse-locked?* true))
+  (when-not (#'is-mouse-blocked?)
+    (when-not @mouse-locked?*
+      (let [*window-width (MemoryUtil/memAllocInt 1)
+            *window-height (MemoryUtil/memAllocInt 1)
+            _ (GLFW/glfwGetWindowSize window *window-width *window-height)
+            window-width (.get *window-width)
+            window-height (.get *window-height)
+            half-w (/ window-width 2)
+            half-h (/ window-height 2)]
+        (MemoryUtil/memFree *window-width)
+        (MemoryUtil/memFree *window-height)
+        (GLFW/glfwSetCursorPos window half-w half-h)
+        ;; GLFW_CURSOR_HIDDEN doesn't work somehow
+        (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
+    (reset! mouse-locked?* true)))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
