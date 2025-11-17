@@ -49,7 +49,7 @@
    '{main ([]
            (= o_color (texture u_tex uv)))}})
 
-(def static-model-view-matrix
+(def view-matrix
   (let [horiz-angle  Math/PI
         verti-angle  0.0
         position     [0 0 5]
@@ -72,7 +72,7 @@
 (s/def ::metadata-loaded? boolean?)
 (defonce db* (atom {}))
 
-(defn crop-matrix-from-atlas [atlas-metadata frame-name]
+(defn matrices-from-atlas [atlas-metadata frame-name]
   (let [{width  :w
          height :h} (->> atlas-metadata :meta :size)
         frame-crop  (->> atlas-metadata :frames
@@ -165,18 +165,23 @@
                initial-fov    (m/deg->rad 45)
                aspect-ratio   (/ (:width window-dim) (:height window-dim))
                projection     (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+               v*p            (m/multiply-matrices-3d view-matrix projection)
 
-               [sclera-scale sclera-crop]  (crop-matrix-from-atlas atlas-metadata "sclera.png")
-               sclera-mv      (m/multiply-matrices-3d sclera-scale static-model-view-matrix)
-               sclera-mvp     (m/multiply-matrices-3d sclera-mv projection)
+               [sclera-scale sclera-crop] (matrices-from-atlas atlas-metadata "sclera.png") 
+               sclera-mvp     (reduce m/multiply-matrices-3d
+                                      [sclera-scale v*p])
 
-               [pupil-scale pupil-crop]   (crop-matrix-from-atlas atlas-metadata "pupil.png")
-               pupil-mv      (m/multiply-matrices-3d pupil-scale static-model-view-matrix)
-               pupil-mvp     (m/multiply-matrices-3d pupil-mv projection)
+               [pupil-scale pupil-crop] (matrices-from-atlas atlas-metadata "pupil.png") 
+               pupil-mvp     (reduce m/multiply-matrices-3d
+                                     [(m/translation-matrix-3d 0.18 0.5 0.0)
+                                      pupil-scale 
+                                      v*p])
 
-               [lashes-scale lashes-crop] (crop-matrix-from-atlas atlas-metadata "lashes.png")
-               lashes-mv      (m/multiply-matrices-3d lashes-scale static-model-view-matrix)
-               lashes-mvp     (m/multiply-matrices-3d lashes-mv projection)]
+               [lashes-scale lashes-crop] (matrices-from-atlas atlas-metadata "lashes.png") 
+               lashes-mvp     (reduce m/multiply-matrices-3d
+                                      [(m/translation-matrix-3d 0.18 -0.5 0.0)
+                                       lashes-scale
+                                       v*p])]
 
            ;; dear god, https://stackoverflow.com/a/49665354/8812880
            ;; I think we encountered this solution several times, but we can only utilize this now
@@ -195,6 +200,8 @@
                   :cljs sclera-crop))
            (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
 
+           (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ZERO) (gl game ONE))
+
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array pupil-mvp)
                   :cljs pupil-mvp))
@@ -202,6 +209,8 @@
                #?(:clj (float-array pupil-crop)
                   :cljs pupil-crop))
            (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+
+           (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ONE) (gl game ONE))
 
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array lashes-mvp)
