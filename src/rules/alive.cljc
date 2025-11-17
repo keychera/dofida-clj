@@ -106,6 +106,7 @@
          (asset ::eye-texture
                 #::asset{:type ::asset/texture-from-png :asset-to-load "atlas/eye.png"}
                 #::texture{:tex-unit 3})
+         (asset ::eye-fbo #::asset{:type ::asset/fbo} #::texture{:tex-unit 4})
          (asset ::eye-atlas
                 #::asset{:type ::asset/alive :metadata-to-load "atlas/eye.json"})))
 
@@ -122,14 +123,18 @@
 
      ::eye
      [:what
+      [:rules.dofida/herself :rules.dofida/esse-3d esse-3d] ;; borrow from dofida for now
       [::window/window ::window/dimension window-dim]
       [::eye-texture ::texture/from-png eye-texture]
+      [::eye-fbo ::texture/fbo eye-fbo]
       [::eye-atlas ::asset/loaded? true]]})
 
    ::world/render-fn
    (fn [world game]
      (when-let [{:keys [window-dim
-                        eye-texture]} (first (o/query-all world ::eye))]
+                        esse-3d
+                        eye-texture
+                        eye-fbo]} (first (o/query-all world ::eye))]
        (let [{::keys [alive-program alive-plane]} @db*
              {:keys [the-program
                      the-attr-loc
@@ -158,21 +163,26 @@
                projection     (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
                v*p            (m/multiply-matrices-3d view-matrix projection)
 
-               [sclera-scale sclera-crop] (matrices-from-atlas atlas-metadata "sclera.png") 
+               [sclera-scale sclera-crop] (matrices-from-atlas atlas-metadata "sclera.png")
                sclera-mvp     (reduce m/multiply-matrices-3d
                                       [sclera-scale v*p])
 
-               [pupil-scale pupil-crop] (matrices-from-atlas atlas-metadata "pupil.png") 
+               [pupil-scale pupil-crop] (matrices-from-atlas atlas-metadata "pupil.png")
                pupil-mvp     (reduce m/multiply-matrices-3d
                                      [(m/translation-matrix-3d 0.18 0.5 0.0)
-                                      pupil-scale 
+                                      pupil-scale
                                       v*p])
 
-               [lashes-scale lashes-crop] (matrices-from-atlas atlas-metadata "lashes.png") 
+               [lashes-scale lashes-crop] (matrices-from-atlas atlas-metadata "lashes.png")
                lashes-mvp     (reduce m/multiply-matrices-3d
                                       [(m/translation-matrix-3d 0.18 -0.5 0.0)
                                        lashes-scale
                                        v*p])]
+
+           #_"render to our fbo"
+           (gl game bindFramebuffer (gl game FRAMEBUFFER) (:frame-buf eye-fbo))
+           (gl game clearColor 0.0 0.0 0.0 0.0)
+           (gl game clear (gl game COLOR_BUFFER_BIT))
 
            ;; dear god, https://stackoverflow.com/a/49665354/8812880
            ;; I think we encountered this solution several times, but we can only utilize this now
@@ -209,7 +219,40 @@
            (gl game uniformMatrix3fv the-crop-loc false
                #?(:clj (float-array lashes-crop)
                   :cljs lashes-crop))
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)))))})
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+
+           #_"render to default fbo"
+           (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
+           (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+           
+           (#_"plane to render from our offscreen texture"
+            let [{:keys [off-vbo off-uv-buffer]} (:off-plane esse-3d)
+                 fbo-tex      (:fbo-tex eye-fbo)
+                 fbo-tex-unit (:tex-unit eye-fbo)]
+            (gl game useProgram the-program)
+           
+            (gl game enableVertexAttribArray the-attr-loc)
+            (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
+            (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
+           
+            (gl game enableVertexAttribArray the-uv-attr-loc)
+            (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
+            (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+           
+            (gl game uniformMatrix4fv the-mvp-loc false
+                #?(:clj (float-array (m/identity-matrix 4))
+                   :cljs (m/identity-matrix 4)))
+            
+            (gl game uniformMatrix3fv the-crop-loc false
+                #?(:clj (float-array (m/identity-matrix 3))
+                   :cljs (m/identity-matrix 3)))
+           
+            (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
+            (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
+            (gl game uniform1i the-texture-loc fbo-tex-unit)
+           
+            (gl game drawArrays (gl game TRIANGLES) 0 6)
+            (gl game disableVertexAttribArray the-attr-loc))))))})
 
 (defmethod asset/process-asset ::asset/alive
   [world* _game asset-id {::asset/keys [metadata-to-load]}]
