@@ -242,7 +242,7 @@
 
          (#_cube
           let [{:keys [cube-vbo cube-vertex-count uv-buffer]} esse-3d
-               {:keys [texture-unit texture]} texture]
+               {:keys [tex-unit texture]} texture]
           (gl game useProgram the-program)
 
           (gl game enableVertexAttribArray the-attr-loc)
@@ -255,9 +255,9 @@
 
           (gl game uniformMatrix4fv the-mvp-loc false mvp)
 
-          (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+          (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
           (gl game bindTexture (gl game TEXTURE_2D) texture)
-          (gl game uniform1i the-texture-loc texture-unit)
+          (gl game uniform1i the-texture-loc tex-unit)
 
           (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
           (gl game disableVertexAttribArray the-attr-loc))
@@ -305,7 +305,7 @@
 
          (#_dofida-plane
           let [{:keys [just-vbo just-vertex-count just-uv-buffer]} (:dofida-plane esse-3d)
-               {:keys [texture-unit texture]} texture]
+               {:keys [tex-unit texture]} texture]
 
           (gl game enableVertexAttribArray the-attr-loc)
           (gl game bindBuffer (gl game ARRAY_BUFFER) just-vbo)
@@ -323,9 +323,9 @@
                 #?(:clj (float-array mvp)
                    :cljs mvp)))
 
-          (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+          (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
           (gl game bindTexture (gl game TEXTURE_2D) texture)
-          (gl game uniform1i the-texture-loc texture-unit)
+          (gl game uniform1i the-texture-loc tex-unit)
 
           (gl game drawArrays (gl game TRIANGLES) 0 just-vertex-count)
           (gl game disableVertexAttribArray the-attr-loc)))))})

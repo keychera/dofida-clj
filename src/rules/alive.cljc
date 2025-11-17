@@ -146,7 +146,7 @@
              {:keys [alive-plane-vbo
                      alive-uv-buffer
                      vertex-count]} alive-plane
-             {:keys [texture-unit texture]} eye-texture]
+             {:keys [tex-unit texture]} eye-texture]
          (gl game useProgram the-program)
 
          (gl game enableVertexAttribArray the-attr-loc)
@@ -168,8 +168,8 @@
                height (:height window-dim)
                {:keys [mouse-x mouse-y]} (first (o/query-all world ::input/mouse))
                ratio   (* 0.8 width)
-               pupil-x (/ (- mouse-x (/ width 2)) (- ratio))
-               pupil-y (/ (- mouse-y (/ height 2)) ratio)
+               pupil-x (/ (- (or mouse-x 0.0) (/ width 2)) (- ratio))
+               pupil-y (/ (- (or mouse-y 0.0) (/ height 2)) ratio)
 
                initial-fov    (m/deg->rad 45)
                aspect-ratio   (/ width height)
@@ -221,9 +221,9 @@
            ;; because our current understanding and our gl pipeline setup
            (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ONE) (gl game ONE))
 
-           (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
+           (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
            (gl game bindTexture (gl game TEXTURE_2D) texture)
-           (gl game uniform1i the-texture-loc texture-unit)
+           (gl game uniform1i the-texture-loc tex-unit)
 
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array sclera-mvp)
