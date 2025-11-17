@@ -3,7 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
-   [assets.primitives :refer [plane3d-vertices plane3d-uvs]]
+   [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
    [assets.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s-> vars->map]]
@@ -13,6 +13,7 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]
    [play-cljc.math :as m]
+   [rules.interface.input :as input]
    [rules.window :as window]))
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
@@ -156,34 +157,65 @@
          (gl game bindBuffer (gl game ARRAY_BUFFER) alive-uv-buffer)
          (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
+         #_"render to our fbo"
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) (:frame-buf eye-fbo))
+         (gl game clearColor 0.0 0.0 0.0 0.0)
+         (gl game clear (gl game COLOR_BUFFER_BIT))
+
          (let [atlas-metadata (get-in @db* [::eye-atlas ::metadata])
 
+               width  (:width window-dim)
+               height (:height window-dim)
+               {:keys [mouse-x mouse-y]} (first (o/query-all world ::input/mouse))
+               ratio   (* 0.8 width)
+               pupil-x (/ (- mouse-x (/ width 2)) (- ratio))
+               pupil-y (/ (- mouse-y (/ height 2)) ratio)
+
                initial-fov    (m/deg->rad 45)
-               aspect-ratio   (/ (:width window-dim) (:height window-dim))
+               aspect-ratio   (/ width height)
                projection     (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
                v*p            (m/multiply-matrices-3d view-matrix projection)
 
                [sclera-scale sclera-crop] (matrices-from-atlas atlas-metadata "sclera.png")
                sclera-mvp     (reduce m/multiply-matrices-3d
-                                      [sclera-scale v*p])
+                                      [(m/translation-matrix-3d 1.8 0.0 0.0)
+                                       (m/translation-matrix-3d (/ pupil-x 5) (/ pupil-y 5) 0.0)
+                                       sclera-scale
+                                       v*p])
+               sclera-mvp-r   (reduce m/multiply-matrices-3d
+                                      [(m/translation-matrix-3d 1.8 0.0 0.0)
+                                       (m/translation-matrix-3d (/ pupil-x -5) (/ pupil-y 5) 0.0) 
+                                       (m/y-rotation-matrix-3d (m/deg->rad 180))
+                                       sclera-scale
+                                       v*p])
 
                [pupil-scale pupil-crop] (matrices-from-atlas atlas-metadata "pupil.png")
                pupil-mvp     (reduce m/multiply-matrices-3d
-                                     [(m/translation-matrix-3d 0.18 0.5 0.0)
+                                     [(m/translation-matrix-3d 3.11 0.0 0.0)
+                                      (m/translation-matrix-3d pupil-x pupil-y 0.0)
+                                      pupil-scale
+                                      v*p])
+               pupil-mvp-r   (reduce m/multiply-matrices-3d
+                                     [(m/translation-matrix-3d 3.11 0.0 0.0)
+                                      (m/translation-matrix-3d (- pupil-x) pupil-y 0.0)
+                                      (m/y-rotation-matrix-3d (m/deg->rad 180))
                                       pupil-scale
                                       v*p])
 
                [lashes-scale lashes-crop] (matrices-from-atlas atlas-metadata "lashes.png")
                lashes-mvp     (reduce m/multiply-matrices-3d
-                                      [(m/translation-matrix-3d 0.18 -0.5 0.0)
+                                      [(m/translation-matrix-3d 1.4 0.0 0.0)
+                                       (m/translation-matrix-3d (+ 0.18 (/ pupil-x 5))
+                                                                (+ -0.5 (/ pupil-y 5)) 0.0)
+                                       lashes-scale
+                                       v*p])
+               lashes-mvp-r   (reduce m/multiply-matrices-3d
+                                      [(m/translation-matrix-3d 1.4 0.0 0.0)
+                                       (m/translation-matrix-3d (+ 0.18 (/ pupil-x -5))
+                                                                (+ -0.5 (/ pupil-y 5)) 0.0)
+                                       (m/y-rotation-matrix-3d (m/deg->rad 180))
                                        lashes-scale
                                        v*p])]
-
-           #_"render to our fbo"
-           (gl game bindFramebuffer (gl game FRAMEBUFFER) (:frame-buf eye-fbo))
-           (gl game clearColor 0.0 0.0 0.0 0.0)
-           (gl game clear (gl game COLOR_BUFFER_BIT))
-
            ;; dear god, https://stackoverflow.com/a/49665354/8812880
            ;; I think we encountered this solution several times, but we can only utilize this now
            ;; because our current understanding and our gl pipeline setup
@@ -200,6 +232,10 @@
                #?(:clj (float-array sclera-crop)
                   :cljs sclera-crop))
            (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+           (gl game uniformMatrix4fv the-mvp-loc false
+               #?(:clj (float-array sclera-mvp-r)
+                  :cljs sclera-mvp-r)) 
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
 
            (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ZERO) (gl game ONE))
 
@@ -209,6 +245,10 @@
            (gl game uniformMatrix3fv the-crop-loc false
                #?(:clj (float-array pupil-crop)
                   :cljs pupil-crop))
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+           (gl game uniformMatrix4fv the-mvp-loc false
+               #?(:clj (float-array pupil-mvp-r)
+                  :cljs pupil-mvp-r)) 
            (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
 
            (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ONE) (gl game ONE))
@@ -220,39 +260,43 @@
                #?(:clj (float-array lashes-crop)
                   :cljs lashes-crop))
            (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+           (gl game uniformMatrix4fv the-mvp-loc false
+               #?(:clj (float-array lashes-mvp-r)
+                  :cljs lashes-mvp-r)) 
+           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count))
+         
+         #_"render to default fbo"
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
+         (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
 
-           #_"render to default fbo"
-           (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
-           (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-           
-           (#_"plane to render from our offscreen texture"
-            let [{:keys [off-vbo off-uv-buffer]} (:off-plane esse-3d)
-                 fbo-tex      (:fbo-tex eye-fbo)
-                 fbo-tex-unit (:tex-unit eye-fbo)]
-            (gl game useProgram the-program)
-           
-            (gl game enableVertexAttribArray the-attr-loc)
-            (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-            (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
-           
-            (gl game enableVertexAttribArray the-uv-attr-loc)
-            (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
-            (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
-           
-            (gl game uniformMatrix4fv the-mvp-loc false
-                #?(:clj (float-array (m/identity-matrix 4))
-                   :cljs (m/identity-matrix 4)))
-            
-            (gl game uniformMatrix3fv the-crop-loc false
-                #?(:clj (float-array (m/identity-matrix 3))
-                   :cljs (m/identity-matrix 3)))
-           
-            (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
-            (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
-            (gl game uniform1i the-texture-loc fbo-tex-unit)
-           
-            (gl game drawArrays (gl game TRIANGLES) 0 6)
-            (gl game disableVertexAttribArray the-attr-loc))))))})
+         (#_"plane to render from our offscreen texture"
+          let [{:keys [off-vbo off-uv-buffer]} (:off-plane esse-3d)
+               fbo-tex      (:fbo-tex eye-fbo)
+               fbo-tex-unit (:tex-unit eye-fbo)]
+          (gl game useProgram the-program)
+
+          (gl game enableVertexAttribArray the-attr-loc)
+          (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
+          (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
+
+          (gl game enableVertexAttribArray the-uv-attr-loc)
+          (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
+          (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+
+          (gl game uniformMatrix4fv the-mvp-loc false
+              #?(:clj (float-array (m/identity-matrix 4))
+                 :cljs (m/identity-matrix 4)))
+
+          (gl game uniformMatrix3fv the-crop-loc false
+              #?(:clj (float-array (m/identity-matrix 3))
+                 :cljs (m/identity-matrix 3)))
+
+          (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
+          (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
+          (gl game uniform1i the-texture-loc fbo-tex-unit)
+
+          (gl game drawArrays (gl game TRIANGLES) 0 6)
+          (gl game disableVertexAttribArray the-attr-loc)))))})
 
 (defmethod asset/process-asset ::asset/alive
   [world* _game asset-id {::asset/keys [metadata-to-load]}]

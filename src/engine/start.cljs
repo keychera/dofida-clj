@@ -11,6 +11,7 @@
 ;; previously, queue is used and num of input events > num of frames
 (def world-init-inputs
   {::mousemove    {:dx 0 :dy 0}
+   ::mousepos     {:x 0  :y 0}
    ::keydown      #{}
    ::prev-keydown #{}})
 (def world-inputs (atom world-init-inputs))
@@ -35,6 +36,7 @@
       (let [input-fn (reduce
                       (fn [prev-fn [input-key input-data]]
                         (case input-key
+                          ::mousepos  (comp (fn mouse-move [world] (input/update-mouse-pos world (:x input-data) (:y input-data))) prev-fn)
                           ::mousemove (comp (fn mouse-move [world] (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
                           ::keydown   (loop [[k & remains] input-data acc-fn prev-fn]
                                         (if k
