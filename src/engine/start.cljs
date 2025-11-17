@@ -178,7 +178,7 @@
   ([] (-main nil))
   ([config]
    (let [canvas (js/document.querySelector "canvas")
-         context (.getContext canvas "webgl2")
+         context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false}))
          initial-game (assoc (engine/->game context)
                              :delta-time 0
                              :total-time (js/performance.now))]

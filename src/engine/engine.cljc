@@ -12,7 +12,7 @@
    [rules.alive :as alive]
    [rules.dofida :as dofida]
    [rules.firstperson :as firstperson]
-   [rules.interface.input :as input] 
+   [rules.interface.input :as input]
    [rules.time :as time]
    [rules.window :as window]))
 
@@ -24,7 +24,7 @@
 
 (def all-systems
   [time/system
-   
+
    asset/system
 
    window/system
@@ -77,7 +77,6 @@
 
         (doseq [render-fn @(::render-fns* game)]
           (render-fn world game)))
-
       #?(:clj  (catch Exception err (throw err))
          :cljs (catch js/Error err
                  (utils/log-limited err "[tick-error]")))))

@@ -178,6 +178,11 @@
                lashes-mv      (m/multiply-matrices-3d lashes-scale static-model-view-matrix)
                lashes-mvp     (m/multiply-matrices-3d lashes-mv projection)]
 
+           ;; dear god, https://stackoverflow.com/a/49665354/8812880
+           ;; I think we encountered this solution several times, but we can only utilize this now
+           ;; because our current understanding and our gl pipeline setup
+           (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ONE) (gl game ONE))
+
            (gl game activeTexture (+ (gl game TEXTURE0) texture-unit))
            (gl game bindTexture (gl game TEXTURE_2D) texture)
            (gl game uniform1i the-texture-loc texture-unit)
