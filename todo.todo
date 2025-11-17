@@ -140,7 +140,7 @@ startaker:
 bug:
     ☐ (JS err) Uncaught (in promise) SecurityError: The user has exited the lock before this request was completed. 
 
-
 devx:
-    ☐  deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
+    ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
     ☐ sidestream twoway, text as interface
+    ☐ the init still reload all assets
