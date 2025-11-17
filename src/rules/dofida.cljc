@@ -3,6 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
+   [assets.primitives :refer [plane3d-vertices plane3d-uvs]]
    [assets.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
@@ -48,16 +49,6 @@
 (def dofida-plane
   (-> (utils/load-model-on-compile "assets/dofida-plane.obj")
       (utils/model->vertex-data)))
-
-(def off-vb-data
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [-1.0 -1.0 0.0,  1.0 -1.0 0.0, -1.0  1.0 0.0,
-    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0]))
-
-(def off-uv-data
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [0.0 0.0, 1.0 0.0, 0.0 1.0,
-    0.0 1.0, 1.0 0.0, 1.0 1.0]))
 
 (def the-vertex-shader
   {:precision  "mediump float"
@@ -125,48 +116,16 @@
                   the-texture-loc (gl game getUniformLocation the-program "u_tex")]
               (assoc esse-3d
                      :the-program
-                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc)))))
-
-         ((fn set-fbo [esse-3d]
-            ;; why is it not always clear in the tutorials whether something is done only once or done every frame?? 
-            (let [[width height] (utils/get-size game)
-                  fbo      (gl game #?(:clj genFramebuffers :cljs createFramebuffer))
-                  _        (gl game bindFramebuffer (gl game FRAMEBUFFER) fbo)
-                  texture  (gl game #?(:clj genTextures :cljs createTexture))
-                  tex-unit 2]
-
-              ;; bind, do stuff, unbind, hmm hmm
-              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-              (gl game bindTexture (gl game TEXTURE_2D) texture)
-              (gl game texImage2D (gl game TEXTURE_2D)
-                  #_:mip-level    0
-                  #_:internal-fmt (gl game RGBA)
-                  (int width)
-                  (int height)
-                  #_:border       0
-                  #_:src-fmt      (gl game RGBA)
-                  #_:src-type     (gl game UNSIGNED_BYTE)
-                  #?(:clj 0 :cljs nil))
-              (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
-              (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
-              (gl game bindTexture (gl game TEXTURE_2D) #?(:clj 0 :cljs nil))
-
-              (gl game framebufferTexture2D (gl game FRAMEBUFFER) (gl game COLOR_ATTACHMENT0) (gl game TEXTURE_2D) texture 0)
-
-              (when (not= (gl game checkFramebufferStatus (gl game FRAMEBUFFER)) (gl game FRAMEBUFFER_COMPLETE))
-                (println "warning: framebuffer creation incomplete"))
-              (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
-
-              (assoc esse-3d :fbo fbo :fbo-tex texture :fbo-tex-unit tex-unit))))
+                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc))))) 
 
          ((fn set-off-plane [esse-3d]
             (let [off-vbo             (gl-utils/create-buffer game)
                   _                   (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-                  _                   (gl game bufferData (gl game ARRAY_BUFFER) off-vb-data (gl game STATIC_DRAW))
+                  _                   (gl game bufferData (gl game ARRAY_BUFFER) plane3d-vertices (gl game STATIC_DRAW))
 
                   off-uv-buffer       (gl-utils/create-buffer game)
                   _                   (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
-                  _                   (gl game bufferData (gl game ARRAY_BUFFER) off-uv-data (gl game STATIC_DRAW))]
+                  _                   (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uvs (gl game STATIC_DRAW))]
               (assoc esse-3d :off-plane (vars->map off-vbo off-uv-buffer)))))
 
          ((fn set-triangle [esse-3d]
@@ -243,8 +202,9 @@
          ((fn enter-the-world [esse-3d]
             (-> world
                 (asset ::dofida-texture
-                       #::asset{:type ::asset/texture :asset-to-load "dofida.png"}
-                       #::texture{:texture-unit 1})
+                       #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
+                       #::texture{:tex-unit 1})
+                (asset ::dofida-fbo #::asset{:type ::asset/fbo} #::texture{:tex-unit 2})
                 (o/insert ::herself {::esse-3d esse-3d
                                      ::asset/use ::dofida-texture}))))))
 
@@ -254,14 +214,16 @@
      [:what
       [esse-id ::esse-3d esse-3d] ;; contains vao, program, vbo etc, will decomplect later
       [esse-id ::asset/use tex-id]
-      [tex-id  ::texture/data texture] ;; (vars->map texture texture-unit)
-      [tex-id  ::asset/loaded? true]]})
+      [tex-id  ::texture/from-png texture] ;; (vars->map texture tex-unit)
+      [::dofida-fbo ::texture/fbo fbo]     ;; (vars->map frame-buf fbo-tex tex-unit), hardcoded-id for now
+      [tex-id ::asset/loaded? true]]})
 
    ::world/render-fn
    (fn render [world game]
      (when-let [dofida (first (o/query-all world ::esse-3d))]
        (let [esse-3d (:esse-3d dofida)
              texture (:texture dofida)
+             fbo     (:fbo dofida)
              dim     (:dimension (first (o/query-all world ::window/window)))
              mvp     (:mvp (first (o/query-all world ::firstperson/state)))
              {:keys [the-program
@@ -274,7 +236,7 @@
 
          (gl game bindVertexArray (:vao esse-3d))
          #_"render to our fbo"
-         (gl game bindFramebuffer (gl game FRAMEBUFFER) (:fbo esse-3d))
+         (gl game bindFramebuffer (gl game FRAMEBUFFER) (:frame-buf fbo))
          (gl game clearColor 0.0 0.0 0.0 0.0)
          (gl game clear (gl game COLOR_BUFFER_BIT))
 
@@ -318,8 +280,8 @@
 
          (#_"plane to render from our offscreen texture"
           let [{:keys [off-vbo off-uv-buffer]} (:off-plane esse-3d)
-               fbo-tex      (:fbo-tex esse-3d)
-               fbo-tex-unit (:fbo-tex-unit esse-3d)]
+               fbo-tex      (:fbo-tex fbo)
+               fbo-tex-unit (:tex-unit fbo)]
           (gl game useProgram the-program)
 
           (gl game enableVertexAttribArray the-attr-loc)
@@ -373,8 +335,7 @@
   ;; "maybe this will be even smaller if the keys' length are optimized"
   (let [facts-str (->> (into []
                              (filter (fn [[_ attr]]
-                                       (and (not= attr :assets.asset/db*)
-                                            (not= attr :rules.dofida/esse-3d))))
+                                       (not= attr :rules.dofida/esse-3d)))
                              (o/query-all (:world hmm)))
                        str)]
     (count facts-str))

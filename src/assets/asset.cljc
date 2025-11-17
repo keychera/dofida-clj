@@ -6,42 +6,31 @@
    [odoyle.rules :as o]))
 
 (s/def ::asset-to-load any?)
-(s/def ::type #{::texture ::alive})
+(s/def ::type #{::texture-from-png
+                ::fbo
+                ::alive})
 
 ;; data
 (s/def ::use keyword?)
 
 ;; asset
 (s/def ::loaded? boolean?)
-(s/def ::metadata map?)
-
-(s/def ::db* (partial instance? #?(:clj clojure.lang.Atom :cljs Atom)))
+(s/def ::asset-data map?)
 
 (def system
-  {::world/init-fn
-   (fn [world _game]
-     (o/insert world ::global ::db* (atom {})))
-
-   ::world/rules
+  {::world/rules
    (o/ruleset
-    {::db*
-     [:what [::global ::db* db*]]
-
-     ::to-load
+    {::to-load
      [:what
       [asset-id ::loaded? false]
-      [asset-id ::metadata metadata]
-      [::global ::db* db*]
-      :then
-      (println "registering metadata")
-      (swap! db* assoc asset-id metadata)]})})
+      [asset-id ::asset-data asset-data]]})})
 
 (defn asset
   [world asset-id & maps]
   (try
     (-> world
         (o/insert asset-id ::loaded? false)
-        (o/insert asset-id ::metadata (apply utils/deep-merge maps)))
+        (o/insert asset-id ::asset-data (apply utils/deep-merge maps)))
     (catch #?(:clj Exception :cljs js/Error) err
       #?(:clj  (println err)
          :cljs (js/console.error err))
@@ -54,10 +43,7 @@
   (println "asset(" asset-id ") has unhandled type (" asset-type ")"))
 
 (defn load-asset [world* game]
-  (let [world @world*
-        db*   (:db* (first (o/query-all world ::db*)))]
-    (doseq [{:keys [asset-id]} (o/query-all world ::to-load)]
-      (let [asset-data (get @db* asset-id)]
-        (println "loading" (::type asset-data) "asset for" asset-id)
-        ;; i dont quite like assoc'ing db here
-        (process-asset world* (assoc game ::db* db*) asset-id asset-data)))))
+  (let [world @world*]
+    (doseq [{:keys [asset-id asset-data]} (o/query-all world ::to-load)]
+      (println "loading" (::type asset-data) "asset for" asset-id)
+      (process-asset world* game asset-id asset-data))))

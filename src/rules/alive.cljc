@@ -3,6 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
+   [assets.primitives :refer [plane3d-vertices plane3d-uvs]]
    [assets.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s-> vars->map]]
@@ -15,16 +16,6 @@
    [rules.window :as window]))
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
-
-(def plane3d-vertices
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [-1.0 -1.0 0.0,  1.0 -1.0 0.0, -1.0  1.0 0.0,
-    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0]))
-
-(def plane3d-uv-data
-  (#?(:clj float-array :cljs #(js/Float32Array. %))
-   [0.0 0.0, 1.0 0.0, 0.0 1.0,
-    0.0 1.0, 1.0 0.0, 1.0 1.0]))
 
 (def alive-vertex-shader
   {:precision  "mediump float"
@@ -106,15 +97,15 @@
 
            alive-uv-buffer (gl-utils/create-buffer game)
            _               (gl game bindBuffer (gl game ARRAY_BUFFER) alive-uv-buffer)
-           _               (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uv-data (gl game STATIC_DRAW))
+           _               (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uvs (gl game STATIC_DRAW))
            vertex-count    6]
        (swap! db* assoc ::alive-plane
               (vars->map alive-plane-vbo alive-uv-buffer vertex-count)))
 
      (-> world
          (asset ::eye-texture
-                #::asset{:type ::asset/texture :asset-to-load "atlas/eye.png"}
-                #::texture{:texture-unit 2})
+                #::asset{:type ::asset/texture-from-png :asset-to-load "atlas/eye.png"}
+                #::texture{:tex-unit 3})
          (asset ::eye-atlas
                 #::asset{:type ::asset/alive :metadata-to-load "atlas/eye.json"})))
 
@@ -132,7 +123,7 @@
      ::eye
      [:what
       [::window/window ::window/dimension window-dim]
-      [::eye-texture ::texture/data eye-texture]
+      [::eye-texture ::texture/from-png eye-texture]
       [::eye-atlas ::asset/loaded? true]]})
 
    ::world/render-fn
