@@ -39,7 +39,7 @@
 
 (defonce mouse-locked?* (atom false))
 (defn on-lock-change [lock-state]
-  (let [new-mode (if lock-state ::input/firstperson ::input/blender)]
+  (let [new-mode (if lock-state ::input/firstperson ::input/arcball)]
     (swap! world-inputs conj
            (fn [world']
              (-> world'

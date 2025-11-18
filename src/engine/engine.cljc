@@ -14,7 +14,8 @@
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
    [rules.time :as time]
-   [rules.window :as window]))
+   [rules.window :as window]
+   [rules.camera.arcball :as arcball]))
 
 (defn ->game [context]
   (merge
@@ -26,12 +27,13 @@
   [time/system
 
    asset/system
-
    window/system
+
    input/system
    firstperson/system
+   arcball/system
+   
    dofida/system
-
    alive/system])
 
 (defn init [game]

@@ -6,15 +6,15 @@
    [engine.macros :refer [insert! s->]]
    [engine.world :as world]
    [odoyle.rules :as o]
+   [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]))
 
-(s/def ::mode #{::blender ::firstperson})
+(s/def ::mode #{::arcball ::firstperson})
 (s/def ::x number?)
 (s/def ::y number?)
 (s/def ::dx number?)
 (s/def ::dy number?)
-(s/def ::keystate any?)
-(s/def ::keydown any?)
+(s/def ::keystate #{::keydown ::keyup})
 
 (defn keys-event [session mode keyname keystate]
   ;; match macro cannot be inside odoyle/ruleset apparently
@@ -24,10 +24,11 @@
       (firstperson/player-reset session)
       session)
 
-    [::firstperson ::mouse-left]
-    (if (= keystate ::keydown)
-      (o/insert session ::firstperson/player ::firstperson/focus-hold? true)
-      (o/insert session ::firstperson/player ::firstperson/focus-hold? false))
+    [::arcball ::mouse-left]
+    (case keystate
+      ::keydown (arcball/start-rotating session)
+      ::keyup   (arcball/stop-rotating session)
+      session)
 
     [::firstperson _]
     (if-let [move (case keyname
@@ -44,12 +45,29 @@
     :else session))
 
 (def system
-  {::world/rules
+  {::world/init-fn
+   (fn [world _game]
+     (o/insert world ::global ::mode ::arcball))
+   
+   ::world/rules
    (o/ruleset
-    {::mouse
+    {::mode
+     [:what [::global ::mode mode]]
+     ;; kinda a gut feeling
+     ;; having this query rules felt like bad rules engine design
+
+     ::mouse
      [:what
+      [::global ::mode mode]
       [::mouse ::x mouse-x]
-      [::mouse ::y mouse-y]]
+      [::mouse ::y mouse-y]
+      :then
+      ;; complecting with query rules kinda not it, ignore for now
+      (case mode
+        ::arcball
+        (s-> session (arcball/send-xy mouse-x mouse-y))
+
+        #_else :noop)]
 
      ::mouse-delta
      [:what
@@ -72,7 +90,11 @@
       (s-> session
            (keys-event mode keyname keystate))
       :then-finally
-      (when-not (seq (o/query-all session ::keys))
+      (when-not (seq (eduction
+                      (filter
+                       (fn [{:keys [keyname keystate]}]
+                         (and (#{:w :a :s :d} keyname) (= keystate ::keydown))))
+                      (o/query-all session ::keys)))
         (when (seq (o/query-all session ::firstperson/movement))
           (s-> session (o/retract ::firstperson/player ::firstperson/move-control))))]})})
 

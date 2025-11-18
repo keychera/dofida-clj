@@ -3,7 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
-   [assets.primitives :refer [plane3d-vertices plane3d-uvs]]
+   [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
    [assets.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
@@ -13,8 +13,11 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]
    [play-cljc.math :as m]
+   [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
-   [rules.window :as window]))
+   [rules.interface.input :as input]
+   [rules.window :as window]
+   [thi.ng.geom.core :as g]))
 
 ;; now control https://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 
@@ -97,6 +100,43 @@
 
 (s/def ::esse-3d map?)
 
+(defn calc-adhoc-mvp [dimension rot-mat]
+  ;; will refactor, this ugly
+  (let [initial-fov  (m/deg->rad 45)
+        horiz-angle  (* Math/PI 1.5)
+        verti-angle  0.0
+        position     [5 0 0]
+        direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
+                      (Math/sin verti-angle)
+                      (* (Math/cos verti-angle) (Math/cos horiz-angle))]
+
+        right        [(Math/sin (- horiz-angle (/ Math/PI 2)))
+                      0
+                      (Math/cos (- horiz-angle (/ Math/PI 2)))]
+
+        up           (#'m/cross right direction)
+
+        aspect-ratio (/ (:width dimension) (:height dimension))
+        projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+
+        camera       (m/look-at-matrix-3d position (mapv + position direction) up)
+        view         (m/inverse-matrix-3d camera)
+        p*v          (m/multiply-matrices-3d view projection)
+        mvp          (m/multiply-matrices-3d rot-mat p*v)
+        mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) mvp)]
+    mvp))
+
+(defn get-mvp [world dimension]
+  (if-let [mode (:mode (first (o/query-all world ::input/mode)))]
+    (case mode
+      ::input/firstperson (:mvp (first (o/query-all world ::firstperson/state)))
+      ::input/arcball
+      (let [rot-quat (:rot-quat (first (o/query-all world ::arcball/rot-quat)))
+            rot-mat  (some-> rot-quat g/as-matrix vec)
+            mvp      (some->> rot-mat (calc-adhoc-mvp dimension))]
+        (or mvp (m/identity-matrix 4))))
+    (:mvp (first (o/query-all world ::firstperson/state)))))
+
 (def system
   {::world/init-fn
    (fn [world game]
@@ -116,7 +156,7 @@
                   the-texture-loc (gl game getUniformLocation the-program "u_tex")]
               (assoc esse-3d
                      :the-program
-                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc))))) 
+                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc)))))
 
          ((fn set-off-plane [esse-3d]
             (let [off-vbo             (gl-utils/create-buffer game)
@@ -225,7 +265,7 @@
              texture (:texture dofida)
              fbo     (:fbo dofida)
              dim     (:dimension (first (o/query-all world ::window/window)))
-             mvp     (:mvp (first (o/query-all world ::firstperson/state)))
+             mvp     (get-mvp world dim)
              {:keys [the-program
                      the-attr-loc
                      the-uv-attr-loc
