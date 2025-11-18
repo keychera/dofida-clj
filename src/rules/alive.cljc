@@ -44,7 +44,7 @@
 (def view-matrix
   (let [horiz-angle  Math/PI
         verti-angle  0.0
-        position     [0 0 5]
+        position     [8.0 -5.0 15.0]
 
         direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                       (Math/sin verti-angle)
@@ -168,8 +168,8 @@
                height (:height window-dim)
                {:keys [mouse-x mouse-y]} (first (o/query-all world ::input/mouse))
                ratio   (* 0.8 width)
-               pupil-x (/ (- (or mouse-x 0.0) (/ width 2)) (- ratio))
-               pupil-y (/ (- (or mouse-y 0.0) (/ height 2)) ratio)
+               pupil-x (/ (- (or mouse-x 0.0) (/ width 10)) (- ratio))
+               pupil-y (/ (- (or mouse-y 0.0) (/ height 10)) ratio)
 
                initial-fov    (m/deg->rad 45)
                aspect-ratio   (/ width height)

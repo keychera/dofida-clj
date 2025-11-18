@@ -237,7 +237,7 @@
          (gl game bindVertexArray (:vao esse-3d))
          #_"render to our fbo"
          (gl game bindFramebuffer (gl game FRAMEBUFFER) (:frame-buf fbo))
-         (gl game clearColor 0.0 0.0 0.0 0.0)
+         (gl game clearColor 1.0 1.0 1.0 0.0)
          (gl game clear (gl game COLOR_BUFFER_BIT))
 
          (#_cube
