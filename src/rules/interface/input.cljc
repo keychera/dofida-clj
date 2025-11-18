@@ -16,11 +16,18 @@
 (s/def ::keystate any?)
 (s/def ::keydown any?)
 
-(defn keys-event [session mode keyname _keystate]
+(defn keys-event [session mode keyname keystate]
   ;; match macro cannot be inside odoyle/ruleset apparently
   (match [mode keyname]
     [_ :r]
-    (firstperson/player-reset session)
+    (if (= keystate ::keyup)
+      (firstperson/player-reset session)
+      session)
+
+    [::firstperson ::mouse-left]
+    (if (= keystate ::keydown)
+      (o/insert session ::firstperson/player ::firstperson/focus-hold? true)
+      (o/insert session ::firstperson/player ::firstperson/focus-hold? false))
 
     [::firstperson _]
     (if-let [move (case keyname
@@ -79,18 +86,11 @@
   (o/insert world keyname ::keystate ::keydown))
 
 (defn key-on-keyup [world keyname]
-  (try
-    (o/retract world keyname ::keystate)
-    (catch #?(:clj Throwable :cljs js/Error) _
-      ;; noop when the key is cleanup on mouse-lock exit
-      world)))
+  (o/insert world keyname ::keystate ::keyup))
 
 (defn cleanup-input [world]
-  (reduce
-   (fn [w' k]
-     (println "cleanup retracting" k)
-     (o/retract w' (:keyname k) ::keystate))
-   world (o/query-all world ::keys)))
+  (reduce (fn [w' k] (o/retract w' (:keyname k) ::keystate))
+          world (o/query-all world ::keys)))
 
 (defn set-mode [world mode]
   (o/insert world ::global ::mode mode))
