@@ -103,9 +103,9 @@
 (defn calc-adhoc-mvp [dimension rot-mat]
   ;; will refactor, this ugly
   (let [initial-fov  (m/deg->rad 45)
-        horiz-angle  (* Math/PI 1.5)
+        horiz-angle  Math/PI
         verti-angle  0.0
-        position     [5 0 0]
+        position     [0 0 5]
         direction    [(* (Math/cos verti-angle) (Math/sin horiz-angle))
                       (Math/sin verti-angle)
                       (* (Math/cos verti-angle) (Math/cos horiz-angle))]

@@ -29,15 +29,21 @@
 (s/def ::rot-quat #(instance? Quat4 %))
 (s/def ::state #{::rotation-in-progress ::rotation-stops})
 
-(defn v3-on-arcball [dimension x y]
-  (let [half-w (/ (:width dimension) 2)
-        x      (/ (- x half-w) half-w)
-        y      (/ (- y half-w) half-w)
-        z      (Math/sqrt (- 1 (* x x) (* y y)))]
+(defn v3-on-arcball [{:keys [width height]} x y]
+  (let [radius (max width height)
+        cx     (/ width 2)
+        cy     (/ height 2)
+        x      (/ (- x cx) (/ radius 2))
+        y      (/ (- cy y) (/ radius 2))
+        z      (Math/sqrt (- 1 (min 1 (* x x) (* y y))))]
     (v/vec3 x y z)))
 
 (def system
-  {::world/rules
+  {::world/init-fn
+   (fn [world _game]
+     (o/insert world ::camera ::rot-quat (q/quat)))
+   
+   ::world/rules
    (o/ruleset
     {::rotation-in-progress
      [:what
@@ -58,9 +64,7 @@
       [::camera ::start-vec3 start]
       [::camera ::end-vec3   end]
       :then
-      (let [axis     (m/cross start end)
-            angle    (m/dot start end)
-            rot-quat (q/quat-from-axis-angle axis angle)] 
+      (let [rot-quat (q/alignment-quat start end)] 
         (insert! ::camera ::rot-quat rot-quat))]
 
      ::rot-quat
@@ -68,17 +72,11 @@
 
      ::rotation-stops
      [:what
-      [::camera ::state control]
-      [::camera ::start-vec3 _]
-      [::camera ::end-vec3 _]
-      [::camera ::rot-quat _]
+      [::camera ::state ::rotation-stops]
+      [::camera attr _]
+      :when (#{::start-vec3 ::end-vec3} attr)
       :then
-      (when (= control ::rotation-stops)
-        (s-> session
-             (o/retract ::camera ::start-vec3)
-             (o/retract ::camera ::end-vec3)
-             (o/retract ::camera ::rot-quat)
-             (o/retract ::camera ::state)))]})})
+      (s-> session (o/retract ::camera attr))]})})
 
 (comment
   (let [start (v3-on-arcball {:width 1} 0.5 0.5)
