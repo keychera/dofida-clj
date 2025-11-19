@@ -113,6 +113,10 @@
   (.addEventListener canvas "mouseup"
                      (fn [event]
                        (when-let [mouse (mousecode->keyword (.-button event))]
+                         (swap! world-inputs update ::keydown (fn [s] (disj s mouse))))))
+  (.addEventListener canvas "mouseleave"
+                     (fn [event]
+                       (when-let [mouse (mousecode->keyword (.-button event))]
                          (swap! world-inputs update ::keydown (fn [s] (disj s mouse)))))))
 
 (defn keycode->keyword [keycode]
