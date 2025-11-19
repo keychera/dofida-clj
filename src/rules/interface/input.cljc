@@ -21,7 +21,9 @@
   (match [mode keyname]
     [_ :r]
     (if (= keystate ::keyup)
-      (firstperson/player-reset session)
+      (-> session
+          firstperson/player-reset
+          arcball/reset-rot)
       session)
 
     [::arcball ::mouse-left]
@@ -48,7 +50,7 @@
   {::world/init-fn
    (fn [world _game]
      (o/insert world ::global ::mode ::arcball))
-   
+
    ::world/rules
    (o/ruleset
     {::mode

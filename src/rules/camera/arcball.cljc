@@ -13,10 +13,15 @@
 ;; https://github.com/Samson-Mano/Quaternion_Arcball_3D_Rotation
 ;; https://eater.net/quaternions/video/intro this one is game changing, 3Blue1Brown the goats
 
+(defn reset-rot [world]
+  (-> world
+      (o/insert ::camera ::rot-quat (q/quat))
+      (o/insert ::camera ::new-quat (q/quat))))
+
 (defn start-rotating [world]
   (o/insert world ::camera ::state ::rotation-in-progress))
 
-(defn send-xy [world x y] 
+(defn send-xy [world x y]
   (o/insert world ::camera {::x-on-plane x ::y-on-plane y}))
 
 (defn stop-rotating [world]
@@ -27,6 +32,7 @@
 (s/def ::start-vec3 #(instance? Vec3 %))
 (s/def ::end-vec3 #(instance? Vec3 %))
 (s/def ::rot-quat #(instance? Quat4 %))
+(s/def ::new-quat #(instance? Quat4 %))
 (s/def ::state #{::rotation-in-progress ::rotation-stops})
 
 (defn v3-on-arcball [{:keys [width height]} x y]
@@ -40,9 +46,8 @@
 
 (def system
   {::world/init-fn
-   (fn [world _game]
-     (o/insert world ::camera ::rot-quat (q/quat)))
-   
+   (fn [world _game] (reset-rot world))
+
    ::world/rules
    (o/ruleset
     {::rotation-in-progress
@@ -63,20 +68,28 @@
      [:what
       [::camera ::start-vec3 start]
       [::camera ::end-vec3   end]
+      [::camera ::rot-quat   rot-quat]
       :then
-      (let [rot-quat (q/alignment-quat start end)] 
-        (insert! ::camera ::rot-quat rot-quat))]
+      (let [new-quat (q/alignment-quat start end)]
+        (insert! ::camera ::new-quat (m/* rot-quat new-quat)))]
 
      ::rot-quat
-     [:what [::camera ::rot-quat rot-quat]]
+     [:what
+      [::camera ::rot-quat rot-quat]
+      [::camera ::new-quat new-quat]]
 
      ::rotation-stops
      [:what
       [::camera ::state ::rotation-stops]
-      [::camera attr _]
-      :when (#{::start-vec3 ::end-vec3} attr)
+      [::camera ::rot-quat rot-quat {:then false}]
+      [::camera attr value {:then false}]
+      :when (#{::start-vec3 ::end-vec3 ::new-quat} attr)
       :then
-      (s-> session (o/retract ::camera attr))]})})
+      (cond
+        (= ::new-quat attr) (s-> session
+                                 (o/insert ::camera ::rot-quat value)
+                                 (o/insert ::camera ::new-quat (q/quat)))
+        :else (s-> session (o/retract ::camera attr)))]})})
 
 (comment
   (let [start (v3-on-arcball {:width 1} 0.5 0.5)

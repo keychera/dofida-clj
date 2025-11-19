@@ -12,7 +12,7 @@
    [iglu.core :as iglu]
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]
-   [play-cljc.math :as m]
+   [play-cljc.math :as plcjc-m]
    [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
@@ -86,14 +86,14 @@
         right        [(Math/sin (- horiz-angle (/ Math/PI 2)))
                       0.0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
-        up           (#'m/cross right direction)
+        up           (#'plcjc-m/cross right direction)
 
-        look-at      (m/look-at-matrix-3d position (mapv + position direction) up)
-        view         (m/inverse-matrix-3d look-at)
+        look-at      (plcjc-m/look-at-matrix-3d position (mapv + position direction) up)
+        view         (plcjc-m/inverse-matrix-3d look-at)
 
         ;; rotation is part of m
-        rotation     (m/z-rotation-matrix-3d (m/deg->rad 180))]
-    (m/multiply-matrices-3d rotation view)))
+        rotation     (plcjc-m/z-rotation-matrix-3d (plcjc-m/deg->rad 180))]
+    (plcjc-m/multiply-matrices-3d rotation view)))
 
 ;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
 ;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
@@ -102,7 +102,7 @@
 
 (defn calc-adhoc-mvp [dimension rot-mat]
   ;; will refactor, this ugly
-  (let [initial-fov  (m/deg->rad 45)
+  (let [initial-fov  (plcjc-m/deg->rad 45)
         horiz-angle  Math/PI
         verti-angle  0.0
         position     [0 0 5]
@@ -114,15 +114,15 @@
                       0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
 
-        up           (#'m/cross right direction)
+        up           (#'plcjc-m/cross right direction)
 
         aspect-ratio (/ (:width dimension) (:height dimension))
-        projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+        projection   (plcjc-m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
 
-        camera       (m/look-at-matrix-3d position (mapv + position direction) up)
-        view         (m/inverse-matrix-3d camera)
-        p*v          (m/multiply-matrices-3d view projection)
-        mvp          (m/multiply-matrices-3d rot-mat p*v)
+        camera       (plcjc-m/look-at-matrix-3d position (mapv + position direction) up)
+        view         (plcjc-m/inverse-matrix-3d camera)
+        p*v          (plcjc-m/multiply-matrices-3d view projection)
+        mvp          (plcjc-m/multiply-matrices-3d rot-mat p*v)
         mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) mvp)]
     mvp))
 
@@ -131,10 +131,10 @@
     (case mode
       ::input/firstperson (:mvp (first (o/query-all world ::firstperson/state)))
       ::input/arcball
-      (let [rot-quat (:rot-quat (first (o/query-all world ::arcball/rot-quat)))
+      (let [rot-quat (:new-quat (first (o/query-all world ::arcball/rot-quat)))
             rot-mat  (some-> rot-quat g/as-matrix vec)
             mvp      (some->> rot-mat (calc-adhoc-mvp dimension))]
-        (or mvp (m/identity-matrix 4))))
+        (or mvp (plcjc-m/identity-matrix 4))))
     (:mvp (first (o/query-all world ::firstperson/state)))))
 
 (def system
@@ -333,8 +333,8 @@
           (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
           (gl game uniformMatrix4fv the-mvp-loc false
-              #?(:clj (float-array (m/identity-matrix 4))
-                 :cljs (m/identity-matrix 4)))
+              #?(:clj (float-array (plcjc-m/identity-matrix 4))
+                 :cljs (plcjc-m/identity-matrix 4)))
 
           (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
@@ -355,10 +355,10 @@
           (gl game bindBuffer (gl game ARRAY_BUFFER) just-uv-buffer)
           (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-          (let [initial-fov  (m/deg->rad 45)
+          (let [initial-fov  (plcjc-m/deg->rad 45)
                 aspect-ratio (/ (:width dim) (:height dim))
-                projection   (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
-                mvp          (m/multiply-matrices-3d static-model-view-matrix projection)]
+                projection   (plcjc-m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+                mvp          (plcjc-m/multiply-matrices-3d static-model-view-matrix projection)]
             (gl game uniformMatrix4fv the-mvp-loc false
                 #?(:clj (float-array mvp)
                    :cljs mvp)))
