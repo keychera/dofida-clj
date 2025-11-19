@@ -6,9 +6,13 @@
    [odoyle.rules :as o]
    [rules.window :as window]
    [thi.ng.geom.core :as g]
-   [thi.ng.geom.quaternion :as q :refer [Quat4]]
-   [thi.ng.geom.vector :as v :refer [Vec3]]
-   [thi.ng.math.core :as m]))
+   [thi.ng.geom.quaternion :as q #?@(:cljs [:refer [Quat4]])]
+   [thi.ng.geom.vector :as v #?@(:cljs [:refer [Vec3]])]
+   [thi.ng.math.core :as m])
+  #?(:clj
+     (:import
+      [thi.ng.geom.quaternion Quat4]
+      [thi.ng.geom.vector Vec3])))
 
 ;; https://github.com/Samson-Mano/Quaternion_Arcball_3D_Rotation
 ;; https://eater.net/quaternions/video/intro this one is game changing, 3Blue1Brown the goats

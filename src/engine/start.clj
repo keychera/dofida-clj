@@ -90,22 +90,19 @@
 ;; to be injected from debug for now using with-redefs
 (defn is-mouse-blocked? [] false)
 
-(defn on-mouse-click! [window _button _action _mods]
-  (when-not (#'is-mouse-blocked?)
-    (when-not @mouse-locked?*
-      (let [*window-width (MemoryUtil/memAllocInt 1)
-            *window-height (MemoryUtil/memAllocInt 1)
-            _ (GLFW/glfwGetWindowSize window *window-width *window-height)
-            window-width (.get *window-width)
-            window-height (.get *window-height)
-            half-w (/ window-width 2)
-            half-h (/ window-height 2)]
-        (MemoryUtil/memFree *window-width)
-        (MemoryUtil/memFree *window-height)
-        (GLFW/glfwSetCursorPos window half-w half-h)
-        ;; GLFW_CURSOR_HIDDEN doesn't work somehow
-        (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
-    (reset! mouse-locked?* true)))
+(defn mousecode->keyword [mousecode]
+  (condp = mousecode
+    GLFW/GLFW_MOUSE_BUTTON_LEFT   ::input/mouse-left
+    GLFW/GLFW_MOUSE_BUTTON_MIDDLE ::input/mouse-middle
+    GLFW/GLFW_MOUSE_BUTTON_RIGHT  ::input/mouse-right
+    nil))
+
+(defn on-mouse-click! [_window button action _mods]
+  (when-let [k (mousecode->keyword button)]
+    (condp = action
+      GLFW/GLFW_PRESS   (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
+      GLFW/GLFW_RELEASE (swap! world-inputs conj (fn keydown [w] (input/key-on-keyup w k)))
+      nil)))
 
 (defn keycode->keyword [keycode]
   (condp = keycode
@@ -119,11 +116,13 @@
     GLFW/GLFW_KEY_S            :s
     GLFW/GLFW_KEY_D            :d
     GLFW/GLFW_KEY_R            :r
+    GLFW/GLFW_KEY_1            :num1
     GLFW/GLFW_KEY_LEFT_SHIFT   :shift
     GLFW/GLFW_KEY_LEFT_CONTROL :ctrl
     nil))
 
 (defn on-key! [window keycode _scancode action _mods]
+  (println action (keycode->keyword keycode))
   (when-let [k (keycode->keyword keycode)]
     (condp = action
       GLFW/GLFW_PRESS   (cond
@@ -131,6 +130,22 @@
                           (do (swap! world-inputs conj (fn keydown [w] (input/cleanup-input w)))
                               (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_NORMAL)
                               (reset! mouse-locked?* false))
+
+                          (= :num1 k)
+                          (do (when-not @mouse-locked?*
+                                (let [*window-width (MemoryUtil/memAllocInt 1)
+                                      *window-height (MemoryUtil/memAllocInt 1)
+                                      _ (GLFW/glfwGetWindowSize window *window-width *window-height)
+                                      window-width (.get *window-width)
+                                      window-height (.get *window-height)
+                                      half-w (/ window-width 2)
+                                      half-h (/ window-height 2)]
+                                  (MemoryUtil/memFree *window-width)
+                                  (MemoryUtil/memFree *window-height)
+                                  (GLFW/glfwSetCursorPos window half-w half-h)
+                                      ;; GLFW_CURSOR_HIDDEN doesn't work somehow
+                                  (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
+                              (reset! mouse-locked?* true))
 
                           (#{:w :a :s :d :r :shift :ctrl} k)
                           (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
