@@ -90,15 +90,15 @@
 ;; to be injected from debug for now using with-redefs
 (defn is-mouse-blocked? [] false)
 
-(defn mousecode->keyword [mousecode]
-  (condp = mousecode
+(defn mousebutton->keyword [button]
+  (condp = button
     GLFW/GLFW_MOUSE_BUTTON_LEFT   ::input/mouse-left
     GLFW/GLFW_MOUSE_BUTTON_MIDDLE ::input/mouse-middle
     GLFW/GLFW_MOUSE_BUTTON_RIGHT  ::input/mouse-right
     nil))
 
 (defn on-mouse-click! [_window button action _mods]
-  (when-let [k (mousecode->keyword button)]
+  (when-let [k (mousebutton->keyword button)]
     (condp = action
       GLFW/GLFW_PRESS   (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
       GLFW/GLFW_RELEASE (swap! world-inputs conj (fn keydown [w] (input/key-on-keyup w k)))
@@ -122,7 +122,6 @@
     nil))
 
 (defn on-key! [window keycode _scancode action _mods]
-  (println action (keycode->keyword keycode))
   (when-let [k (keycode->keyword keycode)]
     (condp = action
       GLFW/GLFW_PRESS   (cond

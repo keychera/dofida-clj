@@ -5,6 +5,9 @@ todo:
     ✘ collect assets @cancelled(25-06-12 23:10)
     ✘ incorporate assets @cancelled(25-06-12 23:10)
 
+    re:minusone:
+        ☐ rewrite once again, now with t3d and more wishful thinking
+
     ☐ it begins
         ✔ reconstruct atlas asset with our current gl knowledge @done(25-11-08 15:07), not atlas yet but good enough
             ✔ sidestream: atlas @done(25-11-12 22:38)
@@ -14,7 +17,7 @@ todo:
         ✔ alpha clipping, probably need to learn render-to-texture @done(25-11-11 20:31)
         ☐ sidestream: t2d, non-destructive
             ☐ t3d?
-            ☐ blender control instead of first-person movement
+            ✔ blender control instead of first-person movement @done(25-11-20 00:03) poorman's arcball
             ✔ the alpha clipping + t3d + atlas/instancing @done(25-11-18 00:12)
         ☐ sidestream: anime, non destructive
         ☐ sidestream twod-picking
@@ -138,7 +141,8 @@ startaker:
     ☐ publish
 
 bug:
-    ☐ (JS err) Uncaught (in promise) SecurityError: The user has exited the lock before this request was completed. 
+    ✔ (JS err) Uncaught (in promise) SecurityError: The user has exited the lock before this request was completed. @done(25-11-20 00:04) seems like by design ;; https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/4
+    ☐ quaternion rotation on arcball sometimes morph the cube weirdly
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
