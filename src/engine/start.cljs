@@ -10,8 +10,8 @@
 ;; reason, it seems the rate of events is faster than the gameloop rate
 ;; previously, queue is used and num of input events > num of frames
 (def world-init-inputs
-  {::mousemove    {:dx 0 :dy 0}
-   ::mousepos     {:x 0  :y 0}
+  {::pointer-move    {:dx 0 :dy 0}
+   ::pointer-pos     {:x 0  :y 0}
    ::keydown      #{}
    ::prev-keydown #{}})
 (def world-inputs (atom world-init-inputs))
@@ -36,8 +36,8 @@
       (let [input-fn (reduce
                       (fn [prev-fn [input-key input-data]]
                         (case input-key
-                          ::mousepos  (comp (fn mouse-move [world] (input/update-mouse-pos world (:x input-data) (:y input-data))) prev-fn)
-                          ::mousemove (comp (fn mouse-move [world] (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
+                          ::pointer-pos  (comp (fn pointer-pos [world] (input/update-mouse-pos world (:x input-data) (:y input-data))) prev-fn)
+                          ::pointer-move (comp (fn pointer-move [world] (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
                           ::keydown   (loop [[k & remains] input-data acc-fn prev-fn]
                                         (if k
                                           (recur remains (comp (fn keydown [world] (input/key-on-keydown world k)) acc-fn))
@@ -72,7 +72,7 @@
     2 ::input/mouse-right
     nil))
 
-(def mousemove-timer (atom nil))
+(def pointermove-timer (atom nil))
 (def locked?*        (atom false))
 
 (defn listen-for-pointer-lock []
@@ -87,35 +87,33 @@
                           
                          (swap! world-inputs assoc ::flag ::lockchange)))))
 
-(defn listen-for-mouse [canvas]
-  (.addEventListener canvas "mousemove"
+(defn listen-for-pointer [canvas]
+  (.addEventListener canvas "pointermove"
                      (fn [event]
                        (if @locked?*
                          (let [next-dx (.-movementX event)
                                next-dy (.-movementY event)]
-                           (some->> @mousemove-timer (.clearTimeout js/window))
-                           (swap! world-inputs update ::mousemove
-                                  (fn mouse-delta [prev] (-> prev (assoc :dx next-dx) (assoc :dy next-dy))))
-                           (reset! mousemove-timer
+                           (some->> @pointermove-timer (.clearTimeout js/window))
+                           (swap! world-inputs update ::pointer-move
+                                  (fn pointer-delta [prev] (-> prev (assoc :dx next-dx) (assoc :dy next-dy))))
+                           (reset! pointermove-timer
                                    (.setTimeout js/window
                                                 (fn mouse-stop []
-                                                  (swap! world-inputs update ::mousemove (fn [prev] (-> prev (assoc :dx 0) (assoc :dy 0)))))
+                                                  (swap! world-inputs update ::pointer-move (fn [prev] (-> prev (assoc :dx 0) (assoc :dy 0)))))
                                                 20)))
                          (let [bounds (.getBoundingClientRect canvas)
                                x (- (.-clientX event) (.-left bounds))
                                y (- (.-clientY event) (.-top bounds))]
-                           (swap! world-inputs update ::mousepos
-                                  (fn mouse-delta [prev] (-> prev (assoc :x x) (assoc :y y))))))))
-  (.addEventListener canvas "mousedown"
+                           (swap! world-inputs update ::pointer-pos
+                                  (fn pointer-pos [prev] (-> prev (assoc :x x) (assoc :y y))))))))
+  (.addEventListener canvas "pointerdown"
                      (fn [event]
+                       (.setPointerCapture canvas (.-pointerId event))
                        (when-let [mouse (mousecode->keyword (.-button event))]
                          (swap! world-inputs update ::keydown (fn [s] (conj s mouse))))))
-  (.addEventListener canvas "mouseup"
+  (.addEventListener canvas "pointerup"
                      (fn [event]
-                       (when-let [mouse (mousecode->keyword (.-button event))]
-                         (swap! world-inputs update ::keydown (fn [s] (disj s mouse))))))
-  (.addEventListener canvas "mouseleave"
-                     (fn [event]
+                       (.releasePointerCapture canvas (.-pointerId event))
                        (when-let [mouse (mousecode->keyword (.-button event))]
                          (swap! world-inputs update ::keydown (fn [s] (disj s mouse)))))))
 
@@ -188,7 +186,7 @@
          initial-game (assoc (engine/->game context)
                              :delta-time 0
                              :total-time (js/performance.now))]
-     (listen-for-mouse canvas)
+     (listen-for-pointer canvas)
      (listen-for-pointer-lock)
      (engine/init initial-game)
      (listen-for-keys canvas)
