@@ -6,6 +6,10 @@
   {:target :browser
    :output-dir "resources/public/js"
    :compiler-options {:infer-externs :auto}
+
+   :js-options
+   {:resolve {"assimpjs" {:target :global :global "assimpjs"}}}
+
    :devtools
    {:http-root "resources/public"
     :http-port 9333}

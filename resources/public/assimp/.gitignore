@@ -1,0 +1,3 @@
+assimpjs.wasm
+# files from https://github.com/kovacsv/assimpjs/tree/main/dist
+# manual fix to assimpjs.js, require\(.*?\) > null,  wasmbinaryFile="assimp/assimpjs.wasm"; delete if(!isDataURI(wasmBinaryFile)){wasmBinaryFile=locateFile(wasmBinaryFile)}
