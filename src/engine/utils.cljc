@@ -23,6 +23,7 @@
                  direct-buffer (doto ^ByteBuffer (ByteBuffer/allocateDirect (alength barray))
                                  (.put barray)
                                  (.flip))
+                 _ (STBImage/stbi_set_flip_vertically_on_load true)
                  decoded-image (STBImage/stbi_load_from_memory
                                 direct-buffer *width *height *components
                                 STBImage/STBI_rgb_alpha)
