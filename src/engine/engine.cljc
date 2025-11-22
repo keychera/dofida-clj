@@ -7,15 +7,16 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
+   [minusone.scene-in-a-spaceship :as scene-in-a-spaceship]
    [odoyle.rules :as o]
    [play-cljc.gl.core :as c]
-   [rules.alive :as alive]
-   [rules.dofida :as dofida]
+   [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
    [rules.time :as time]
    [rules.window :as window]
-   [rules.camera.arcball :as arcball]))
+   [minusone.rules.gl.shader :as shader]
+   [minusone.rules.gl.vao :as vao]))
 
 (defn ->game [context]
   (merge
@@ -33,8 +34,9 @@
    firstperson/system
    arcball/system
    
-   dofida/system
-   alive/system])
+   shader/system
+   vao/system
+   scene-in-a-spaceship/system])
 
 (defn init [game]
   (println "init game")
