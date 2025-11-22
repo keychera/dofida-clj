@@ -178,11 +178,11 @@
                     off-uv-buffer (gl-utils/create-buffer game)
                     _             (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
                     _             (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uvs (gl game STATIC_DRAW))]
-                
+
                 (gl game enableVertexAttribArray the-attr-loc)
                 (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
                 (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
-                
+
                 (gl game enableVertexAttribArray the-uv-attr-loc)
                 (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
                 (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
@@ -208,20 +208,30 @@
                        :uniform-loc uniform-loc))))
 
            ((fn set-cube [esse-3d]
-              (let [cube-buffer     (gl-utils/create-buffer game)
-                    _               (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
-                    cube-data       (:vertices cube-model)
-                    _               (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
+              (let [cube-vao     (gl game #?(:clj genVertexArrays :cljs createVertexArray))
+                    _            (gl game bindVertexArray cube-vao)
+                    cube-buffer  (gl-utils/create-buffer game)
+                    _            (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
+                    cube-data    (:vertices cube-model)
+                    _            (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
 
-                    uv-buffer       (gl-utils/create-buffer game)
-                    _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-                    cube-uvs        (:uvs cube-model)
-                    _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))]
+                    uv-buffer    (gl-utils/create-buffer game)
+                    _            (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+                    cube-uvs     (:uvs cube-model)
+                    _            (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
+                    vertex-count (:vertex-count cube-model)]
+
+                (gl game enableVertexAttribArray the-attr-loc)
+                (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
+                (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
+
+                (gl game enableVertexAttribArray the-uv-attr-loc)
+                (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+                (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
                 (assoc esse-3d
-                       :cube-vbo          cube-buffer
-                       :cube-vertex-count (:vertex-count cube-model)
-                       :uv-buffer         uv-buffer))))
+                       :cube-vao cube-vao
+                       :cube-vertex-count vertex-count))))
 
            ((fn set-plane [esse-3d]
               (let [program         the-program
@@ -301,17 +311,10 @@
          (gl game clear (gl game COLOR_BUFFER_BIT))
 
          (#_cube
-          let [{:keys [cube-vbo cube-vertex-count uv-buffer]} esse-3d
+          let [{:keys [cube-vao cube-vertex-count]} esse-3d
                {:keys [tex-unit texture]} texture]
           (gl game useProgram the-program)
-
-          (gl game enableVertexAttribArray the-attr-loc)
-          (gl game bindBuffer (gl game ARRAY_BUFFER) cube-vbo)
-          (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
-
-          (gl game enableVertexAttribArray the-uv-attr-loc)
-          (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-          (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+          (gl game bindVertexArray cube-vao)
 
           (gl game uniformMatrix4fv the-mvp-loc false mvp)
 
@@ -319,20 +322,21 @@
           (gl game bindTexture (gl game TEXTURE_2D) texture)
           (gl game uniform1i the-texture-loc tex-unit)
 
-          (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count)
-          (gl game disableVertexAttribArray the-attr-loc))
+          (gl game drawArrays (gl game TRIANGLES) 0 cube-vertex-count))
+         ;; still not sure why disableVertexAttribArray make it not render anything
+         ;; oh wait, now i get it= it changes the VAO!
 
          (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ZERO) (gl game ONE))
 
          (#_triangle
           when-let [{:keys [program vbo attr-loc uniform-loc]} esse-3d]
           (gl game useProgram program)
+          (gl game bindVertexArray (:vao esse-3d))
           (gl game enableVertexAttribArray attr-loc)
           (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
           (gl game vertexAttribPointer attr-loc 3 (gl game FLOAT) false 0 0)
           (gl game uniformMatrix4fv uniform-loc false mvp)
-          (gl game drawArrays (gl game TRIANGLES) 0 3)
-          (gl game disableVertexAttribArray attr-loc))
+          (gl game drawArrays (gl game TRIANGLES) 0 3))
 
          #_"render to default fbo"
          (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
