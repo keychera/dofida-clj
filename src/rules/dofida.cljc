@@ -137,116 +137,136 @@
         (or mvp (plcjc-m/identity-matrix 4))))
     (:mvp (first (o/query-all world ::firstperson/state)))))
 
+;; vao
+;; https://stackoverflow.com/questions/8923174/opengl-vao-best-practices
+;; https://stackoverflow.com/questions/18485381/opengl-how-many-vaos
+;; https://stackoverflow.com/questions/14249634/opengl-vaos-and-multiple-buffers?rq=3
+;; https://stackoverflow.com/questions/40438590/is-it-necessary-to-bind-all-vbos-and-textures-each-frame?noredirect=1&lq=1
+;; i dont knowwwwww, is switching vao cheap or not???
+;; for now let's make vao for each object
+
 (def system
   {::world/init-fn
    (fn [world game]
-     (-> {}
-         ((fn set-vao [esse-3d]
-            (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
-              (assoc esse-3d :vao vao))))
+     (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
+           fragment-source (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
+           the-program     (gl-utils/create-program game vertex-source fragment-source)
 
-         ((fn set-program [esse-3d]
-            (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
-                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
-                  the-program     (gl-utils/create-program game vertex-source fragment-source)
+           the-attr-loc    (gl game getAttribLocation the-program "a_pos")
+           the-uv-attr-loc (gl game getAttribLocation the-program "a_uv")
+           the-mvp-loc     (gl game getUniformLocation the-program "u_mvp")
+           the-texture-loc (gl game getUniformLocation the-program "u_tex")
 
-                  the-attr-loc    (gl game getAttribLocation the-program "a_pos")
-                  the-uv-attr-loc (gl game getAttribLocation the-program "a_uv")
-                  the-mvp-loc     (gl game getUniformLocation the-program "u_mvp")
-                  the-texture-loc (gl game getUniformLocation the-program "u_tex")]
+           vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
+       (-> {}
+           ((fn set-vao [esse-3d]
+              (gl game bindVertexArray vao)
+              (assoc esse-3d :vao vao)))
+
+           ((fn set-program [esse-3d]
               (assoc esse-3d
                      :the-program
-                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc)))))
+                     (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-texture-loc))))
 
-         ((fn set-off-plane [esse-3d]
-            (let [off-vbo             (gl-utils/create-buffer game)
-                  _                   (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-                  _                   (gl game bufferData (gl game ARRAY_BUFFER) plane3d-vertices (gl game STATIC_DRAW))
+           ((fn set-off-plane [esse-3d]
+              (let [off-vao       (gl game #?(:clj genVertexArrays :cljs createVertexArray))
+                    _             (gl game bindVertexArray off-vao)
+                    off-vbo       (gl-utils/create-buffer game)
+                    _             (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
+                    _             (gl game bufferData (gl game ARRAY_BUFFER) plane3d-vertices (gl game STATIC_DRAW))
 
-                  off-uv-buffer       (gl-utils/create-buffer game)
-                  _                   (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
-                  _                   (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uvs (gl game STATIC_DRAW))]
-              (assoc esse-3d :off-plane (vars->map off-vbo off-uv-buffer)))))
+                    off-uv-buffer (gl-utils/create-buffer game)
+                    _             (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
+                    _             (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uvs (gl game STATIC_DRAW))]
+                
+                (gl game enableVertexAttribArray the-attr-loc)
+                (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
+                (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
+                
+                (gl game enableVertexAttribArray the-uv-attr-loc)
+                (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
+                (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
-         ((fn set-triangle [esse-3d]
-            (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
-                  fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
-                  triangle-program (gl-utils/create-program game vertex-source fragment-source)
-                  triangle-buffer  (gl-utils/create-buffer game)
-                  _                (gl game bindBuffer (gl game ARRAY_BUFFER) triangle-buffer)
-                  _                (gl game bufferData (gl game ARRAY_BUFFER) triangle-data (gl game STATIC_DRAW))
-                  attr-name        (-> vertex-shader :inputs keys first str)
-                  vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)
-                  uniform-name     (-> vertex-shader :uniforms keys first str)
-                  uniform-loc      (gl game getUniformLocation triangle-program uniform-name)]
-              (assoc esse-3d
-                     :program     triangle-program
-                     :vbo         triangle-buffer
-                     :attr-loc    vertex-attr-loc
-                     :uniform-loc uniform-loc))))
+                (assoc esse-3d :off-plane (vars->map off-vao)))))
 
-         ((fn set-cube [esse-3d]
-            (let [cube-buffer     (gl-utils/create-buffer game)
-                  _               (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
-                  cube-data       (:vertices cube-model)
-                  _               (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
+           ((fn set-triangle [esse-3d]
+              (gl game bindVertexArray vao)
+              (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
+                    fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
+                    triangle-program (gl-utils/create-program game vertex-source fragment-source)
+                    triangle-buffer  (gl-utils/create-buffer game)
+                    _                (gl game bindBuffer (gl game ARRAY_BUFFER) triangle-buffer)
+                    _                (gl game bufferData (gl game ARRAY_BUFFER) triangle-data (gl game STATIC_DRAW))
+                    attr-name        (-> vertex-shader :inputs keys first str)
+                    vertex-attr-loc  (gl game getAttribLocation triangle-program attr-name)
+                    uniform-name     (-> vertex-shader :uniforms keys first str)
+                    uniform-loc      (gl game getUniformLocation triangle-program uniform-name)]
+                (assoc esse-3d
+                       :program     triangle-program
+                       :vbo         triangle-buffer
+                       :attr-loc    vertex-attr-loc
+                       :uniform-loc uniform-loc))))
 
-                  uv-buffer       (gl-utils/create-buffer game)
-                  _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-                  cube-uvs        (:uvs cube-model)
-                  _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))]
+           ((fn set-cube [esse-3d]
+              (let [cube-buffer     (gl-utils/create-buffer game)
+                    _               (gl game bindBuffer (gl game ARRAY_BUFFER) cube-buffer)
+                    cube-data       (:vertices cube-model)
+                    _               (gl game bufferData (gl game ARRAY_BUFFER) cube-data (gl game STATIC_DRAW))
 
-              (assoc esse-3d
-                     :cube-vbo          cube-buffer
-                     :cube-vertex-count (:vertex-count cube-model)
-                     :uv-buffer         uv-buffer))))
+                    uv-buffer       (gl-utils/create-buffer game)
+                    _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+                    cube-uvs        (:uvs cube-model)
+                    _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))]
 
-         ((fn set-plane [esse-3d]
-            (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
-                  fragment-source (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
-                  program         (gl-utils/create-program game vertex-source fragment-source)
+                (assoc esse-3d
+                       :cube-vbo          cube-buffer
+                       :cube-vertex-count (:vertex-count cube-model)
+                       :uv-buffer         uv-buffer))))
 
-                  model           dofida-plane
+           ((fn set-plane [esse-3d]
+              (let [program         the-program
 
-                  vbo             (gl-utils/create-buffer game)
-                  _               (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
-                  vertices-data   (:vertices model)
-                  _               (gl game bufferData (gl game ARRAY_BUFFER) vertices-data (gl game STATIC_DRAW))
-                  vertex-attr     (-> the-vertex-shader :inputs keys first str)
-                  vertex-attr-loc (gl game getAttribLocation program vertex-attr)
+                    model           dofida-plane
 
-                  uniform-name    (-> the-vertex-shader :uniforms keys first str)
-                  uniform-loc     (gl game getUniformLocation program uniform-name)
-                  uv-buffer       (gl-utils/create-buffer game)
-                  _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
-                  cube-uvs        (:uvs model)
-                  _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
-                  uv-attr         (-> the-vertex-shader :inputs keys second str)
-                  uv-attr-loc     (gl game getAttribLocation program uv-attr)
+                    vbo             (gl-utils/create-buffer game)
+                    _               (gl game bindBuffer (gl game ARRAY_BUFFER) vbo)
+                    vertices-data   (:vertices model)
+                    _               (gl game bufferData (gl game ARRAY_BUFFER) vertices-data (gl game STATIC_DRAW))
+                    vertex-attr     (-> the-vertex-shader :inputs keys first str)
+                    vertex-attr-loc (gl game getAttribLocation program vertex-attr)
 
-                  texture-name    (-> the-fragment-shader :uniforms keys first str)
-                  texture-loc     (gl game getUniformLocation program texture-name)]
+                    uniform-name    (-> the-vertex-shader :uniforms keys first str)
+                    uniform-loc     (gl game getUniformLocation program uniform-name)
+                    uv-buffer       (gl-utils/create-buffer game)
+                    _               (gl game bindBuffer (gl game ARRAY_BUFFER) uv-buffer)
+                    cube-uvs        (:uvs model)
+                    _               (gl game bufferData (gl game ARRAY_BUFFER) cube-uvs (gl game STATIC_DRAW))
+                    uv-attr         (-> the-vertex-shader :inputs keys second str)
+                    uv-attr-loc     (gl game getAttribLocation program uv-attr)
 
-              (assoc esse-3d
-                     :dofida-plane
-                     {:just-program      program
-                      :just-vbo          vbo
-                      :just-vertex-count (:vertex-count cube-model)
-                      :just-attr-loc     vertex-attr-loc
-                      :just-uniform-loc  uniform-loc
+                    texture-name    (-> the-fragment-shader :uniforms keys first str)
+                    texture-loc     (gl game getUniformLocation program texture-name)]
 
-                      :just-uv-buffer       uv-buffer
-                      :just-uv-attr-loc     uv-attr-loc
-                      :just-tex-uniform-loc texture-loc}))))
+                (assoc esse-3d
+                       :dofida-plane
+                       {:just-program      program
+                        :just-vbo          vbo
+                        :just-vertex-count (:vertex-count cube-model)
+                        :just-attr-loc     vertex-attr-loc
+                        :just-uniform-loc  uniform-loc
 
-         ((fn enter-the-world [esse-3d]
-            (-> world
-                (asset ::dofida-texture
-                       #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
-                       #::texture{:tex-unit 1})
-                (asset ::dofida-fbo #::asset{:type ::asset/fbo} #::texture{:tex-unit 2})
-                (o/insert ::herself {::esse-3d esse-3d
-                                     ::asset/use ::dofida-texture}))))))
+                        :just-uv-buffer       uv-buffer
+                        :just-uv-attr-loc     uv-attr-loc
+                        :just-tex-uniform-loc texture-loc}))))
+
+           ((fn enter-the-world [esse-3d]
+              (-> world
+                  (asset ::dofida-texture
+                         #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
+                         #::texture{:tex-unit 1})
+                  (asset ::dofida-fbo #::asset{:type ::asset/fbo} #::texture{:tex-unit 2})
+                  (o/insert ::herself {::esse-3d esse-3d
+                                       ::asset/use ::dofida-texture})))))))
 
    ::world/rules
    (o/ruleset
@@ -319,18 +339,11 @@
          (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
 
          (#_"plane to render from our offscreen texture"
-          let [{:keys [off-vbo off-uv-buffer]} (:off-plane esse-3d)
+          let [{:keys [off-vao]} (:off-plane esse-3d)
                fbo-tex      (:fbo-tex fbo)
                fbo-tex-unit (:tex-unit fbo)]
+          (gl game bindVertexArray off-vao)
           (gl game useProgram the-program)
-
-          (gl game enableVertexAttribArray the-attr-loc)
-          (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-          (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
-
-          (gl game enableVertexAttribArray the-uv-attr-loc)
-          (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
-          (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
           (gl game uniformMatrix4fv the-mvp-loc false
               #?(:clj (float-array (plcjc-m/identity-matrix 4))
@@ -340,12 +353,12 @@
           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
           (gl game uniform1i the-texture-loc fbo-tex-unit)
 
-          (gl game drawArrays (gl game TRIANGLES) 0 6)
-          (gl game disableVertexAttribArray the-attr-loc))
+          (gl game drawArrays (gl game TRIANGLES) 0 6))
 
          (#_dofida-plane
           let [{:keys [just-vbo just-vertex-count just-uv-buffer]} (:dofida-plane esse-3d)
                {:keys [tex-unit texture]} texture]
+          (gl game bindVertexArray (:vao esse-3d))
 
           (gl game enableVertexAttribArray the-attr-loc)
           (gl game bindBuffer (gl game ARRAY_BUFFER) just-vbo)
