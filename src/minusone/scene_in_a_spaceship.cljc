@@ -2,7 +2,7 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [engine.sugar :refer [f32-arr identity-mat-4]]
+   [engine.sugar :refer [f32-arr i32-arr identity-mat-4]]
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.rules.gl.shader :as shader]
@@ -21,10 +21,14 @@
   (o/insert world id (apply utils/deep-merge (concat esse-default-facts facts))))
 
 (def triangle-data
-  (f32-arr
-   -0.5 -0.5 0.0
-   0.5 -0.5 0.0
-   0.0  0.5 0.0))
+  (f32-arr 0.5  0.5 0.0
+           0.5 -0.5 0.0
+           -0.5 -0.5 0.0
+           -0.5  0.5 0.0))
+
+(def triangle-indices
+  (i32-arr 0 1 3
+           1 2 3))
 
 (def vertex-shader
   {:precision  "mediump float"
@@ -46,9 +50,13 @@
   (-> world
       (esse ::a-triangle
             #::shader{:program-data (shader/create-program game vertex-shader fragment-shader)}
-            #::vao{:attributes {'a_pos {:data triangle-data
-                                        :type (gl game FLOAT)
-                                        :size 3}}})))
+            #::vao{:buffers [{:data triangle-data
+                              :buffer-type (gl game ARRAY_BUFFER)
+                              :attr 'a_pos ;; bind to attribute parts feel complected
+                              :size 3
+                              :type (gl game FLOAT)}
+                             {:data triangle-indices
+                              :buffer-type (gl game ELEMENT_ARRAY_BUFFER)}]})))
 
 (defn after-load-fn [world _game]
   (-> world
@@ -76,7 +84,7 @@
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
       (gl game uniformMatrix4fv mvp-loc false identity-mat-4)
-      (gl game drawArrays (gl game TRIANGLES) 0 3))))
+      (gl game drawElements (gl game TRIANGLES) 6 (gl game UNSIGNED_INT) 0))))
 
 (def system
   {::world/init-fn init-fn
