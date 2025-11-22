@@ -10,23 +10,26 @@
    [play-cljc.gl.utils :as gl-utils]))
 
 (s/def ::vao any?)
-(s/def ::buffers vector?)
+(s/def ::entries vector?)
 
-(defn create-vao-from-buffer
-  "create vao and bind some buffers
-   `buffers` is seq of map of {:attr :data :type :size}"
-  [game program-data buffers]
+(defn create-vao-from-entries
+  "create vao and do some bindings and pointing"
+  [game program-data entries]
   (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
     (gl game bindVertexArray vao)
-    (doseq [buf buffers]
-      (let [attr-locs   (:attr-locs program-data)
-            buffer      (gl-utils/create-buffer game)
-            attr-loc    (get attr-locs (:attr buf))
-            buffer-type (or (:buffer-type buf) (gl game ARRAY_BUFFER))]
-        (when attr-loc (gl game enableVertexAttribArray attr-loc))
-        (gl game bindBuffer buffer-type buffer)
-        (gl game bufferData buffer-type (:data buf) (gl game STATIC_DRAW)) 
-        (when attr-loc (gl game vertexAttribPointer attr-loc (:size buf) (:type buf) false 0 0))))
+    (doseq [entry entries]
+      ;; entry: buffer binding
+      (when-let [data (:data entry)]
+        (let [buffer      (gl-utils/create-buffer game)
+              buffer-type (or (:buffer-type entry) (gl game ARRAY_BUFFER))]
+          (gl game bindBuffer buffer-type buffer)
+          (gl game bufferData buffer-type data (gl game STATIC_DRAW))))
+      ;; entry: attrib pointing
+      (when-let [attr-loc (get (:attr-locs program-data) (:attr entry))]
+        (let [{:keys [size type stride offset]
+               :or {stride 0 offset 0}} entry]
+          (gl game enableVertexAttribArray attr-loc)
+          (gl game vertexAttribPointer attr-loc size type false stride offset))))
     (gl game bindVertexArray #?(:clj 0 :cljs nil))
     vao))
 
@@ -36,11 +39,11 @@
     [:what
      [::shader/global ::shader/context context]
      [esse-id ::shader/program-data program-data]
-     [esse-id ::buffers buffers]
+     [esse-id ::entries entries]
      :then
-     (let [vao (create-vao-from-buffer context program-data buffers)]
+     (let [vao (create-vao-from-entries context program-data entries)]
        (s-> session
-            (o/retract esse-id ::buffers)
+            (o/retract esse-id ::entries)
             (o/insert esse-id ::vao vao)))]}))
 
 (def system

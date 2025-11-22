@@ -14,17 +14,19 @@
    [thi.ng.math.core :as m]))
 
 ;; for the umpteenth time, we learn opengl again
-;; https://learnopengl.com/Getting-started/Hello-Triangle
+;; https://learnopengl.com/Getting-started/Shaders
 
 (def esse-default-facts [t3d/default])
 (defn esse [world id & facts]
   (o/insert world id (apply utils/deep-merge (concat esse-default-facts facts))))
 
 (def triangle-data
-  (f32-arr 0.5  0.5 0.0
-           0.5 -0.5 0.0
-           -0.5 -0.5 0.0
-           -0.5  0.5 0.0))
+  (f32-arr
+   ; pos           color
+   0.5  0.5 0.0    1.0 0.0 0.0
+   0.5 -0.5 0.0    0.0 1.0 0.0
+   -0.5 -0.5 0.0   0.0 0.0 1.0
+   -0.5  0.5 0.0   0.0 1.0 0.0))
 
 (def triangle-indices
   (i32-arr 0 1 3
@@ -32,31 +34,32 @@
 
 (def vertex-shader
   {:precision  "mediump float"
-   :inputs     '{a_pos vec3}
+   :inputs     '{a_pos vec3
+                 a_color vec3}
+   :outputs    '{color vec3}
    :uniforms   '{mvp mat4}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (= gl_Position (* mvp (vec4 a_pos "1.0"))))}})
+           (= gl_Position (* mvp (vec4 a_pos "1.0")))
+           (= color a_color))}})
 
 (def fragment-shader
   {:precision  "mediump float"
+   :inputs     '{color vec3}
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (vec4 "0.42" "1.0" "0.69" "0.9")))}})
+   '{main ([] (= o_color (vec4 color "0.9")))}})
 
 (defn init-fn [world game]
   (-> world
       (esse ::a-triangle
             #::shader{:program-data (shader/create-program game vertex-shader fragment-shader)}
-            #::vao{:buffers [{:data triangle-data
-                              :buffer-type (gl game ARRAY_BUFFER)
-                              :attr 'a_pos ;; bind to attribute parts feel complected
-                              :size 3
-                              :type (gl game FLOAT)}
-                             {:data triangle-indices
-                              :buffer-type (gl game ELEMENT_ARRAY_BUFFER)}]})))
+            #::vao{:entries [{:data triangle-data :buffer-type (gl game ARRAY_BUFFER)}
+                             {:attr 'a_pos   :size 3 :type (gl game FLOAT) :stride 24}
+                             {:attr 'a_color :size 3 :type (gl game FLOAT) :offset 12 :stride 24}
+                             {:data triangle-indices :buffer-type (gl game ELEMENT_ARRAY_BUFFER)}]})))
 
 (defn after-load-fn [world _game]
   (-> world
