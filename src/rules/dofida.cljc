@@ -144,6 +144,7 @@
 ;; https://stackoverflow.com/questions/40438590/is-it-necessary-to-bind-all-vbos-and-textures-each-frame?noredirect=1&lq=1
 ;; i dont knowwwwww, is switching vao cheap or not???
 ;; for now let's make vao for each object
+;; oh hey, play-cljc make vao for each compile, so that's why it's called compile!
 
 (def system
   {::world/init-fn
@@ -353,6 +354,8 @@
               #?(:clj (float-array (plcjc-m/identity-matrix 4))
                  :cljs (plcjc-m/identity-matrix 4)))
 
+          ;; texture still needs to bind each frame
+          ;; https://stackoverflow.com/questions/40438590/is-it-necessary-to-bind-all-vbos-and-textures-each-frame
           (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
           (gl game uniform1i the-texture-loc fbo-tex-unit)
