@@ -4,19 +4,21 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
    [assets.texture :as texture]
-   [engine.sugar :refer [f32-arr i32-arr identity-mat-4]]
+   [engine.sugar :refer [f32-arr i32-arr]]
    [engine.utils :as utils]
+   [engine.math :as m-ext]
    [engine.world :as world]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.transform3d :as t3d]
    [odoyle.rules :as o]
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
 
 ;; for the umpteenth time, we learn opengl again
-;; https://learnopengl.com/Getting-started/Shaders
+;; https://learnopengl.com/Getting-started/Transformations
 
 (def esse-default-facts [t3d/default])
 (defn esse [world id & facts]
@@ -25,14 +27,14 @@
 (def triangle-data
   (f32-arr
    ; pos           color         uv
-   0.5  0.5 0.0    1.0 0.0 0.0   1.0 1.0
-   0.5 -0.5 0.0    0.0 1.0 0.0   1.0 0.0
-   -0.5 -0.5 0.0   0.0 0.0 1.0   0.0 0.0
-   -0.5  0.5 0.0   0.0 1.0 0.0   0.0 1.0))
+   [0.5  0.5 0.0    1.0 0.0 0.0   1.0 1.0
+    0.5 -0.5 0.0    0.0 1.0 0.0   1.0 0.0
+    -0.5 -0.5 0.0   0.0 0.0 1.0   0.0 0.0
+    -0.5  0.5 0.0   0.0 1.0 0.0   0.0 1.0]))
 
 (def triangle-indices
-  (i32-arr 0 1 3
-           1 2 3))
+  (i32-arr [0 1 3
+            1 2 3]))
 
 (def vertex-shader
   {:precision  "mediump float"
@@ -97,11 +99,18 @@
     (let [{:keys [program-data vao]} esse
           {:keys [tex-unit texture]} (:tex-data esse)
           mvp-loc   (get (:uni-locs program-data) 'mvp)
-          u_tex-loc (get (:uni-locs program-data) 'u_tex)]
+          u_tex-loc (get (:uni-locs program-data) 'u_tex)
+          angle     (mod (/ (:total-time game) 10) 360)
+          rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                  (v/vec3 0.0 0.0 1.0)
+                                  (m/radians angle)))
+          scale-mat (m-ext/scaling-mat 0.5 0.5 1.0)
+          trans-mat (m-ext/translation-mat 0.5 -0.5 0.0)
+          mvp       (->> scale-mat (m/* rot-mat) (m/* trans-mat))] 
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
 
-      (gl game uniformMatrix4fv mvp-loc false identity-mat-4)
+      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec mvp)))
       (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
       (gl game bindTexture (gl game TEXTURE_2D) texture)
       (gl game uniform1i u_tex-loc tex-unit)
