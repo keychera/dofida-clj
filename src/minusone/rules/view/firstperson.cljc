@@ -46,14 +46,15 @@
      [::player ::front front {:then false}]
      [::player ::move-control control {:then false}]
      :then
-     (let [speed 0.01
-           right (m/normalize (m/cross front up))
-           move  (case control
-                   ::forward  (m/* front (* delta-time speed))
-                   ::backward (m/* front (* delta-time speed -1))
-                   ::strafe-l (m/* right (* delta-time speed -1))
-                   ::strafe-r (m/* right (* delta-time speed))
-                   nil)]
+     (let [speed   0.01
+           right   (m/normalize (m/cross front up))
+           [x _ z] (case control
+                    ::forward  (m/* front (* delta-time speed))
+                    ::backward (m/* front (* delta-time speed -1))
+                    ::strafe-l (m/* right (* delta-time speed -1))
+                    ::strafe-r (m/* right (* delta-time speed))
+                    nil)
+           move    (v/vec3 x 0.0 z)]
        (when move
          (insert! ::player {::position (m/+ position move)})))]
 
@@ -75,10 +76,10 @@
            front (v/vec3 (* (Math/cos yaw) (Math/cos pitch))
                          (Math/sin pitch)
                          (* (Math/sin yaw) (Math/cos pitch)))]
-       (insert! ::player 
+       (insert! ::player
                 {::yaw yaw
                  ::pitch pitch
                  ::front (m/normalize front)}))]}))
 
 (def system
-{::world/rules rules})
+  {::world/rules rules})
