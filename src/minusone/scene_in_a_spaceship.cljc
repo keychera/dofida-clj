@@ -5,7 +5,7 @@
    [assets.asset :as asset :refer [asset]]
    [assets.texture :as texture]
    [engine.math :as m-ext]
-   [engine.sugar :refer [f32-arr i32-arr]]
+   [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.rules.gl.shader :as shader]
@@ -30,34 +30,58 @@
 (def triangle-data
   (f32-arr
    ; pos           color         uv
-   [0.5  0.5 0.0    1.0 0.0 0.0   1.0 1.0
-    0.5 -0.5 0.0    0.0 1.0 0.0   1.0 0.0
-    -0.5 -0.5 0.0   0.0 0.0 1.0   0.0 0.0
-    -0.5  0.5 0.0   0.0 1.0 0.0   0.0 1.0]))
-
-(def triangle-indices
-  (i32-arr [0 1 3
-            1 2 3]))
+   [-0.5 -0.5 -0.5  0.0 0.0
+    0.5 -0.5 -0.5  1.0 0.0
+    0.5  0.5 -0.5  1.0 1.0
+    0.5  0.5 -0.5  1.0 1.0
+    -0.5  0.5 -0.5  0.0 1.0
+    -0.5 -0.5 -0.5  0.0 0.0
+    -0.5 -0.5  0.5  0.0 0.0
+    0.5 -0.5  0.5  1.0 0.0
+    0.5  0.5  0.5  1.0 1.0
+    0.5  0.5  0.5  1.0 1.0
+    -0.5  0.5  0.5  0.0 1.0
+    -0.5 -0.5  0.5  0.0 0.
+    -0.5  0.5  0.5  1.0 0.0
+    -0.5  0.5 -0.5  1.0 1.0
+    -0.5 -0.5 -0.5  0.0 1.0
+    -0.5 -0.5 -0.5  0.0 1.0
+    -0.5 -0.5  0.5  0.0 0.0
+    -0.5  0.5  0.5  1.0 0.
+    0.5  0.5  0.5  1.0 0.0
+    0.5  0.5 -0.5  1.0 1.0
+    0.5 -0.5 -0.5  0.0 1.0
+    0.5 -0.5 -0.5  0.0 1.0
+    0.5 -0.5  0.5  0.0 0.0
+    0.5  0.5  0.5  1.0 0.0
+    -0.5 -0.5 -0.5  0.0 1.0
+    0.5 -0.5 -0.5  1.0 1.0
+    0.5 -0.5  0.5  1.0 0.0
+    0.5 -0.5  0.5  1.0 0.0
+    -0.5 -0.5  0.5  0.0 0.0
+    -0.5 -0.5 -0.5  0.0 1.
+    -0.5  0.5 -0.5  0.0 1.0
+    0.5  0.5 -0.5  1.0 1.0
+    0.5  0.5  0.5  1.0 0.0
+    0.5  0.5  0.5  1.0 0.0
+    -0.5  0.5  0.5  0.0 0.0
+    -0.5  0.5 -0.5  0.0 1.0]))
 
 (def vertex-shader
   {:precision  "mediump float"
    :inputs     '{a_pos vec3
-                 a_color vec3
                  a_uv vec2}
-   :outputs    '{color vec3
-                 uv vec2}
+   :outputs    '{uv vec2}
    :uniforms   '{mvp mat4}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
            (= gl_Position (* mvp (vec4 a_pos "1.0")))
-           (= color a_color)
            (= uv a_uv))}})
 
 (def fragment-shader
   {:precision  "mediump float"
-   :inputs     '{color vec3
-                 uv vec2}
+   :inputs     '{uv vec2}
    :outputs    '{o_color vec4}
    :uniforms   '{u_tex sampler2D}
    :signatures '{main ([] void)}
@@ -66,6 +90,7 @@
            (= o_color (+ (texture u_tex uv) (vec4 uv "0.5" "0.9"))))}})
 
 (defn init-fn [world game]
+  (gl game enable (gl game DEPTH_TEST)) ;; probably better to be called elsewhere
   (-> world
       (asset ::dofida-texture
              #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
@@ -73,10 +98,8 @@
       (esse ::a-triangle
             #::shader{:program-data (shader/create-program game vertex-shader fragment-shader)}
             #::vao{:entries [{:data triangle-data :buffer-type (gl game ARRAY_BUFFER)}
-                             {:attr 'a_pos   :size 3 :type (gl game FLOAT) :stride 32}
-                             {:attr 'a_color :size 3 :type (gl game FLOAT) :offset 12 :stride 32}
-                             {:attr 'a_uv    :size 2 :type (gl game FLOAT) :offset 24 :stride 32}
-                             {:data triangle-indices :buffer-type (gl game ELEMENT_ARRAY_BUFFER)}]})))
+                             {:attr 'a_pos   :size 3 :type (gl game FLOAT) :stride 20}
+                             {:attr 'a_uv    :size 2 :type (gl game FLOAT) :offset 12 :stride 20}]})))
 
 (defn after-load-fn [world _game]
   (-> world
@@ -107,11 +130,7 @@
           mvp-loc   (get (:uni-locs program-data) 'mvp)
           u_tex-loc (get (:uni-locs program-data) 'u_tex)
           scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
-          rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                  (v/vec3 1.0 0.0 0.0)
-                                  (m/radians -55.0)))
-          trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
-          model     (reduce m/* [trans-mat rot-mat scale-mat])
+          angle     (* (:total-time game) (m/radians -55.0) 0.001)
 
           view      (m-ext/translation-mat 0.0 0.0 -3.0)
 
@@ -120,17 +139,32 @@
           aspect    (/ (:width dim) (:height dim))
           project   (mat/perspective fov aspect 0.1 100)
 
-          mvp       (reduce m/* [project view model])]
+          p*v       (m/* project view)]
 
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
-
-      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec mvp)))
       (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
       (gl game bindTexture (gl game TEXTURE_2D) texture)
       (gl game uniform1i u_tex-loc tex-unit)
 
-      (gl game drawElements (gl game TRIANGLES) 6 (gl game UNSIGNED_INT) 0))))
+      (doseq [translate [[0.0  0.0  0.0]
+                         [2.0  5.0 -15.0]
+                         [-1.5 -2.2 -2.5]
+                         [-3.8 -2.0 -12.3]
+                         [2.4 -0.4 -3.5]
+                         [-1.7  3.0 -7.5]
+                         [1.3 -2.0 -2.5]
+                         [1.5  2.0 -2.5]
+                         [1.5  0.2 -1.5]
+                         [-1.3  1.0 -1.5]]]
+        (let [trans-mat (apply m-ext/translation-mat translate)
+              rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                      (v/vec3 (second translate) 1.0 0.0)
+                                      (* angle (+ (second translate) 1.0))))
+              model     (reduce m/* [trans-mat rot-mat scale-mat])
+              p*v*m     (m/* p*v model)]
+          (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
+          (gl game drawArrays (gl game TRIANGLES) 0 36))))))
 
 (def system
   {::world/init-fn init-fn
