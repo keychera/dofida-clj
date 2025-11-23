@@ -43,21 +43,20 @@
         before-fns (sp/select [sp/ALL ::world/before-load-fn some?] all-systems)
         after-fns  (sp/select [sp/ALL ::world/after-load-fn some?] all-systems)
         render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)
-        [w h]      (utils/get-size game)]
+        [w h] (utils/get-size game)]
 
     (reset! (::render-fns* game) render-fns)
     (swap! (::world/atom* game)
            (fn [world]
              (-> (world/init-world world game all-rules before-fns init-fns after-fns)
                  (window/set-window w h)
-                 (o/fire-rules)
-                 ((fn [world] (println "shots fired!") world)))))
+                 (o/fire-rules))))
     (asset/load-asset (::world/atom* game) game)))
 
 (defn tick [game]
   (if @*refresh?
     (try (println "refresh game")
-         (swap! *refresh? not)
+         (reset! *refresh? false)
          (init game)
          #?(:clj  (catch Exception err (throw err))
             :cljs (catch js/Error err
