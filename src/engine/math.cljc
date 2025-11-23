@@ -1,6 +1,5 @@
 (ns engine.math
   (:require
-   [play-cljc.math :as pl-cljc-m]
    [thi.ng.geom.matrix :as mat]))
 
 ;; math sugar
@@ -18,7 +17,3 @@
    0.0  1.0  0.0  0.0
    0.0  0.0  1.0  0.0
    tx,  ty,  tz,  1.0))
-
-(def identity-mat-4
-  #?(:clj (float-array (pl-cljc-m/identity-matrix 4))
-     :cljs (pl-cljc-m/identity-matrix 4)))

@@ -9,7 +9,6 @@
    [engine.world :as world]
    [minusone.scene-in-a-spaceship :as scene-in-a-spaceship]
    [odoyle.rules :as o]
-   [play-cljc.gl.core :as c]
    [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
@@ -20,7 +19,7 @@
 
 (defn ->game [context]
   (merge
-   (c/->game context)
+   {:context context}
    {::render-fns* (atom nil)}
    (world/->init)))
 
