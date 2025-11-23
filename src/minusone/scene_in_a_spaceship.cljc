@@ -103,7 +103,7 @@
 
 (defn after-load-fn [world _game]
   (-> world
-      (firstperson/insert-eye (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 0.0))
+      (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::a-cube
             #::t3d{:position (v/vec3 0.0 5.0 0.0)
                    :rotation (q/quat-from-axis-angle
@@ -120,7 +120,7 @@
      [esse-id ::vao/vao vao]
      [::dofida-texture ::texture/from-png tex-data]
      [::world/global ::projection/matrix projection]
-     [::firstperson/eye ::firstperson/look-at look-at]
+     [::firstperson/player ::firstperson/look-at look-at {:then false}]
      :then
      (println esse-id "ready to render")]}))
 

@@ -7,7 +7,7 @@
    [engine.world :as world]
    [odoyle.rules :as o]
    [rules.camera.arcball :as arcball]
-   [rules.firstperson :as firstperson]))
+   [minusone.rules.view.firstperson :as firstperson]))
 
 (s/def ::mode #{::arcball ::firstperson})
 (s/def ::x number?)
@@ -22,7 +22,7 @@
     [_ :r]
     (if (= keystate ::keyup)
       (-> session
-          firstperson/player-reset
+          ;; firstperson/player-reset
           arcball/reset-rot)
       session)
 
