@@ -17,12 +17,18 @@
 (s/def ::move-control keyword?)
 (s/def ::view-dx float?)
 (s/def ::view-dy float?)
+(s/def ::yaw float?)   ;; radians
+(s/def ::pitch float?) ;; radians
 
 (def up (v/vec3 0.0 1.0 0.0)) ; y points towards the sky
 
 (defn insert-player
   ([world position front]
-   (o/insert world ::player {::position position ::front front})))
+   (o/insert world ::player
+             {::position position
+              ::front front
+              ::yaw (* -0.5 Math/PI)
+              ::pitch 0.0})))
 
 (def rules
   (o/ruleset
@@ -49,7 +55,30 @@
                    ::strafe-r (m/* right (* delta-time speed))
                    nil)]
        (when move
-         (insert! ::player {::position (m/+ position move)})))]}))
+         (insert! ::player {::position (m/+ position move)})))]
+
+    ::mouse-camera
+    [:what
+     [::time/now ::time/delta delta-time]
+     [::time/now ::time/step 1]
+     [::player ::view-dx view-dx]
+     [::player ::view-dy view-dy]
+     [::player ::position position {:then false}]
+     [::player ::yaw yaw {:then false}]
+     [::player ::pitch pitch {:then false}]
+     :then
+     (let [speed 0.0033
+           yaw   (+ yaw (* speed (or view-dx 0)))
+           pitch (-> (+ pitch (* speed (or (- view-dy) 0)))
+                     (max (- (/ Math/PI 2)))
+                     (min (/ Math/PI 2)))
+           front (v/vec3 (* (Math/cos yaw) (Math/cos pitch))
+                         (Math/sin pitch)
+                         (* (Math/sin yaw) (Math/cos pitch)))]
+       (insert! ::player 
+                {::yaw yaw
+                 ::pitch pitch
+                 ::front (m/normalize front)}))]}))
 
 (def system
-  {::world/rules rules})
+{::world/rules rules})
