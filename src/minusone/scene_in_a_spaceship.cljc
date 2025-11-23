@@ -4,15 +4,17 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
    [assets.texture :as texture]
+   [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr i32-arr]]
    [engine.utils :as utils]
-   [engine.math :as m-ext]
    [engine.world :as world]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.transform3d :as t3d]
    [odoyle.rules :as o]
+   [rules.window :as window]
    [thi.ng.geom.core :as g]
+   [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
@@ -60,7 +62,8 @@
    :uniforms   '{u_tex sampler2D}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (* (texture u_tex uv) (vec4 uv "0.5" "0.9"))))}})
+   '{main ([]
+           (= o_color (+ (texture u_tex uv) (vec4 uv "0.5" "0.9"))))}})
 
 (defn init-fn [world game]
   (-> world
@@ -103,19 +106,26 @@
           {:keys [tex-unit texture]} (:tex-data esse)
           mvp-loc   (get (:uni-locs program-data) 'mvp)
           u_tex-loc (get (:uni-locs program-data) 'u_tex)
-          angle     (mod (/ (:total-time game) 10) 360)
+          scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
           rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                  (v/vec3 0.0 0.0 1.0)
-                                  (m/radians angle)))
-          scale-mat (m-ext/scaling-mat 0.5 0.5 1.0)
-          trans-mat (m-ext/translation-mat 0.5 -0.5 0.0)
-          model     (->> scale-mat (m/* rot-mat) (m/* trans-mat))
-          p*v*m     model]
+                                  (v/vec3 1.0 0.0 0.0)
+                                  (m/radians -55.0)))
+          trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+          model     (reduce m/* [trans-mat rot-mat scale-mat])
+
+          view      (m-ext/translation-mat 0.0 0.0 -3.0)
+
+          dim       (:dimension (first (o/query-all world ::window/window)))
+          fov       45.0
+          aspect    (/ (:width dim) (:height dim))
+          project   (mat/perspective fov aspect 0.1 100)
+
+          mvp       (reduce m/* [project view model])]
 
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
 
-      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
+      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec mvp)))
       (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
       (gl game bindTexture (gl game TEXTURE_2D) texture)
       (gl game uniform1i u_tex-loc tex-unit)
