@@ -33,7 +33,7 @@
    input/system
    firstperson/system
    arcball/system
-   
+
    shader/system
    vao/system
    scene-in-a-spaceship/system])
@@ -43,18 +43,19 @@
   (gl game enable (gl game BLEND))
 
   (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
-        all-init   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
+        init-fns   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
         before-fns (sp/select [sp/ALL ::world/before-load-fn some?] all-systems)
         after-fns  (sp/select [sp/ALL ::world/after-load-fn some?] all-systems)
-        render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)]
+        render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)
+        [width height] (utils/get-size game)]
 
-    (swap! (::world/init-cnt* game) inc)
     (reset! (::render-fns* game) render-fns)
     (swap! (::world/atom* game)
            (fn [world]
-             (-> (world/init-world world game all-rules before-fns after-fns)
-                 (as-> w (reduce (fn [w' init-fn] (init-fn w' game)) w all-init))
-                 (o/fire-rules))))
+             (-> (world/init-world world game all-rules before-fns init-fns after-fns)
+                 (window/set-window width height)
+                 (o/fire-rules)
+                 ((fn [world] (println "shots fired!") world)))))
     (asset/load-asset (::world/atom* game) game)))
 
 (defn tick [game]
@@ -66,18 +67,16 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      (let [[game-width game-height] (utils/get-size game)
-            {:keys [total-time delta-time]} game
-
+      (let [{:keys [total-time delta-time]} game
+            [width height] (utils/get-size game)
             world (swap! (::world/atom* game)
                          #(-> %
-                              (window/set-window game-width game-height)
                               (time/insert total-time delta-time)
                               (o/fire-rules)))]
         (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
         (gl game clearColor 0.62 0.62 0.82 1.0)
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
-        (gl game viewport 0 0 game-width game-height)
+        (gl game viewport 0 0 width height)
 
         (doseq [render-fn @(::render-fns* game)]
           (render-fn world game)))

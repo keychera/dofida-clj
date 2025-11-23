@@ -16,11 +16,18 @@
    ::prev-rules* (atom nil)
    ::init-cnt*   (atom 0)})
 
+(def fact-id-with-frequent-updates
+  #{:rules.time/now
+    :rules.firstperson/player
+    :rules.window/window
+    :rules.interface.input/mouse
+    :rules.interface.input/mouse-delta})
+
 (defn rules-debugger-wrap-fn [rule]
   (o/wrap-rule rule
                {:what
                 (fn [f session new-fact old-fact]
-                  (when (#{} (:name rule))
+                  (when false #_(not (fact-id-with-frequent-updates (:id new-fact)))
                     (println (:name rule) "is comparing" (dissoc old-fact :value) "=>" (dissoc new-fact :value)))
                   (f session new-fact old-fact))
                 :when
@@ -40,11 +47,12 @@
 
 ;; dev-only
 (defn first-init? [game]
-  (= 1 @(::init-cnt* game)))
+  (= 0 @(::init-cnt* game)))
 
-(defn init-world [world game all-rules before-load-fns after-load-fns]
+(defn init-world [world game all-rules before-load-fns init-fns after-load-fns]
   (let [prev-rules*  (::prev-rules* game)
-        before-world (if (first-init? game)
+        first-init?  (first-init? game)
+        before-world (if first-init?
                        (o/->session)
                        (let [world
                              (reduce (fn [world before-fn] (before-fn world game)) world before-load-fns)]
@@ -52,8 +60,14 @@
                               (map :name)
                               (reduce o/remove-rule world))))
         _            (reset! prev-rules* all-rules)
+        all-facts    (o/query-all before-world)
         init-world   (->> all-rules
                           (map #'rules-debugger-wrap-fn)
-                          (reduce o/add-rule before-world))
-        after-world  (reduce (fn [world after-fn] (after-fn world game)) init-world after-load-fns)]
+                          (reduce o/add-rule before-world)
+                          ((fn [world]
+                             (if first-init?
+                               (reduce (fn [w' init-fn] (init-fn w' game)) world init-fns)
+                               (reduce (fn [w' fact] (o/insert w' fact)) world all-facts)))))
+        _            (swap! (::init-cnt* game) inc)
+        after-world  (reduce (fn [w' after-fn] (after-fn w' game)) init-world after-load-fns)]
     after-world))

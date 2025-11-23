@@ -22,6 +22,7 @@
 
 (def esse-default-facts [t3d/default])
 (defn esse [world id & facts]
+  (println "inserting" id)
   (o/insert world id (apply utils/deep-merge (concat esse-default-facts facts))))
 
 (def triangle-data
@@ -95,6 +96,8 @@
      (println esse-id "ready to render")]}))
 
 (defn render-fn [world game]
+  #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
+  (def hmm {:world world})
   (doseq [esse (o/query-all world ::esses)]
     (let [{:keys [program-data vao]} esse
           {:keys [tex-unit texture]} (:tex-data esse)
@@ -106,11 +109,13 @@
                                   (m/radians angle)))
           scale-mat (m-ext/scaling-mat 0.5 0.5 1.0)
           trans-mat (m-ext/translation-mat 0.5 -0.5 0.0)
-          mvp       (->> scale-mat (m/* rot-mat) (m/* trans-mat))] 
+          model     (->> scale-mat (m/* rot-mat) (m/* trans-mat))
+          p*v*m     model]
+
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
 
-      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec mvp)))
+      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
       (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
       (gl game bindTexture (gl game TEXTURE_2D) texture)
       (gl game uniform1i u_tex-loc tex-unit)
@@ -123,3 +128,7 @@
    ::world/rules rules
    ::world/render-fn render-fn})
 
+(comment
+  (o/query-all (:world hmm))
+
+  :-)
