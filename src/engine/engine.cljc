@@ -69,7 +69,7 @@
                               (time/insert total-time delta-time)
                               (o/fire-rules)))]
         (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-        (gl game clearColor 0.62 0.62 0.82 1.0)
+        (gl game clearColor 0.02 0.02 0.12 1.0)
         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
         (gl game viewport 0 0 width height)
 
