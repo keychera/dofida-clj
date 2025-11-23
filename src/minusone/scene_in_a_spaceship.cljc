@@ -12,8 +12,9 @@
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
+   [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
-   [thi.ng.geom.core :as g] 
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
@@ -102,6 +103,7 @@
 
 (defn after-load-fn [world _game]
   (-> world
+      (firstperson/insert-eye (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 0.0))
       (esse ::a-cube
             #::t3d{:position (v/vec3 0.0 5.0 0.0)
                    :rotation (q/quat-from-axis-angle
@@ -118,6 +120,7 @@
      [esse-id ::vao/vao vao]
      [::dofida-texture ::texture/from-png tex-data]
      [::world/global ::projection/matrix projection]
+     [::firstperson/eye ::firstperson/look-at look-at]
      :then
      (println esse-id "ready to render")]}))
 
@@ -131,9 +134,9 @@
           u_tex-loc (get (:uni-locs program-data) 'u_tex)
           scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
           angle     (* (:total-time game) (m/radians -55.0) 0.001)
-          view      (m-ext/translation-mat 0.0 0.0 -3.0)
+          
+          view      (:look-at esse)
           project   (:projection esse)
-
           p*v       (m/* project view)]
 
       (gl game useProgram (:program program-data))
@@ -165,6 +168,7 @@
   [shader/system
    vao/system
    projection/system
+   firstperson/system
    {::world/init-fn init-fn
    ::world/after-load-fn after-load-fn
    ::world/rules rules
