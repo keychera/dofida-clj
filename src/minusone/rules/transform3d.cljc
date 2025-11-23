@@ -1,16 +1,11 @@
 (ns minusone.rules.transform3d
   (:require
    [clojure.spec.alpha :as s]
-   [thi.ng.geom.quaternion :as q #?@(:cljs [:refer [Quat4]])]
-   [thi.ng.geom.vector :as v #?@(:cljs [:refer [Vec3]])])
-  #?(:clj
-     (:import
-      [thi.ng.geom.quaternion Quat4]
-      [thi.ng.geom.vector Vec3])))
+   [minusone.rules.types :as types]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]))
 
-(s/def ::position #(instance? Vec3 %))
-(s/def ::localpos #(instance? Vec3 %))
-(s/def ::rotation #(instance? Quat4 %))
-(s/def ::localrot #(instance? Quat4 %))
+(s/def ::position ::types/vec3)
+(s/def ::rotation ::types/quat)
 
 (def default #::{:position (v/vec3) :rotation (q/quat)})

@@ -11,6 +11,8 @@
 (s/def ::after-load-fn fn? #_(fn [world game] world))  ;; called after  all rules are removed on code reload
 (s/def ::render-fn fn? #_(fn [world game] world))
 
+(s/def ::global any?)
+
 (defn ->init []
   {::atom*       (atom nil)
    ::prev-rules* (atom nil)

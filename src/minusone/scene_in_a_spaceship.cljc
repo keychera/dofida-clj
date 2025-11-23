@@ -10,11 +10,10 @@
    [engine.world :as world]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
+   [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
    [odoyle.rules :as o]
-   [rules.window :as window]
-   [thi.ng.geom.core :as g]
-   [thi.ng.geom.matrix :as mat]
+   [thi.ng.geom.core :as g] 
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
@@ -29,7 +28,7 @@
 
 (def triangle-data
   (f32-arr
-   ; pos           color         uv
+   ; pos            uv
    [-0.5 -0.5 -0.5  0.0 0.0
     0.5 -0.5 -0.5  1.0 0.0
     0.5  0.5 -0.5  1.0 1.0
@@ -118,6 +117,7 @@
      [esse-id ::shader/program-data program-data]
      [esse-id ::vao/vao vao]
      [::dofida-texture ::texture/from-png tex-data]
+     [::world/global ::projection/matrix projection]
      :then
      (println esse-id "ready to render")]}))
 
@@ -131,13 +131,8 @@
           u_tex-loc (get (:uni-locs program-data) 'u_tex)
           scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
           angle     (* (:total-time game) (m/radians -55.0) 0.001)
-
           view      (m-ext/translation-mat 0.0 0.0 -3.0)
-
-          dim       (:dimension (first (o/query-all world ::window/window)))
-          fov       45.0
-          aspect    (/ (:width dim) (:height dim))
-          project   (mat/perspective fov aspect 0.1 100)
+          project   (:projection esse)
 
           p*v       (m/* project view)]
 
@@ -167,10 +162,13 @@
           (gl game drawArrays (gl game TRIANGLES) 0 36))))))
 
 (def system
-  {::world/init-fn init-fn
+  [shader/system
+   vao/system
+   projection/system
+   {::world/init-fn init-fn
    ::world/after-load-fn after-load-fn
    ::world/rules rules
-   ::world/render-fn render-fn})
+   ::world/render-fn render-fn}])
 
 (comment
   (o/query-all (:world hmm))
