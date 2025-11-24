@@ -175,6 +175,21 @@
         rand-val (fn [] (* max-dist (- (rand 1) 0.5)))]
     (take 200 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
 
+#?(:clj #_"java only profilers"
+   (comment
+     (require '[clj-async-profiler.core :as prof])
+
+     (prof/start #_{:event :alloc})
+     (prof/stop)
+
+     (require '[clj-java-decompiler.core :refer [decompile]])
+     (binding [*compiler-options* {:disable-locals-clearing false}]
+       (spit ".zzz/This.java"
+             (with-out-str
+               (decompile (println "hell0")))))
+
+     :-))
+
 (defn render-fn [world game]
   #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
   (def hmm {:world world})
@@ -183,7 +198,8 @@
     (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))]
       (let [{:keys [program-data vao]} esse
             cube-uni  (:uni-locs program-data)
-
+            ^int u_p_v (get cube-uni 'u_p_v)
+            ^int u_model (get cube-uni 'u_model)
             view      (:look-at esse)
             project   (:projection esse)
             p*v       (m/* project view)
@@ -193,15 +209,21 @@
             model     (reduce m/* [trans-mat scale-mat])]
         (gl game useProgram (:program program-data))
         (gl game bindVertexArray vao)
-        (gl game uniformMatrix4fv (get cube-uni 'u_p_v) false (f32-arr (vec p*v)))
-        (gl game uniformMatrix4fv (get cube-uni 'u_model) false (f32-arr (vec model)))
+        (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
+        (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
         (gl game drawArrays (gl game TRIANGLES) 0 36)))
 
     (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
       (let [{:keys [program-data vao]} esse
             {:keys [tex-unit texture]} (:tex-data esse)
             cube-uni  (:uni-locs program-data)
-            u_tex-loc (get cube-uni 'u_tex) 
+            ^int u_tex-loc (get cube-uni 'u_tex)
+            ^int u_object_color (get cube-uni 'u_object_color)
+            ^int u_light_color (get cube-uni 'u_light_color)
+            ^int u_light_pos (get cube-uni 'u_light_pos)
+            ^int u_p_v (get cube-uni 'u_p_v)
+            ^int u_model (get cube-uni 'u_model)
+            ^int u_normal_mat (get cube-uni 'u_normal_mat)
             angle     (* (:total-time game) (m/radians -55.0) 0.0001)
 
             view      (:look-at esse)
@@ -214,23 +236,23 @@
         (gl game bindTexture (gl game TEXTURE_2D) texture)
         (gl game uniform1i u_tex-loc tex-unit)
 
-        (gl game uniform3fv (get cube-uni 'u_object_color) (f32-arr [1.0 0.5 0.31]))
-        (gl game uniform3fv (get cube-uni 'u_light_color) (f32-arr [1.0 1.0 1.0]))
-        (gl game uniform3fv (get cube-uni 'u_light_pos) (f32-arr light-pos))
+        (gl game uniform3fv u_object_color (f32-arr [1.0 0.5 0.31]))
+        (gl game uniform3fv u_light_color (f32-arr [1.0 1.0 1.0]))
+        (gl game uniform3fv u_light_pos (f32-arr light-pos))
 
         (doseq [translate random-cubes]
           (let [trans-mat  (apply m-ext/translation-mat translate)
-                scale-mat (m-ext/scaling-mat (* 0.5 (nth translate 2)) 
-                                             (* 0.5 (nth translate 1)) 
+                scale-mat (m-ext/scaling-mat (* 0.5 (nth translate 2))
+                                             (* 0.5 (nth translate 1))
                                              (* 0.5 (nth translate 0)))
                 rot-mat    (g/as-matrix (q/quat-from-axis-angle
                                          (v/vec3 (second translate) 1.0 0.0)
                                          (* angle (+ (second translate) 1.0))))
                 model      (reduce m/* [trans-mat rot-mat scale-mat])
                 normal-mat (-> model m/invert m/transpose mat/matrix44->matrix33)]
-            (gl game uniformMatrix4fv (get cube-uni 'u_p_v) false (f32-arr (vec p*v)))
-            (gl game uniformMatrix4fv (get cube-uni 'u_model) false (f32-arr (vec model)))
-            (gl game uniformMatrix3fv (get cube-uni 'u_normal_mat) false (f32-arr (vec normal-mat)))
+            (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
+            (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
+            (gl game uniformMatrix3fv u_normal_mat false (f32-arr (vec normal-mat)))
             (gl game drawArrays (gl game TRIANGLES) 0 36)))))))
 
 (def system
