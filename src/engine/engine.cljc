@@ -7,10 +7,9 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.scene-in-a-spaceship :as scene-in-a-spaceship]
+   [minusone.learnopengl :as scene-in-a-spaceship]
    [odoyle.rules :as o]
    [rules.camera.arcball :as arcball]
-   [rules.firstperson :as firstperson]
    [rules.interface.input :as input]
    [rules.time :as time]
    [rules.window :as window]))
@@ -29,7 +28,6 @@
     window/system
 
     input/system
-    firstperson/system
     arcball/system
 
     scene-in-a-spaceship/system]))

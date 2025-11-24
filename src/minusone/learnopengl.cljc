@@ -1,4 +1,4 @@
-(ns minusone.scene-in-a-spaceship
+(ns minusone.learnopengl
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
