@@ -18,7 +18,8 @@
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.matrix :as mat]))
 
 ;; for the umpteenth time, we learn opengl again
 ;; https://learnopengl.com/Getting-started/Transformations
@@ -80,15 +81,16 @@
    :outputs    '{fragpos vec3
                  normal vec3
                  uv vec2}
-   :uniforms   '{model mat4
-                 p_v mat4}
+   :uniforms   '{u_p_v mat4
+                 u_model mat4
+                 u_normal_mat mat3}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (=vec4 pos (* model (vec4 a_pos "1.0")))
-           (= gl_Position (* p_v pos))
+           (=vec4 pos (* u_model (vec4 a_pos "1.0")))
+           (= gl_Position (* u_p_v pos))
            (= fragpos (vec3 pos))
-           (= normal a_normal)
+           (= normal (* u_normal_mat a_normal))
            (= uv a_uv))}})
 
 (def cube-fs
@@ -186,8 +188,8 @@
             model     (reduce m/* [trans-mat scale-mat])]
         (gl game useProgram (:program program-data))
         (gl game bindVertexArray vao)
-        (gl game uniformMatrix4fv (get cube-uni 'p_v) false (f32-arr (vec p*v)))
-        (gl game uniformMatrix4fv (get cube-uni 'model) false (f32-arr (vec model)))
+        (gl game uniformMatrix4fv (get cube-uni 'u_p_v) false (f32-arr (vec p*v)))
+        (gl game uniformMatrix4fv (get cube-uni 'u_model) false (f32-arr (vec model)))
         (gl game drawArrays (gl game TRIANGLES) 0 36)))
 
     (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
@@ -196,7 +198,7 @@
             cube-uni  (:uni-locs program-data)
             u_tex-loc (get cube-uni 'u_tex)
             scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
-            angle     (* (m/radians -55.0) 0.0) ;; rotation makes the normal wrong it seems
+            angle     (* (:total-time game) (m/radians -55.0) 0.001)
 
             view      (:look-at esse)
             project   (:projection esse)
@@ -222,13 +224,15 @@
                            [1.5  2.0 -2.5]
                            [1.5  0.2 -1.5]
                            [-1.3  1.0 -1.5]]]
-          (let [trans-mat (apply m-ext/translation-mat translate)
-                rot-mat   (g/as-matrix (q/quat-from-axis-angle
+          (let [trans-mat  (apply m-ext/translation-mat translate)
+                rot-mat    (g/as-matrix (q/quat-from-axis-angle
                                         (v/vec3 (second translate) 1.0 0.0)
                                         (* angle (+ (second translate) 1.0))))
-                model     (reduce m/* [trans-mat rot-mat scale-mat])]
-            (gl game uniformMatrix4fv (get cube-uni 'p_v) false (f32-arr (vec p*v)))
-            (gl game uniformMatrix4fv (get cube-uni 'model) false (f32-arr (vec model)))
+                model      (reduce m/* [trans-mat rot-mat scale-mat])
+                normal-mat (-> model m/invert m/transpose mat/matrix44->matrix33)]
+            (gl game uniformMatrix4fv (get cube-uni 'u_p_v) false (f32-arr (vec p*v)))
+            (gl game uniformMatrix4fv (get cube-uni 'u_model) false (f32-arr (vec model)))
+            (gl game uniformMatrix3fv (get cube-uni 'u_normal_mat) false (f32-arr (vec normal-mat)))
             (gl game drawArrays (gl game TRIANGLES) 0 36)))))))
 
 (def system
