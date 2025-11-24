@@ -79,15 +79,26 @@
            (= gl_Position (* mvp (vec4 a_pos "1.0")))
            (= uv a_uv))}})
 
-(def fragment-shader
+(def cube-fs
   {:precision  "mediump float"
    :inputs     '{uv vec2}
    :outputs    '{o_color vec4}
-   :uniforms   '{u_tex sampler2D}
+   :uniforms   '{u_object_color vec3
+                 u_light_color vec3
+                 u_tex sampler2D}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (= o_color (+ (texture u_tex uv) (vec4 uv "0.5" "0.9"))))}})
+           (= o_color (vec4 (* u_light_color u_object_color) "1.0")))}})
+
+(def light-cube-fs
+  {:precision  "mediump float"
+   :inputs     '{uv vec2}
+   :outputs    '{o_color vec4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= o_color (vec4 "1.0")))}})
 
 (defn init-fn [world game]
   (gl game enable (gl game DEPTH_TEST)) ;; probably better to be called elsewhere
@@ -96,8 +107,11 @@
              #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
              #::texture{:tex-unit 0})
       (esse ::a-cube
-            #::shader{:program-data (shader/create-program game vertex-shader fragment-shader)}
+            #::shader{:program-data (shader/create-program game vertex-shader cube-fs)}
             #::vao{:use :cube-vao})
+      (esse ::light-cube
+            #::shader{:program-data (shader/create-program game vertex-shader light-cube-fs)}
+            #::vao{:use :light-cube-vao})
       (esse ::shader/global
             #::gl-magic{:incantation
                         [{:bind-buffer "cube" :buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
@@ -139,8 +153,9 @@
   (doseq [esse (o/query-all world ::esses)]
     (let [{:keys [program-data vao]} esse
           {:keys [tex-unit texture]} (:tex-data esse)
-          mvp-loc   (get (:uni-locs program-data) 'mvp)
-          u_tex-loc (get (:uni-locs program-data) 'u_tex)
+          cube-uni  (:uni-locs program-data)
+          mvp-loc   (get cube-uni 'mvp)
+          u_tex-loc (get cube-uni 'u_tex)
           scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
           angle     (* (:total-time game) (m/radians -55.0) 0.001)
 
@@ -153,6 +168,9 @@
       (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
       (gl game bindTexture (gl game TEXTURE_2D) texture)
       (gl game uniform1i u_tex-loc tex-unit)
+
+      (gl game uniform3fv (get cube-uni 'u_object_color) (f32-arr [1.0 0.5 0.31]))
+      (gl game uniform3fv (get cube-uni 'u_light_color) (f32-arr [1.0 1.0 1.0]))
 
       (doseq [translate [[0.0  0.0  0.0]
                          [2.0  5.0 -15.0]
