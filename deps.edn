@@ -40,4 +40,11 @@
                          :ns-default build}
            :serve       {:deps      {io.github.babashka/http-server {:git/sha "6964d9edb1c7b2ea767f30136da0c658e0a98a44"}}
                          :main-opts ["-m" "babashka.http-server"]
-                         :exec-fn   babashka.http-server/exec}}}
+                         :exec-fn   babashka.http-server/exec}
+           :profile     {:extra-deps {com.clojure-goes-fast/clj-async-profiler  {:mvn/version "1.6.2"}
+                                      criterium/criterium                       {:mvn/version "0.4.6"}
+                                      com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.7"}}
+                         :jvm-opts   ["-Djdk.attach.allowAttachSelf"
+                                      "-XX:+EnableDynamicAgentLoading"
+                                      "-XX:+UnlockDiagnosticVMOptions"
+                                      "-XX:+DebugNonSafepoints"]}}}
