@@ -29,71 +29,91 @@
 
 (def cube-data
   (f32-arr
-   ; pos            uv
-   [-0.5 -0.5 -0.5  0.0 0.0
-    0.5 -0.5 -0.5  1.0 0.0
-    0.5  0.5 -0.5  1.0 1.0
-    0.5  0.5 -0.5  1.0 1.0
-    -0.5  0.5 -0.5  0.0 1.0
-    -0.5 -0.5 -0.5  0.0 0.0
-    -0.5 -0.5  0.5  0.0 0.0
-    0.5 -0.5  0.5  1.0 0.0
-    0.5  0.5  0.5  1.0 1.0
-    0.5  0.5  0.5  1.0 1.0
-    -0.5  0.5  0.5  0.0 1.0
-    -0.5 -0.5  0.5  0.0 0.
-    -0.5  0.5  0.5  1.0 0.0
-    -0.5  0.5 -0.5  1.0 1.0
-    -0.5 -0.5 -0.5  0.0 1.0
-    -0.5 -0.5 -0.5  0.0 1.0
-    -0.5 -0.5  0.5  0.0 0.0
-    -0.5  0.5  0.5  1.0 0.
-    0.5  0.5  0.5  1.0 0.0
-    0.5  0.5 -0.5  1.0 1.0
-    0.5 -0.5 -0.5  0.0 1.0
-    0.5 -0.5 -0.5  0.0 1.0
-    0.5 -0.5  0.5  0.0 0.0
-    0.5  0.5  0.5  1.0 0.0
-    -0.5 -0.5 -0.5  0.0 1.0
-    0.5 -0.5 -0.5  1.0 1.0
-    0.5 -0.5  0.5  1.0 0.0
-    0.5 -0.5  0.5  1.0 0.0
-    -0.5 -0.5  0.5  0.0 0.0
-    -0.5 -0.5 -0.5  0.0 1.
-    -0.5  0.5 -0.5  0.0 1.0
-    0.5  0.5 -0.5  1.0 1.0
-    0.5  0.5  0.5  1.0 0.0
-    0.5  0.5  0.5  1.0 0.0
-    -0.5  0.5  0.5  0.0 0.0
-    -0.5  0.5 -0.5  0.0 1.0]))
+   ; pos            normal              uv
+   [-0.5 -0.5 -0.5  0.0  0.0 -1.0   0.0 0.0
+    0.5 -0.5 -0.5  0.0  0.0 -1.0   1.0 0.0
+    0.5  0.5 -0.5  0.0  0.0 -1.0   1.0 1.0
+    0.5  0.5 -0.5  0.0  0.0 -1.0   1.0 1.0
+    -0.5  0.5 -0.5  0.0  0.0 -1.0    0.0 1.0
+    -0.5 -0.5 -0.5  0.0  0.0 -1.0    0.0 0.0
+
+    -0.5 -0.5  0.5  0.0  0.0  1.0    0.0 0.0
+    0.5 -0.5  0.5  0.0  0.0  1.0   1.0 0.0
+    0.5  0.5  0.5  0.0  0.0  1.0   1.0 1.0
+    0.5  0.5  0.5  0.0  0.0  1.0   1.0 1.0
+    -0.5  0.5  0.5  0.0  0.0  1.0    0.0 1.0
+    -0.5 -0.5  0.5  0.0  0.0  1.0    0.0 0.0
+
+    -0.5  0.5  0.5 -1.0  0.0  0.0    1.0 0.0
+    -0.5  0.5 -0.5 -1.0  0.0  0.0    1.0 1.0
+    -0.5 -0.5 -0.5 -1.0  0.0  0.0    0.0 1.0
+    -0.5 -0.5 -0.5 -1.0  0.0  0.0    0.0 1.0
+    -0.5 -0.5  0.5 -1.0  0.0  0.0    0.0 0.0
+    -0.5  0.5  0.5 -1.0  0.0  0.0    1.0 0.
+
+    0.5  0.5  0.5  1.0  0.0  0.0   1.0 0.0
+    0.5  0.5 -0.5  1.0  0.0  0.0   1.0 1.0
+    0.5 -0.5 -0.5  1.0  0.0  0.0   0.0 1.0
+    0.5 -0.5 -0.5  1.0  0.0  0.0   0.0 1.0
+    0.5 -0.5  0.5  1.0  0.0  0.0   0.0 0.0
+    0.5  0.5  0.5  1.0  0.0  0.0   1.0 0.0
+
+    -0.5 -0.5 -0.5  0.0 -1.0  0.0    0.0 1.0
+    0.5 -0.5 -0.5  0.0 -1.0  0.0   1.0 1.0
+    0.5 -0.5  0.5  0.0 -1.0  0.0   1.0 0.0
+    0.5 -0.5  0.5  0.0 -1.0  0.0   1.0 0.0
+    -0.5 -0.5  0.5  0.0 -1.0  0.0   0.0 0.0
+    -0.5 -0.5 -0.5  0.0 -1.0  0.0   0.0 1.
+
+    -0.5  0.5 -0.5  0.0  1.0  0.0   0.0 1.0
+    0.5  0.5 -0.5  0.0  1.0  0.0   1.0 1.0
+    0.5  0.5  0.5  0.0  1.0  0.0   1.0 0.0
+    0.5  0.5  0.5  0.0  1.0  0.0   1.0 0.0
+    -0.5  0.5  0.5  0.0  1.0  0.0   0.0 0.0
+    -0.5  0.5 -0.5  0.0  1.0  0.0   0.0 1.0]))
 
 (def vertex-shader
   {:precision  "mediump float"
    :inputs     '{a_pos vec3
+                 a_normal vec3
                  a_uv vec2}
-   :outputs    '{uv vec2}
-   :uniforms   '{mvp mat4}
+   :outputs    '{fragpos vec3
+                 normal vec3
+                 uv vec2}
+   :uniforms   '{model mat4
+                 p_v mat4}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (= gl_Position (* mvp (vec4 a_pos "1.0")))
+           (=vec4 pos (* model (vec4 a_pos "1.0")))
+           (= gl_Position (* p_v pos))
+           (= fragpos (vec3 pos))
+           (= normal a_normal)
            (= uv a_uv))}})
 
 (def cube-fs
   {:precision  "mediump float"
-   :inputs     '{uv vec2}
+   :inputs     '{fragpos vec3
+                 normal vec3
+                 uv vec2}
    :outputs    '{o_color vec4}
    :uniforms   '{u_object_color vec3
                  u_light_color vec3
+                 u_light_pos vec3
                  u_tex sampler2D}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (= o_color (vec4 (* u_light_color u_object_color) "1.0")))}})
+           (=vec3 ambient (* "0.1" u_light_color))
+           (=vec3 norm (normalize normal))
+           (=vec3 light_dir (normalize (- u_light_pos fragpos)))
+           (=vec3 diffuse (* (max (dot norm light_dir) "0.0") u_light_color))
+           (= o_color (vec4 (* (+ ambient diffuse) u_object_color) "1.0")))}})
 
 (def light-cube-fs
   {:precision  "mediump float"
-   :inputs     '{uv vec2}
+   :inputs     '{normal vec3
+                 uv vec2}
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
@@ -116,17 +136,17 @@
             #::gl-magic{:incantation
                         [{:bind-buffer "cube" :buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
                          {:bind-vao :cube-vao}
-                         {:point-attr 'a_pos :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 20}
-                         {:point-attr 'a_uv  :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
+                         {:point-attr 'a_pos :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
+                         {:point-attr 'a_normal :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :offset 12 :stride 32}
+                         {:point-attr 'a_uv :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 24 :stride 32}
                          {:bind-vao :light-cube-vao}
                          ;; rebinding actually make the data disappear for light-cube-vao
-                         {:point-attr 'a_pos :from-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 20}
-                         {:point-attr 'a_uv  :from-shader ::light-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
-                         {:unbind-vao true}]})))
+                         {:point-attr 'a_pos :from-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
+                         {:unbind-vao true}]})
+      (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))))
 
 (defn after-load-fn [world _game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::a-cube
             #::t3d{:position (v/vec3 0.0 5.0 0.0)
                    :rotation (q/quat-from-axis-angle
@@ -151,65 +171,65 @@
 (defn render-fn [world game]
   #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
   (def hmm {:world world})
-  (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
-    (let [{:keys [program-data vao]} esse
-          {:keys [tex-unit texture]} (:tex-data esse)
-          cube-uni  (:uni-locs program-data)
-          mvp-loc   (get cube-uni 'mvp)
-          u_tex-loc (get cube-uni 'u_tex)
-          scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
-          angle     (* (:total-time game) (m/radians -55.0) 0.001)
+  (let [light-pos [0.0 1.0 -2.0]]
+    #_"light cube, deliberate code duplication because we haven't senses the common denominator yet"
+    (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))]
+      (let [{:keys [program-data vao]} esse
+            cube-uni  (:uni-locs program-data)
 
-          view      (:look-at esse)
-          project   (:projection esse)
-          p*v       (m/* project view)]
+            view      (:look-at esse)
+            project   (:projection esse)
+            p*v       (m/* project view)
 
-      (gl game useProgram (:program program-data))
-      (gl game bindVertexArray vao)
-      (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-      (gl game bindTexture (gl game TEXTURE_2D) texture)
-      (gl game uniform1i u_tex-loc tex-unit)
+            scale-mat (m-ext/scaling-mat 0.2)
+            trans-mat (apply m-ext/translation-mat light-pos)
+            model     (reduce m/* [trans-mat scale-mat])]
+        (gl game useProgram (:program program-data))
+        (gl game bindVertexArray vao)
+        (gl game uniformMatrix4fv (get cube-uni 'p_v) false (f32-arr (vec p*v)))
+        (gl game uniformMatrix4fv (get cube-uni 'model) false (f32-arr (vec model)))
+        (gl game drawArrays (gl game TRIANGLES) 0 36)))
 
-      (gl game uniform3fv (get cube-uni 'u_object_color) (f32-arr [1.0 0.5 0.31]))
-      (gl game uniform3fv (get cube-uni 'u_light_color) (f32-arr [1.0 1.0 1.0]))
+    (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
+      (let [{:keys [program-data vao]} esse
+            {:keys [tex-unit texture]} (:tex-data esse)
+            cube-uni  (:uni-locs program-data)
+            u_tex-loc (get cube-uni 'u_tex)
+            scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
+            angle     (* (m/radians -55.0) 0.0) ;; rotation makes the normal wrong it seems
 
-      (doseq [translate [[0.0  0.0  0.0]
-                         [2.0  5.0 -15.0]
-                         [-1.5 -2.2 -2.5]
-                         [-3.8 -2.0 -12.3]
-                         [2.4 -0.4 -3.5]
-                         [-1.7  3.0 -7.5]
-                         [1.3 -2.0 -2.5]
-                         [1.5  2.0 -2.5]
-                         [1.5  0.2 -1.5]
-                         [-1.3  1.0 -1.5]]]
-        (let [trans-mat (apply m-ext/translation-mat translate)
-              rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                      (v/vec3 (second translate) 1.0 0.0)
-                                      (* angle (+ (second translate) 1.0))))
-              model     (reduce m/* [trans-mat rot-mat scale-mat])
-              p*v*m     (m/* p*v model)]
-          (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
-          (gl game drawArrays (gl game TRIANGLES) 0 36)))))
+            view      (:look-at esse)
+            project   (:projection esse)
+            p*v       (m/* project view)]
 
-  ;; light cube, deliberate code duplication because we haven't senses the common denominator yet
-  (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))] 
-    (let [{:keys [program-data vao]} esse
-          cube-uni  (:uni-locs program-data)
-          
-          mvp-loc   (get cube-uni 'mvp)
-          view      (:look-at esse)
-          project   (:projection esse)
-          p*v       (m/* project view)
-          
-          scale-mat (m-ext/scaling-mat 0.2)
-          trans-mat (m-ext/translation-mat 0.0 1.0 -2.0) 
-          model     (reduce m/* [trans-mat scale-mat])
-          p*v*m     (m/* p*v model)]
-      (gl game useProgram (:program program-data))
-      (gl game bindVertexArray vao)
-      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
-      (gl game drawArrays (gl game TRIANGLES) 0 36))))
+        (gl game useProgram (:program program-data))
+        (gl game bindVertexArray vao)
+        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+        (gl game bindTexture (gl game TEXTURE_2D) texture)
+        (gl game uniform1i u_tex-loc tex-unit)
+
+        (gl game uniform3fv (get cube-uni 'u_object_color) (f32-arr [1.0 0.5 0.31]))
+        (gl game uniform3fv (get cube-uni 'u_light_color) (f32-arr [1.0 1.0 1.0]))
+        (gl game uniform3fv (get cube-uni 'u_light_pos) (f32-arr light-pos))
+
+        (doseq [translate [[0.0  0.0  0.0]
+                           [2.0  5.0 -15.0]
+                           [-1.5 -2.2 -2.5]
+                           [-3.8 -2.0 -12.3]
+                           [2.4 -0.4 -3.5]
+                           [-1.7  3.0 -7.5]
+                           [1.3 -2.0 -2.5]
+                           [1.5  2.0 -2.5]
+                           [1.5  0.2 -1.5]
+                           [-1.3  1.0 -1.5]]]
+          (let [trans-mat (apply m-ext/translation-mat translate)
+                rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                        (v/vec3 (second translate) 1.0 0.0)
+                                        (* angle (+ (second translate) 1.0))))
+                model     (reduce m/* [trans-mat rot-mat scale-mat])]
+            (gl game uniformMatrix4fv (get cube-uni 'p_v) false (f32-arr (vec p*v)))
+            (gl game uniformMatrix4fv (get cube-uni 'model) false (f32-arr (vec model)))
+            (gl game drawArrays (gl game TRIANGLES) 0 36)))))))
 
 (def system
   [shader/system
