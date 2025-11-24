@@ -6,6 +6,7 @@ todo:
     ✘ incorporate assets @cancelled(25-06-12 23:10)
 
     re:minusone:
+        ✔ learnopengl (basic) @done(25-11-24 20:33)
         ☐ rewrite once again, now with t3d and more wishful thinking
 
     ☐ it begins
@@ -23,8 +24,8 @@ todo:
         ☐ sidestream twod-picking
             ☐ threed-picking?
         ☐ load proper mesh
-            ☐ does assimp make sense in clojure?
-            ☐ load model that is not compile-time for js
+            ✔ does assimp make sense in clojure? @done(25-11-22 16:22) assimpjs kinda attempted now, seems fine (not integrated yet)
+            ✔ load model that is not compile-time for js @done(25-11-22 16:22)
         ☐ maybe try implementing opengl tutorial again regarding light and materials
         ☐ sidestream: dialogue
         ☐ rethink director
@@ -76,7 +77,7 @@ play-cljc.gl:
             ☐ model loading, 
                 ✔ cube @done(25-10-13 23:55)
                 ☐ better texture
-                ☐ use normals, direction lighting and stuff
+                ✔ use normals, direction lighting and stuff @done(25-11-24 20:33)
                 ☐ following this as well https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
                 ☐ try using kenney 3d assets
                 ☐ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html)
@@ -142,7 +143,8 @@ startaker:
 
 bug:
     ✔ (JS err) Uncaught (in promise) SecurityError: The user has exited the lock before this request was completed. @done(25-11-20 00:04) seems like by design ;; https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/4
-    ☐ quaternion rotation on arcball sometimes morph the cube weirdly
+    ✘ quaternion rotation on arcball sometimes morph the cube weirdly @cancelled(25-11-22 16:22) THIS IS AN OPTICAL ILLUSION LMAO
+    ☐ input delay on jvm, probably the input-queue
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}

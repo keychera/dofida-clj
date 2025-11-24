@@ -9,8 +9,6 @@
 
 (def basis (delay (b/create-basis {:project "deps.edn" :aliases [:jvm]})))
 
-
-
 (defn clean [& _]
   (println "cleaning target...")
   (b/delete {:path "target"}))
@@ -33,7 +31,7 @@
 (defn repl [& _]
   ;; (compile-java-repl)
   (println "running desktop game with repl...")
-  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl]})
+  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl :profile]})
                              :main  'clojure.main
                              :main-args ["-m" "start-dev"]})]
     (b/process cmd)))

@@ -224,6 +224,7 @@
            (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
            (gl game bindTexture (gl game TEXTURE_2D) texture)
            (gl game uniform1i the-texture-loc tex-unit)
+           
 
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array sclera-mvp)
@@ -270,18 +271,11 @@
          (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
 
          (#_"plane to render from our offscreen texture"
-          let [{:keys [off-vbo off-uv-buffer]} (:off-plane esse-3d)
+          let [{:keys [off-vao]} (:off-plane esse-3d)
                fbo-tex      (:fbo-tex eye-fbo)
                fbo-tex-unit (:tex-unit eye-fbo)]
+          (gl game bindVertexArray off-vao)
           (gl game useProgram the-program)
-
-          (gl game enableVertexAttribArray the-attr-loc)
-          (gl game bindBuffer (gl game ARRAY_BUFFER) off-vbo)
-          (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
-
-          (gl game enableVertexAttribArray the-uv-attr-loc)
-          (gl game bindBuffer (gl game ARRAY_BUFFER) off-uv-buffer)
-          (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
 
           (gl game uniformMatrix4fv the-mvp-loc false
               #?(:clj (float-array (m/identity-matrix 4))
@@ -295,8 +289,7 @@
           (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
           (gl game uniform1i the-texture-loc fbo-tex-unit)
 
-          (gl game drawArrays (gl game TRIANGLES) 0 6)
-          (gl game disableVertexAttribArray the-attr-loc)))))})
+          (gl game drawArrays (gl game TRIANGLES) 0 6)))))})
 
 (defmethod asset/process-asset ::asset/alive
   [world* _game asset-id {::asset/keys [metadata-to-load]}]
