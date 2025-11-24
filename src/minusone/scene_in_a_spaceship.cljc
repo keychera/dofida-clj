@@ -25,7 +25,6 @@
 
 (def esse-default-facts [t3d/default])
 (defn esse [world id & facts]
-  (println "inserting" id)
   (o/insert world id (apply utils/deep-merge (concat esse-default-facts facts))))
 
 (def cube-data

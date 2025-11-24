@@ -1,10 +1,9 @@
 (ns minusone.rules.types
   (:require
    [clojure.spec.alpha :as s]
-   #?@(:cljs
-       [[thi.ng.geom.matrix :refer [Matrix44]]
-        [thi.ng.geom.quaternion :refer [Quat4]]
-        [thi.ng.geom.vector :refer [Vec3]]]))
+   [thi.ng.geom.matrix #?@(:cljs [:refer [Matrix44]])]
+   [thi.ng.geom.quaternion #?@(:cljs [:refer [Quat4]])]
+   [thi.ng.geom.vector #?@(:cljs [:refer [Vec3]])])
   #?(:clj
      (:import
       [thi.ng.geom.matrix Matrix44]
