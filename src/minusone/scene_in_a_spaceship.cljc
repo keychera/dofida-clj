@@ -170,6 +170,11 @@
      :then
      (println esse-id "ready to render")]}))
 
+(defonce random-cubes
+  (let [max-dist 90.0
+        rand-val (fn [] (* max-dist (- (rand 1) 0.5)))]
+    (take 200 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
+
 (defn render-fn [world game]
   #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
   (def hmm {:world world})
@@ -196,9 +201,8 @@
       (let [{:keys [program-data vao]} esse
             {:keys [tex-unit texture]} (:tex-data esse)
             cube-uni  (:uni-locs program-data)
-            u_tex-loc (get cube-uni 'u_tex)
-            scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
-            angle     (* (:total-time game) (m/radians -55.0) 0.001)
+            u_tex-loc (get cube-uni 'u_tex) 
+            angle     (* (:total-time game) (m/radians -55.0) 0.0001)
 
             view      (:look-at esse)
             project   (:projection esse)
@@ -214,20 +218,14 @@
         (gl game uniform3fv (get cube-uni 'u_light_color) (f32-arr [1.0 1.0 1.0]))
         (gl game uniform3fv (get cube-uni 'u_light_pos) (f32-arr light-pos))
 
-        (doseq [translate [[0.0  0.0  0.0]
-                           [2.0  5.0 -15.0]
-                           [-1.5 -2.2 -2.5]
-                           [-3.8 -2.0 -12.3]
-                           [2.4 -0.4 -3.5]
-                           [-1.7  3.0 -7.5]
-                           [1.3 -2.0 -2.5]
-                           [1.5  2.0 -2.5]
-                           [1.5  0.2 -1.5]
-                           [-1.3  1.0 -1.5]]]
+        (doseq [translate random-cubes]
           (let [trans-mat  (apply m-ext/translation-mat translate)
+                scale-mat (m-ext/scaling-mat (* 0.5 (nth translate 2)) 
+                                             (* 0.5 (nth translate 1)) 
+                                             (* 0.5 (nth translate 0)))
                 rot-mat    (g/as-matrix (q/quat-from-axis-angle
-                                        (v/vec3 (second translate) 1.0 0.0)
-                                        (* angle (+ (second translate) 1.0))))
+                                         (v/vec3 (second translate) 1.0 0.0)
+                                         (* angle (+ (second translate) 1.0))))
                 model      (reduce m/* [trans-mat rot-mat scale-mat])
                 normal-mat (-> model m/invert m/transpose mat/matrix44->matrix33)]
             (gl game uniformMatrix4fv (get cube-uni 'u_p_v) false (f32-arr (vec p*v)))
