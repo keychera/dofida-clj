@@ -19,7 +19,8 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [thi.ng.geom.matrix :as mat]))
+   [thi.ng.geom.matrix :as mat]
+   [iglu.core :as iglu]))
 
 ;; for the umpteenth time, we learn opengl again
 ;; https://learnopengl.com/Getting-started/Transformations
@@ -102,15 +103,28 @@
    :uniforms   '{u_object_color vec3
                  u_light_color vec3
                  u_light_pos vec3
+                 u_view_pos vec3
                  u_tex sampler2D}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
            (=vec3 ambient (* "0.1" u_light_color))
            (=vec3 norm (normalize normal))
+
            (=vec3 light_dir (normalize (- u_light_pos fragpos)))
-           (=vec3 diffuse (* (max (dot norm light_dir) "0.0") u_light_color))
-           (= o_color (vec4 (* (+ ambient diffuse) u_object_color) "1.0")))}})
+
+           (=vec3 view_dir (normalize (- u_view_pos fragpos)))
+           (=vec3 reflect_dir (reflect (- "0.0" light_dir) norm))
+           (=float specular_str "0.5")
+           (=float spec (pow (max (dot view_dir reflect_dir) "0.0") "256.0"))
+           (=vec3 specular (* specular_str spec u_light_color))
+
+           (=float diff (max (dot norm light_dir) "0.0"))
+           (=vec3 diffuse (* diff u_light_color))
+
+           (= o_color (vec4 (* (+ ambient diffuse specular) u_object_color) "1.0")))}})
+
+(iglu/iglu->glsl cube-fs)
 
 (def light-cube-fs
   {:precision  "mediump float"
@@ -167,13 +181,17 @@
      [::dofida-texture ::texture/from-png tex-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
+     [::firstperson/player ::firstperson/position cam-position {:then false}]
      :then
      (println esse-id "ready to render")]}))
 
 (defonce random-cubes
-  (let [max-dist 90.0
-        rand-val (fn [] (* max-dist (- (rand 1) 0.5)))]
-    (take 200 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
+  (let [max-dist 24.0
+        min-dist 1.0
+        rand-val (fn [] (loop []
+                          (let [v (* max-dist (- (rand 1) 0.5))]
+                            (if (> (abs v) min-dist) v (recur)))))]
+    (take 400 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
 
 #?(:clj #_"java only profilers"
    (comment
@@ -214,13 +232,14 @@
         (gl game drawArrays (gl game TRIANGLES) 0 36)))
 
     (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
-      (let [{:keys [program-data vao]} esse
+      (let [{:keys [program-data vao cam-position]} esse
             {:keys [tex-unit texture]} (:tex-data esse)
             cube-uni  (:uni-locs program-data)
             ^int u_tex-loc (get cube-uni 'u_tex)
             ^int u_object_color (get cube-uni 'u_object_color)
             ^int u_light_color (get cube-uni 'u_light_color)
             ^int u_light_pos (get cube-uni 'u_light_pos)
+            ^int u_view_pos (get cube-uni 'u_view_pos)
             ^int u_p_v (get cube-uni 'u_p_v)
             ^int u_model (get cube-uni 'u_model)
             ^int u_normal_mat (get cube-uni 'u_normal_mat)
@@ -239,14 +258,13 @@
         (gl game uniform3fv u_object_color (f32-arr [1.0 0.5 0.31]))
         (gl game uniform3fv u_light_color (f32-arr [1.0 1.0 1.0]))
         (gl game uniform3fv u_light_pos (f32-arr light-pos))
+        (gl game uniform3fv u_view_pos (f32-arr (into [] cam-position))) ;; this is weird... (f32-arr (vec (v/vec3))) returns empty arr
 
         (doseq [translate random-cubes]
           (let [trans-mat  (apply m-ext/translation-mat translate)
-                scale-mat (m-ext/scaling-mat (* 0.5 (nth translate 2))
-                                             (* 0.5 (nth translate 1))
-                                             (* 0.5 (nth translate 0)))
+                scale-mat (m-ext/scaling-mat 1.0)
                 rot-mat    (g/as-matrix (q/quat-from-axis-angle
-                                         (v/vec3 (second translate) 1.0 0.0)
+                                         (v/vec3 (first translate) (second translate) (first translate))
                                          (* angle (+ (second translate) 1.0))))
                 model      (reduce m/* [trans-mat rot-mat scale-mat])
                 normal-mat (-> model m/invert m/transpose mat/matrix44->matrix33)]
