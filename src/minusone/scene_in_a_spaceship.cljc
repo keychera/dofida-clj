@@ -119,8 +119,9 @@
                          {:point-attr 'a_pos :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 20}
                          {:point-attr 'a_uv  :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
                          {:bind-vao :light-cube-vao}
-                         {:bind-buffer "cube" :buffer-type (gl game ARRAY_BUFFER)}
-                         {:point-attr 'a_uv  :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
+                         ;; rebinding actually make the data disappear for light-cube-vao
+                         {:point-attr 'a_pos :from-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 20}
+                         {:point-attr 'a_uv  :from-shader ::light-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
                          {:unbind-vao true}]})))
 
 (defn after-load-fn [world _game]
@@ -150,7 +151,7 @@
 (defn render-fn [world game]
   #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
   (def hmm {:world world})
-  (doseq [esse (o/query-all world ::esses)]
+  (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
     (let [{:keys [program-data vao]} esse
           {:keys [tex-unit texture]} (:tex-data esse)
           cube-uni  (:uni-locs program-data)
@@ -189,7 +190,26 @@
               model     (reduce m/* [trans-mat rot-mat scale-mat])
               p*v*m     (m/* p*v model)]
           (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
-          (gl game drawArrays (gl game TRIANGLES) 0 36))))))
+          (gl game drawArrays (gl game TRIANGLES) 0 36)))))
+
+  ;; light cube, deliberate code duplication because we haven't senses the common denominator yet
+  (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))] 
+    (let [{:keys [program-data vao]} esse
+          cube-uni  (:uni-locs program-data)
+          
+          mvp-loc   (get cube-uni 'mvp)
+          view      (:look-at esse)
+          project   (:projection esse)
+          p*v       (m/* project view)
+          
+          scale-mat (m-ext/scaling-mat 0.2)
+          trans-mat (m-ext/translation-mat 0.0 1.0 -2.0) 
+          model     (reduce m/* [trans-mat scale-mat])
+          p*v*m     (m/* p*v model)]
+      (gl game useProgram (:program program-data))
+      (gl game bindVertexArray vao)
+      (gl game uniformMatrix4fv mvp-loc false (f32-arr (vec p*v*m)))
+      (gl game drawArrays (gl game TRIANGLES) 0 36))))
 
 (def system
   [shader/system
@@ -202,6 +222,6 @@
     ::world/render-fn render-fn}])
 
 (comment
-  (o/query-all (:world hmm))
+  (o/query-all (:world hmm) ::esses)
 
   :-)

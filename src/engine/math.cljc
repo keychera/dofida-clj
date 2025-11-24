@@ -4,12 +4,14 @@
 
 ;; math sugar
 
-(defn scaling-mat [sx sy sz]
-  (mat/matrix44
-   sx,  0.0  0.0  0.0
-   0.0  sy,  0.0  0.0
-   0.0  0.0  sz,  0.0
-   0.0  0.0  0.0  1.0))
+(defn scaling-mat
+  ([s] (scaling-mat s s s))
+  ([sx sy sz]
+   (mat/matrix44
+    sx,  0.0  0.0  0.0
+    0.0  sy,  0.0  0.0
+    0.0  0.0  sz,  0.0
+    0.0  0.0  0.0  1.0)))
 
 (defn translation-mat [tx ty tz]
   (mat/matrix44
