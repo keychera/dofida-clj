@@ -19,8 +19,7 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [thi.ng.geom.matrix :as mat]
-   [iglu.core :as iglu]))
+   [thi.ng.geom.matrix :as mat]))
 
 ;; for the umpteenth time, we learn opengl again
 ;; https://learnopengl.com/Getting-started/Transformations
@@ -100,31 +99,34 @@
                  normal vec3
                  uv vec2}
    :outputs    '{o_color vec4}
-   :uniforms   '{u_object_color vec3
-                 u_light_color vec3
+   :uniforms   '{u_view_pos vec3
+
+                 u_mat_diffuse sampler2D
+                 u_mat_specular sampler2D
+                 u_mat_shininess float
+
                  u_light_pos vec3
-                 u_view_pos vec3
-                 u_tex sampler2D}
+                 u_light_ambient vec3
+                 u_light_diffuse vec3
+                 u_light_specular vec3}
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (=vec3 ambient (* "0.1" u_light_color))
+           ; ambient
+           (=vec3 ambient (* u_light_ambient (.rgb (texture u_mat_diffuse uv))))
+           
+           ; diffuse
            (=vec3 norm (normalize normal))
-
            (=vec3 light_dir (normalize (- u_light_pos fragpos)))
+           (=float diff (max (dot norm light_dir) "0.0"))
+           (=vec3 diffuse (* u_light_diffuse diff (.rgb (texture u_mat_diffuse uv))))
 
            (=vec3 view_dir (normalize (- u_view_pos fragpos)))
            (=vec3 reflect_dir (reflect (- "0.0" light_dir) norm))
-           (=float specular_str "0.5")
-           (=float spec (pow (max (dot view_dir reflect_dir) "0.0") "256.0"))
-           (=vec3 specular (* specular_str spec u_light_color))
-
-           (=float diff (max (dot norm light_dir) "0.0"))
-           (=vec3 diffuse (* diff u_light_color))
-
-           (= o_color (vec4 (* (+ ambient diffuse specular) u_object_color) "1.0")))}})
-
-(iglu/iglu->glsl cube-fs)
+           (=float spec (pow (max (dot view_dir reflect_dir) "0.0") u_mat_shininess))
+           (=vec3 specular (* u_light_specular spec (.rgb (texture u_mat_specular uv))))
+           
+           (= o_color (vec4 (+ ambient diffuse specular) "1.0")))}})
 
 (def light-cube-fs
   {:precision  "mediump float"
@@ -139,9 +141,12 @@
 (defn init-fn [world game]
   (gl game enable (gl game DEPTH_TEST)) ;; probably better to be called elsewhere
   (-> world
-      (asset ::dofida-texture
-             #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
+      (asset ::container-texture
+             #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/container.png"}
              #::texture{:tex-unit 0})
+      (asset ::specular-map
+             #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/specular_map.png"}
+             #::texture{:tex-unit 1})
       (esse ::a-cube
             #::shader{:program-data (shader/create-program game vertex-shader cube-fs)}
             #::vao{:use :cube-vao})
@@ -178,7 +183,8 @@
      [esse-id ::shader/program-data program-data]
      [esse-id ::vao/use vao-id]
      [vao-id ::vao/vao vao]
-     [::dofida-texture ::texture/from-png tex-data]
+     [::container-texture ::texture/from-png tex-data]
+     [::specular-map ::texture/from-png spec-tex-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
@@ -186,12 +192,12 @@
      (println esse-id "ready to render")]}))
 
 (defonce random-cubes
-  (let [max-dist 24.0
-        min-dist 1.0
+  (let [max-dist 10.0
+        min-dist 0.1
         rand-val (fn [] (loop []
                           (let [v (* max-dist (- (rand 1) 0.5))]
                             (if (> (abs v) min-dist) v (recur)))))]
-    (take 400 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
+    (take 200 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
 
 #?(:clj #_"java only profilers"
    (comment
@@ -233,17 +239,26 @@
 
     (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
       (let [{:keys [program-data vao cam-position]} esse
-            {:keys [tex-unit texture]} (:tex-data esse)
             cube-uni  (:uni-locs program-data)
-            ^int u_tex-loc (get cube-uni 'u_tex)
-            ^int u_object_color (get cube-uni 'u_object_color)
-            ^int u_light_color (get cube-uni 'u_light_color)
-            ^int u_light_pos (get cube-uni 'u_light_pos)
-            ^int u_view_pos (get cube-uni 'u_view_pos)
+
+            ;; uniform for vertex shaders
             ^int u_p_v (get cube-uni 'u_p_v)
             ^int u_model (get cube-uni 'u_model)
             ^int u_normal_mat (get cube-uni 'u_normal_mat)
-            angle     (* (:total-time game) (m/radians -55.0) 0.0001)
+
+            ;; uniform for fragment shaders
+            ^int u_view_pos (get cube-uni 'u_view_pos)
+
+            ^int u_mat_diffuse (get cube-uni 'u_mat_diffuse)
+            ^int u_mat_specular (get cube-uni 'u_mat_specular)
+            ^int u_mat_shininess (get cube-uni 'u_mat_shininess)
+
+            ^int u_light_pos (get cube-uni 'u_light_pos)
+            ^int u_light_ambient (get cube-uni 'u_light_ambient)
+            ^int u_light_diffuse (get cube-uni 'u_light_diffuse)
+            ^int u_light_specular (get cube-uni 'u_light_specular)
+
+            angle     (* (:total-time game) (m/radians -55.0) 0.001)
 
             view      (:look-at esse)
             project   (:projection esse)
@@ -251,14 +266,25 @@
 
         (gl game useProgram (:program program-data))
         (gl game bindVertexArray vao)
-        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-        (gl game bindTexture (gl game TEXTURE_2D) texture)
-        (gl game uniform1i u_tex-loc tex-unit)
 
-        (gl game uniform3fv u_object_color (f32-arr [1.0 0.5 0.31]))
-        (gl game uniform3fv u_light_color (f32-arr [1.0 1.0 1.0]))
-        (gl game uniform3fv u_light_pos (f32-arr light-pos))
+        (let [{:keys [tex-unit texture]} (:tex-data esse)]
+          (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+          (gl game bindTexture (gl game TEXTURE_2D) texture)
+          (gl game uniform1i u_mat_diffuse tex-unit))
+
+        (let [{:keys [tex-unit texture]} (:spec-tex-data esse)]
+          (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+          (gl game bindTexture (gl game TEXTURE_2D) texture)
+          (gl game uniform1i u_mat_specular tex-unit))
+
         (gl game uniform3fv u_view_pos (f32-arr (into [] cam-position))) ;; this is weird... (f32-arr (vec (v/vec3))) returns empty arr
+        (gl game uniform3fv u_light_pos (f32-arr light-pos))
+
+        (gl game uniform3fv u_light_ambient (f32-arr [0.2 0.2 0.2]))
+        (gl game uniform3fv u_light_diffuse (f32-arr [0.5 0.5 0.5]))
+        (gl game uniform3fv u_light_specular (f32-arr [1.0 1.0 1.0]))
+
+        (gl game uniform1f u_mat_shininess 64.0)
 
         (doseq [translate random-cubes]
           (let [trans-mat  (apply m-ext/translation-mat translate)
