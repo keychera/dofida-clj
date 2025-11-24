@@ -8,6 +8,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world]
+   [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.projection :as projection]
@@ -27,7 +28,7 @@
   (println "inserting" id)
   (o/insert world id (apply utils/deep-merge (concat esse-default-facts facts))))
 
-(def triangle-data
+(def cube-data
   (f32-arr
    ; pos            uv
    [-0.5 -0.5 -0.5  0.0 0.0
@@ -95,11 +96,19 @@
       (asset ::dofida-texture
              #::asset{:type ::asset/texture-from-png :asset-to-load "dofida.png"}
              #::texture{:tex-unit 0})
-      (esse ::a-triangle
+      (esse ::a-cube
             #::shader{:program-data (shader/create-program game vertex-shader fragment-shader)}
-            #::vao{:entries [{:data triangle-data :buffer-type (gl game ARRAY_BUFFER)}
-                             {:attr 'a_pos   :size 3 :type (gl game FLOAT) :stride 20}
-                             {:attr 'a_uv    :size 2 :type (gl game FLOAT) :offset 12 :stride 20}]})))
+            #::vao{:use :cube-vao})
+      (esse ::shader/global
+            #::gl-magic{:incantation
+                        [{:bind-buffer "cube" :buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
+                         {:bind-vao :cube-vao}
+                         {:point-attr 'a_pos :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 20}
+                         {:point-attr 'a_uv  :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
+                         {:bind-vao :light-cube-vao}
+                         {:bind-buffer "cube" :buffer-type (gl game ARRAY_BUFFER)}
+                         {:point-attr 'a_uv  :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 12 :stride 20}
+                         {:unbind-vao true}]})))
 
 (defn after-load-fn [world _game]
   (-> world
@@ -117,7 +126,8 @@
    {::esses
     [:what
      [esse-id ::shader/program-data program-data]
-     [esse-id ::vao/vao vao]
+     [esse-id ::vao/use vao-id]
+     [vao-id ::vao/vao vao]
      [::dofida-texture ::texture/from-png tex-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
@@ -134,7 +144,7 @@
           u_tex-loc (get (:uni-locs program-data) 'u_tex)
           scale-mat (m-ext/scaling-mat 1.0 1.0 1.0)
           angle     (* (:total-time game) (m/radians -55.0) 0.001)
-          
+
           view      (:look-at esse)
           project   (:projection esse)
           p*v       (m/* project view)]
@@ -166,13 +176,13 @@
 
 (def system
   [shader/system
-   vao/system
+   gl-magic/system
    projection/system
    firstperson/system
    {::world/init-fn init-fn
-   ::world/after-load-fn after-load-fn
-   ::world/rules rules
-   ::world/render-fn render-fn}])
+    ::world/after-load-fn after-load-fn
+    ::world/rules rules
+    ::world/render-fn render-fn}])
 
 (comment
   (o/query-all (:world hmm))

@@ -24,7 +24,8 @@
     :rules.window/window
     :rules.interface.input/mouse
     :rules.camera.arcball/camera
-    :rules.interface.input/mouse-delta})
+    :rules.interface.input/mouse-delta
+    :minusone.rules.view.firstperson/player})
 
 (defn rules-debugger-wrap-fn [rule]
   (o/wrap-rule rule
