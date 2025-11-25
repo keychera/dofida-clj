@@ -114,7 +114,7 @@
    '{main ([]
            ; ambient
            (=vec3 ambient (* u_light_ambient (.rgb (texture u_mat_diffuse uv))))
-           
+
            ; diffuse
            (=vec3 norm (normalize normal))
            (=vec3 light_dir (normalize (- u_light_pos fragpos)))
@@ -125,7 +125,7 @@
            (=vec3 reflect_dir (reflect (- "0.0" light_dir) norm))
            (=float spec (pow (max (dot view_dir reflect_dir) "0.0") u_mat_shininess))
            (=vec3 specular (* u_light_specular spec (.rgb (texture u_mat_specular uv))))
-           
+
            (= o_color (vec4 (+ ambient diffuse specular) "1.0")))}})
 
 (def light-cube-fs
@@ -168,13 +168,9 @@
 
 (defn after-load-fn [world _game]
   (-> world
-      (esse ::a-cube
-            #::t3d{:position (v/vec3 0.0 5.0 0.0)
-                   :rotation (q/quat-from-axis-angle
-                              (v/vec3 0.0 1.0 0.0)
-                              (m/degrees 45.0))})
-      (esse ::dofida
-            #::t3d{:position (v/vec3 -5.0 0.0 5.0)})))
+      (esse ::light-cube
+            #::t3d{:position (v/vec3 0.0 1.0 -2.0)
+                   :scale (v/vec3 0.2)})))
 
 (def rules
   (o/ruleset
@@ -183,6 +179,8 @@
      [esse-id ::shader/program-data program-data]
      [esse-id ::vao/use vao-id]
      [vao-id ::vao/vao vao]
+     [esse-id ::t3d/local-transform transform]
+     [::light-cube ::t3d/position light-pos]
      [::container-texture ::texture/from-png tex-data]
      [::specular-map ::texture/from-png spec-tex-data]
      [::world/global ::projection/matrix projection]
@@ -217,93 +215,91 @@
 (defn render-fn [world game]
   #_{:clj-kondo/ignore [:inline-def]} ;; debugging purposes
   (def hmm {:world world})
-  (let [light-pos [0.0 1.0 -2.0]]
-    #_"light cube, deliberate code duplication because we haven't senses the common denominator yet"
-    (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))]
-      (let [{:keys [program-data vao]} esse
-            cube-uni  (:uni-locs program-data)
-            ^int u_p_v (get cube-uni 'u_p_v)
-            ^int u_model (get cube-uni 'u_model)
-            view      (:look-at esse)
-            project   (:projection esse)
-            p*v       (m/* project view)
+  #_"light cube, deliberate code duplication because we haven't senses the common denominator yet"
+  (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))]
+    (let [{:keys [program-data vao transform]} esse
+          cube-uni  (:uni-locs program-data)
+          ^int u_p_v (get cube-uni 'u_p_v)
+          ^int u_model (get cube-uni 'u_model)
+          view      (:look-at esse)
+          project   (:projection esse)
+          p*v       (vec (m/* project view))
 
-            scale-mat (m-ext/scaling-mat 0.2)
-            trans-mat (apply m-ext/translation-mat light-pos)
-            model     (reduce m/* [trans-mat scale-mat])]
-        (gl game useProgram (:program program-data))
-        (gl game bindVertexArray vao)
-        (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
-        (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
-        (gl game drawArrays (gl game TRIANGLES) 0 36)))
+          model     (vec transform)]
+      (gl game useProgram (:program program-data))
+      (gl game bindVertexArray vao)
+      (gl game uniformMatrix4fv u_p_v false (f32-arr p*v))
+      (gl game uniformMatrix4fv u_model false (f32-arr model))
+      (gl game drawArrays (gl game TRIANGLES) 0 36)))
 
-    (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
-      (let [{:keys [program-data vao cam-position]} esse
-            cube-uni  (:uni-locs program-data)
+  (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
+    (let [{:keys [program-data vao cam-position light-pos]} esse
+          cube-uni  (:uni-locs program-data)
 
-            ;; uniform for vertex shaders
-            ^int u_p_v (get cube-uni 'u_p_v)
-            ^int u_model (get cube-uni 'u_model)
-            ^int u_normal_mat (get cube-uni 'u_normal_mat)
+              ;; uniform for vertex shaders
+          ^int u_p_v (get cube-uni 'u_p_v)
+          ^int u_model (get cube-uni 'u_model)
+          ^int u_normal_mat (get cube-uni 'u_normal_mat)
 
-            ;; uniform for fragment shaders
-            ^int u_view_pos (get cube-uni 'u_view_pos)
+              ;; uniform for fragment shaders
+          ^int u_view_pos (get cube-uni 'u_view_pos)
 
-            ^int u_mat_diffuse (get cube-uni 'u_mat_diffuse)
-            ^int u_mat_specular (get cube-uni 'u_mat_specular)
-            ^int u_mat_shininess (get cube-uni 'u_mat_shininess)
+          ^int u_mat_diffuse (get cube-uni 'u_mat_diffuse)
+          ^int u_mat_specular (get cube-uni 'u_mat_specular)
+          ^int u_mat_shininess (get cube-uni 'u_mat_shininess)
 
-            ^int u_light_pos (get cube-uni 'u_light_pos)
-            ^int u_light_ambient (get cube-uni 'u_light_ambient)
-            ^int u_light_diffuse (get cube-uni 'u_light_diffuse)
-            ^int u_light_specular (get cube-uni 'u_light_specular)
+          ^int u_light_pos (get cube-uni 'u_light_pos)
+          ^int u_light_ambient (get cube-uni 'u_light_ambient)
+          ^int u_light_diffuse (get cube-uni 'u_light_diffuse)
+          ^int u_light_specular (get cube-uni 'u_light_specular)
 
-            angle     (* (:total-time game) (m/radians -55.0) 0.001)
+          angle     (* (:total-time game) (m/radians -55.0) 0.001)
 
-            view      (:look-at esse)
-            project   (:projection esse)
-            p*v       (m/* project view)]
+          view      (:look-at esse)
+          project   (:projection esse)
+          p*v       (m/* project view)]
 
-        (gl game useProgram (:program program-data))
-        (gl game bindVertexArray vao)
+      (gl game useProgram (:program program-data))
+      (gl game bindVertexArray vao)
 
-        (let [{:keys [tex-unit texture]} (:tex-data esse)]
-          (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-          (gl game bindTexture (gl game TEXTURE_2D) texture)
-          (gl game uniform1i u_mat_diffuse tex-unit))
+      (let [{:keys [tex-unit texture]} (:tex-data esse)]
+        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+        (gl game bindTexture (gl game TEXTURE_2D) texture)
+        (gl game uniform1i u_mat_diffuse tex-unit))
 
-        (let [{:keys [tex-unit texture]} (:spec-tex-data esse)]
-          (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-          (gl game bindTexture (gl game TEXTURE_2D) texture)
-          (gl game uniform1i u_mat_specular tex-unit))
+      (let [{:keys [tex-unit texture]} (:spec-tex-data esse)]
+        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+        (gl game bindTexture (gl game TEXTURE_2D) texture)
+        (gl game uniform1i u_mat_specular tex-unit))
 
-        (gl game uniform3fv u_view_pos (f32-arr (into [] cam-position))) ;; this is weird... (f32-arr (vec (v/vec3))) returns empty arr
-        (gl game uniform3fv u_light_pos (f32-arr light-pos))
+      (gl game uniform3fv u_view_pos (f32-arr (into [] cam-position))) ;; this is weird... (f32-arr (vec (v/vec3))) returns empty arr 
+      (gl game uniform3fv u_light_pos (f32-arr (into [] light-pos)))
 
-        (gl game uniform3fv u_light_ambient (f32-arr [0.2 0.2 0.2]))
-        (gl game uniform3fv u_light_diffuse (f32-arr [0.5 0.5 0.5]))
-        (gl game uniform3fv u_light_specular (f32-arr [1.0 1.0 1.0]))
+      (gl game uniform3fv u_light_ambient (f32-arr [0.2 0.2 0.2]))
+      (gl game uniform3fv u_light_diffuse (f32-arr [0.5 0.5 0.5]))
+      (gl game uniform3fv u_light_specular (f32-arr [1.0 1.0 1.0]))
 
-        (gl game uniform1f u_mat_shininess 64.0)
+      (gl game uniform1f u_mat_shininess 64.0)
 
-        (doseq [translate random-cubes]
-          (let [trans-mat  (apply m-ext/translation-mat translate)
-                scale-mat (m-ext/scaling-mat 1.0)
-                rot-mat    (g/as-matrix (q/quat-from-axis-angle
-                                         (v/vec3 (first translate) (second translate) (first translate))
-                                         (* angle (+ (second translate) 1.0))))
-                model      (reduce m/* [trans-mat rot-mat scale-mat])
-                normal-mat (-> model m/invert m/transpose mat/matrix44->matrix33)]
-            (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
-            (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
-            (gl game uniformMatrix3fv u_normal_mat false (f32-arr (vec normal-mat)))
-            (gl game drawArrays (gl game TRIANGLES) 0 36)))))))
+      (doseq [translate random-cubes]
+        (let [trans-mat  (apply m-ext/translation-mat translate)
+              scale-mat (m-ext/scaling-mat 1.0)
+              rot-mat    (g/as-matrix (q/quat-from-axis-angle
+                                       (v/vec3 (first translate) (second translate) (first translate))
+                                       (* angle (+ (second translate) 1.0))))
+              model      (reduce m/* [trans-mat rot-mat scale-mat])
+              normal-mat (-> model m/invert m/transpose mat/matrix44->matrix33)]
+          (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
+          (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
+          (gl game uniformMatrix3fv u_normal_mat false (f32-arr (vec normal-mat)))
+          (gl game drawArrays (gl game TRIANGLES) 0 36))))))
 
 (def system
   [shader/system
    gl-magic/system
    projection/system
    firstperson/system
+   t3d/system
    {::world/init-fn init-fn
     ::world/after-load-fn after-load-fn
     ::world/rules rules
