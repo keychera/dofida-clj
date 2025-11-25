@@ -3,8 +3,9 @@
    ["assimpjs" :as assimpjs]))
 
 (comment
-  (let [files ["assets/dofida-plane.obj"
-               "assets/dofida.mtl"]]
+  (let [files (eduction
+               (map #(str "assets/models/" %))
+               ["moon.glb"])]
     (-> (assimpjs)
         (.then
          (fn [ajs]
@@ -18,13 +19,15 @@
                       (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arrayBuffers i))))
                     (def hmm (.ConvertFileList ajs ajs-file-list "gltf2"))))))))))
 
-  (js->clj (->> (.GetFile hmm 0) ;; oh wait, those two file combines into one!
-                (.GetContent)
-                (.decode (js/TextDecoder.))
-                (js/JSON.parse))
-           :keywordize-keys true)
-  
-(->> (.GetFile hmm 1) ;; this is the result.bin
-     (.GetContent)) ;; is Uint8Array !!!
+  (->> (.GetFile hmm 0) ;; oh wait, those two file combines into one!
+       (.GetContent)
+       (.decode (js/TextDecoder.))
+       (js/JSON.parse)
+       ((fn [json] (-> json
+                       (js->clj :keywordize-keys true)
+                       (dissoc :images)))))
+
+  (->> (.GetFile hmm 1) ;; this is the result.bin
+       (.GetContent)) ;; is Uint8Array !!!
 
   :-)
