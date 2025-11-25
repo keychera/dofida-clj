@@ -3,7 +3,7 @@
    ["assimpjs" :as assimpjs]))
 
 (comment
-  (let [files ["assets/defaultcube.obj"
+  (let [files ["assets/dofida-plane.obj"
                "assets/dofida.mtl"]]
     (-> (assimpjs)
         (.then
@@ -16,10 +16,15 @@
                   (let [ajs-file-list (new (.-FileList ajs))]
                     (dotimes [i (count files)]
                       (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arrayBuffers i))))
-                    (def hmm (.ConvertFileList ajs ajs-file-list "assjson"))))))))))
+                    (def hmm (.ConvertFileList ajs ajs-file-list "gltf2"))))))))))
 
-  (js->clj (->> (.GetFile hmm 0) ;; file 1 will throw error
+  (js->clj (->> (.GetFile hmm 0) ;; oh wait, those two file combines into one!
                 (.GetContent)
                 (.decode (js/TextDecoder.))
                 (js/JSON.parse))
-           :keywordize-keys true))
+           :keywordize-keys true)
+  
+(->> (.GetFile hmm 1) ;; this is the result.bin
+     (.GetContent)) ;; is Uint8Array !!!
+
+  :-)
