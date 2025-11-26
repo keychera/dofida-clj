@@ -3,7 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
-   [assets.texture :as texture]
+   [minusone.rules.gl.texture :as texture]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]

@@ -4,7 +4,7 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
    [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
-   [assets.texture :as texture]
+   [minusone.rules.gl.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]

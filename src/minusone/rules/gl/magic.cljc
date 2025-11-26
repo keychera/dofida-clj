@@ -12,7 +12,6 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]))
 
-(s/def ::vao any?)
 (s/def ::incantation vector?)
 (s/def ::all-shader vector?)
 

@@ -1,4 +1,4 @@
-(ns assets.texture
+(ns minusone.rules.gl.texture
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
@@ -14,7 +14,7 @@
 
 (defmethod asset/process-asset ::asset/texture-from-png
   [world* game asset-id {::asset/keys [asset-to-load]
-                         ::keys [tex-unit]}]
+                         ::keys [:minusone.rules.gl.texture/tex-unit]}]
   (utils/get-image
    asset-to-load
    (fn on-image-load [{:keys [data width height]}]
@@ -42,7 +42,7 @@
 (s/def ::fbo map?)
 
 (defmethod asset/process-asset ::asset/fbo
-  [world* game asset-id {::keys [tex-unit]}]
+  [world* game asset-id {::keys [:minusone.rules.gl.texture/tex-unit]}]
   (let [[width height] (utils/get-size game)
         frame-buf (gl game #?(:clj genFramebuffers :cljs createFramebuffer))
         _         (gl game bindFramebuffer (gl game FRAMEBUFFER) frame-buf)
