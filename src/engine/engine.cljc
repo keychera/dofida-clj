@@ -30,7 +30,7 @@
     input/system
     arcball/system
 
-    scene-in-a-spaceship/system]))
+    #_scene-in-a-spaceship/system]))
 
 (defn init [game]
   (println "init game")
@@ -60,7 +60,7 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      (let [{:keys [total-time delta-time]} game
+      #_(let [{:keys [total-time delta-time]} game
             [width height] (utils/get-size game)
             world (swap! (::world/atom* game)
                          #(-> %
