@@ -7,10 +7,7 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.learnopengl :as scene-in-a-spaceship]
    [odoyle.rules :as o]
-   [rules.camera.arcball :as arcball]
-   [rules.interface.input :as input]
    [rules.time :as time]
    [rules.window :as window]))
 
@@ -25,12 +22,7 @@
    [time/system
 
     asset/system
-    window/system
-
-    input/system
-    arcball/system
-
-    #_scene-in-a-spaceship/system]))
+    window/system]))
 
 (defn init [game]
   (println "init game")

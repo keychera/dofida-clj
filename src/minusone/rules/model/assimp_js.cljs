@@ -4,18 +4,32 @@
    [play-cljc.macros-js :refer-macros [gl]]
    [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
    [minusone.rules.gl.shader :as shader]
+   [minusone.rules.gl.texture :as texture]
    [engine.sugar :refer [f32-arr]]
    [thi.ng.geom.matrix :as mat]))
 
-(defonce gl-context
-  (-> (js/document.querySelector "canvas")
-      (.getContext "webgl2" (clj->js {:premultipliedAlpha false}))))
-
+(defonce canvas (js/document.querySelector "canvas"))
+(defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
+(defonce width (-> canvas .-clientWidth))
+(defonce height (-> canvas .-clientHeight))
 (defonce game {:context gl-context})
 
-(defn data-uri->Uint8Array [data-uri]
-  (let [base64-str (last (.split data-uri ","))]
-    (js/Uint8Array.fromBase64 base64-str)))
+(defn data-uri->header+Uint8Array [data-uri]
+  (let [[header base64-str] (.split data-uri ",")]
+    [header (js/Uint8Array.fromBase64 base64-str)]))
+
+;; following this on loading image to bindTexture with blob
+;; https://webglfundamentals.org/webgl/lessons/webgl-qna-how-to-load-images-in-the-background-with-no-jank.html
+(defn data-uri->ImageBitmap [data-uri callback]
+  (let [[header uint8-arr] (data-uri->header+Uint8Array data-uri)
+        data-type          (second (re-matches #".*:(.*);.*" header))
+        blob               (js/Blob. #js [uint8-arr] #js {:type data-type})]
+    (.then (js/createImageBitmap blob)
+           (fn [bitmap]
+             (let [width  (.-width bitmap)
+                   height (.-height bitmap)]
+               (callback bitmap width height)
+               (println "blob:" data-type "count" (.-length uint8-arr)))))))
 
 (def gltf-type->size
   {"SCALAR" 1
@@ -77,24 +91,33 @@
                   (let [ajs-file-list (new (.-FileList ajs))]
                     (dotimes [i (count files)]
                       (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arrayBuffers i))))
-                    (def hmm (.ConvertFileList ajs ajs-file-list "gltf2"))))))))))
-
-  (def gltf-json
-    (->> (.GetFile hmm 0)
-         (.GetContent)
-         (.decode (js/TextDecoder.))
-         (js/JSON.parse)
-         ((fn [json] (-> json (js->clj :keywordize-keys true))))))
-
-  (def result-bin
-    (->> (.GetFile hmm 1)
-         (.GetContent)))
+                    (let [result (.ConvertFileList ajs ajs-file-list "gltf2")]
+                      ;; huh, there is no lint warning
+                      (def gltf-json
+                        (->> (.GetFile result 0)
+                             (.GetContent)
+                             (.decode (js/TextDecoder.))
+                             (js/JSON.parse)
+                             ((fn [json] (-> json (js->clj :keywordize-keys true))))))
+                      (def result-bin
+                        (->> (.GetFile result 1)
+                             (.GetContent))))))))))))
 
   (#_"all data (w/o images bc it's too big to print in repl)"
-   -> gltf-json (dissoc :images))
+   -> gltf-json
+   (update :images (fn [images] (map #(update % :uri (juxt type count)) images))))
 
   (#_"the texture byte array"
-   -> gltf-json :images first :uri data-uri->Uint8Array type)
+   -> gltf-json :images first :uri data-uri->header+Uint8Array
+   ((juxt (comp (fn [data-header] (re-matches #"(.*):(.*);(.*)" data-header)) first)
+          (comp type second)
+          (comp (fn [arr] (.-length arr)) second))))
+
+  (data-uri->ImageBitmap
+   (-> gltf-json :images first :uri)
+   (fn [bitmap-data width height]
+     #_{:clj-kondo/ignore [:inline-def]}
+     (def the-texture (texture/texture-incantation game bitmap-data width height 1))))
 
   (def default-gltf-shader
     (let [vert   {:precision  "mediump float"
@@ -113,27 +136,27 @@
                   :inputs     '{normal vec3
                                 uv vec2}
                   :outputs    '{o_color vec4}
+                  :uniforms   '{u_mat sampler2D}
                   :signatures '{main ([] void)}
-                  :functions  '{main ([] (= o_color (vec4 uv normal.y "0.2")))}}]
+                  :functions  '{main ([] (= o_color (texture u_mat uv)))}}]
       {:esse-id :DEFAULT-GLTF-SHADER
        :program-data (shader/create-program game vert frag)}))
 
-  (-> default-gltf-shader :program-data) 
+  (-> default-gltf-shader :program-data)
 
   (def summons
     (gl-incantation game
                     [default-gltf-shader]
                     (gltf-magic gltf-json result-bin)))
 
-  (let [width   (-> game :context .-canvas .-clientWidth)
-        height  (-> game :context .-canvas .-clientHeight)
-        indices (let [mesh        (some-> gltf-json :meshes first)
+  (let [indices (let [mesh        (some-> gltf-json :meshes first)
                       accessors   (some-> gltf-json :accessors)
                       indices     (some-> mesh :primitives first :indices)]
                   (get accessors indices))
         program (-> default-gltf-shader :program-data :program)
         uni-loc (-> default-gltf-shader :program-data :uni-locs)
         u_mvp   (get uni-loc 'u_mvp)
+        u_mat   (get uni-loc 'u_mat)
         vao     (nth (first summons) 2)
         id-mat4 (f32-arr (vec (mat/matrix44)))]
 
@@ -144,6 +167,12 @@
     (gl game useProgram program)
     (gl game bindVertexArray vao)
     (gl game uniformMatrix4fv u_mvp false id-mat4)
+
+    (let [{:keys [tex-unit texture]} the-texture]
+      (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+      (gl game bindTexture (gl game TEXTURE_2D) texture)
+      (gl game uniform1i u_mat tex-unit))
+
     (gl game drawElements
         (gl game TRIANGLES)
         (:count indices)
