@@ -1,12 +1,17 @@
 (ns minusone.rules.model.assimp-js
   (:require
    ["assimpjs" :as assimpjs]
-   [play-cljc.macros-js :refer-macros [gl]]
+   [engine.math :as m-ext]
+   [engine.sugar :refer [f32-arr]]
    [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
-   [engine.sugar :refer [f32-arr]]
-   [thi.ng.geom.matrix :as mat]))
+   [play-cljc.macros-js :refer-macros [gl]]
+   [thi.ng.geom.core :as g]
+   [thi.ng.geom.matrix :as mat]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -149,16 +154,35 @@
                     [default-gltf-shader]
                     (gltf-magic gltf-json result-bin)))
 
-  (let [indices (let [mesh        (some-> gltf-json :meshes first)
-                      accessors   (some-> gltf-json :accessors)
-                      indices     (some-> mesh :primitives first :indices)]
-                  (get accessors indices))
-        program (-> default-gltf-shader :program-data :program)
-        uni-loc (-> default-gltf-shader :program-data :uni-locs)
-        u_mvp   (get uni-loc 'u_mvp)
-        u_mat   (get uni-loc 'u_mat)
-        vao     (nth (first summons) 2)
-        id-mat4 (f32-arr (vec (mat/matrix44)))]
+  (let [indices   (let [mesh      (some-> gltf-json :meshes first)
+                        accessors (some-> gltf-json :accessors)
+                        indices   (some-> mesh :primitives first :indices)]
+                    (get accessors indices))
+        program   (-> default-gltf-shader :program-data :program)
+        uni-loc   (-> default-gltf-shader :program-data :uni-locs)
+        u_mvp     (get uni-loc 'u_mvp)
+        u_mat     (get uni-loc 'u_mat)
+        vao       (nth (first summons) 2)
+
+        trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+        rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                (v/vec3 0.5 0.0 0.0)
+                                (m/radians 25.0)))
+        scale-mat (m-ext/scaling-mat 1.0)
+
+        model     (reduce m/* [trans-mat rot-mat scale-mat])
+
+        position  (v/vec3 0.0 0.0 3.0)
+        front     (v/vec3 0.0 0.0 -1.0)
+        up        (v/vec3 0.0 1.0 0.0)
+        view      (mat/look-at position (m/+ position front) up)
+
+        fov       45.0
+        aspect    (/ width height)
+        project   (mat/perspective fov aspect 0.1 100)
+
+        mvp       (reduce m/* [project view model])
+        mvp       (f32-arr (vec mvp))]
 
     (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
     (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
@@ -166,7 +190,7 @@
 
     (gl game useProgram program)
     (gl game bindVertexArray vao)
-    (gl game uniformMatrix4fv u_mvp false id-mat4)
+    (gl game uniformMatrix4fv u_mvp false mvp)
 
     (let [{:keys [tex-unit texture]} the-texture]
       (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
