@@ -78,6 +78,17 @@
 
       {:unbind-vao true}])))
 
+(defn limited-game-loop
+  ([loop-fn time-data how-long]
+   (if (> how-long 0)
+     (js/requestAnimationFrame
+      (fn [ts]
+        (let [delta (- ts (:total time-data))
+              time-data (assoc time-data :total ts :delta delta)]
+          (loop-fn time-data)
+          (limited-game-loop loop-fn time-data (- how-long delta)))))
+     (println "done"))))
+
 (comment
   (do (gl game clearColor 0.02 0.02 0.0 1.0)
       (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
@@ -164,14 +175,6 @@
         u_mat     (get uni-loc 'u_mat)
         vao       (nth (first summons) 2)
 
-        trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
-        rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                (v/vec3 0.5 0.0 0.0)
-                                (m/radians 25.0)))
-        scale-mat (m-ext/scaling-mat 1.0)
-
-        model     (reduce m/* [trans-mat rot-mat scale-mat])
-
         position  (v/vec3 0.0 0.0 3.0)
         front     (v/vec3 0.0 0.0 -1.0)
         up        (v/vec3 0.0 1.0 0.0)
@@ -181,26 +184,41 @@
         aspect    (/ width height)
         project   (mat/perspective fov aspect 0.1 100)
 
-        mvp       (reduce m/* [project view model])
-        mvp       (f32-arr (vec mvp))]
+        loop-fn
+        (fn [{:keys [total]}]
+          (let [tt        (* 0.002 total)
+                trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+                rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                        (v/vec3 0.2 1.0 0.2)
+                                        (m/radians (* tt 25.0))))
+                scale-mat (m-ext/scaling-mat 1.0)
 
-    (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
-    (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-    (gl game viewport 0 0 width height)
+                model     (reduce m/* [trans-mat rot-mat scale-mat])
 
-    (gl game useProgram program)
-    (gl game bindVertexArray vao)
-    (gl game uniformMatrix4fv u_mvp false mvp)
+                mvp       (reduce m/* [project view model])
+                mvp       (f32-arr (vec mvp))]
+            (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+            (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+            (gl game viewport 0 0 width height)
 
-    (let [{:keys [tex-unit texture]} the-texture]
-      (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-      (gl game bindTexture (gl game TEXTURE_2D) texture)
-      (gl game uniform1i u_mat tex-unit))
+            (gl game useProgram program)
+            (gl game bindVertexArray vao)
+            (gl game uniformMatrix4fv u_mvp false mvp)
 
-    (gl game drawElements
-        (gl game TRIANGLES)
-        (:count indices)
-        (:componentType indices)
-        0))
+            (let [{:keys [tex-unit texture]} the-texture]
+              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+              (gl game bindTexture (gl game TEXTURE_2D) texture)
+              (gl game uniform1i u_mat tex-unit))
+
+            (gl game drawElements
+                (gl game TRIANGLES)
+                (:count indices)
+                (:componentType indices)
+                0)))]
+    (gl game enable (gl game DEPTH_TEST)) ;; THIS HOLY MOLY, I THOUGHT MY UV IS ALL WRONG!!!!
+    (limited-game-loop
+     loop-fn
+     {:total (js/performance.now) :delta 0}
+     5000))
 
   :-)
