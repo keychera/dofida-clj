@@ -51,8 +51,8 @@
 
       (let [id-accessor   (get accessors indices)
             id-bufferView (get bufferViews (:bufferView id-accessor))
-            id-byteOffset    (:byteOffset id-bufferView)
-            id-byteLength    (:byteLength id-bufferView)]
+            id-byteOffset (:byteOffset id-bufferView)
+            id-byteLength (:byteLength id-bufferView)]
         {:bind-buffer (str (:name mesh) "IBO")
          :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
          :buffer-type (gl game ELEMENT_ARRAY_BUFFER)})
@@ -79,14 +79,14 @@
                       (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arrayBuffers i))))
                     (def hmm (.ConvertFileList ajs ajs-file-list "gltf2"))))))))))
 
-  (defonce gltf-json
+  (def gltf-json
     (->> (.GetFile hmm 0)
          (.GetContent)
          (.decode (js/TextDecoder.))
          (js/JSON.parse)
          ((fn [json] (-> json (js->clj :keywordize-keys true))))))
 
-  (defonce result-bin
+  (def result-bin
     (->> (.GetFile hmm 1)
          (.GetContent)))
 
@@ -118,14 +118,20 @@
       {:esse-id :DEFAULT-GLTF-SHADER
        :program-data (shader/create-program game vert frag)}))
 
-  (-> default-gltf-shader :program-data)
+  (-> default-gltf-shader :program-data) 
 
   (def summons
     (gl-incantation game
                     [default-gltf-shader]
                     (gltf-magic gltf-json result-bin)))
 
-  (let [program (-> default-gltf-shader :program-data :program)
+  (let [width   (-> game :context .-canvas .-clientWidth)
+        height  (-> game :context .-canvas .-clientHeight)
+        indices (let [mesh        (some-> gltf-json :meshes first)
+                      accessors   (some-> gltf-json :accessors)
+                      indices     (some-> mesh :primitives first :indices)]
+                  (get accessors indices))
+        program (-> default-gltf-shader :program-data :program)
         uni-loc (-> default-gltf-shader :program-data :uni-locs)
         u_mvp   (get uni-loc 'u_mvp)
         vao     (nth (first summons) 2)
@@ -133,13 +139,15 @@
 
     (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
     (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+    (gl game viewport 0 0 width height)
+
     (gl game useProgram program)
     (gl game bindVertexArray vao)
     (gl game uniformMatrix4fv u_mvp false id-mat4)
     (gl game drawElements
         (gl game TRIANGLES)
-        #_"(manuallytaken) indices accessor count" 11904
-        #_"(manuallytaken) indices accessor componentType" 5125
+        (:count indices)
+        (:componentType indices)
         0))
 
   :-)
