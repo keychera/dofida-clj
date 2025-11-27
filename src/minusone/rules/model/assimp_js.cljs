@@ -26,6 +26,39 @@
    "MAT3"   9
    "MAT4"   16})
 
+(defn gltf-magic [gltf-json result-bin]
+  (let [mesh        (some-> gltf-json :meshes first)
+        accessors   (some-> gltf-json :accessors)
+        bufferViews (some-> gltf-json :bufferViews)
+        attributes  (some-> mesh :primitives first :attributes)
+        indices     (some-> mesh :primitives first :indices)]
+    (flatten
+     [{:bind-buffer (:name mesh) :buffer-data result-bin :buffer-type (gl game ARRAY_BUFFER)}
+      {:bind-vao (:name mesh)}
+
+      (eduction
+       (map (fn [[attr-name accessor]]
+              (merge {:attr-name attr-name}
+                     (get accessors accessor))))
+       (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
+              (let [bufferView (get bufferViews bufferView)]
+                {:point-attr (symbol attr-name)
+                 :from-shader :DEFAULT-GLTF-SHADER
+                 :attr-size (gltf-type->size type)
+                 :attr-type componentType
+                 :offset (+ (:byteOffset bufferView) byteOffset)})))
+       attributes)
+
+      (let [id-accessor   (get accessors indices)
+            id-bufferView (get bufferViews (:bufferView id-accessor))
+            id-byteOffset    (:byteOffset id-bufferView)
+            id-byteLength    (:byteLength id-bufferView)]
+        {:bind-buffer (str (:name mesh) "IBO")
+         :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
+         :buffer-type (gl game ELEMENT_ARRAY_BUFFER)})
+
+      {:unbind-vao true}])))
+
 (comment
   (do (gl game clearColor 0.02 0.02 0.0 1.0)
       (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
@@ -63,39 +96,6 @@
   (#_"the texture byte array"
    -> gltf-json :images first :uri data-uri->Uint8Array type)
 
-  (defn gltf-magic [gltf-json result-bin]
-    (let [mesh        (some-> gltf-json :meshes first)
-          accessors   (some-> gltf-json :accessors)
-          bufferViews (some-> gltf-json :bufferViews)
-          attributes  (some-> mesh :primitives first :attributes)
-          indices     (some-> mesh :primitives first :indices)]
-      (flatten
-       [{:bind-buffer (:name mesh) :buffer-data result-bin :buffer-type (gl game ARRAY_BUFFER)} 
-        {:bind-vao (:name mesh)}
-        
-        (eduction
-         (map (fn [[attr-name accessor]]
-                (merge {:attr-name attr-name}
-                       (get accessors accessor))))
-         (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
-                (let [bufferView (get bufferViews bufferView)]
-                  {:point-attr (symbol attr-name)
-                   :from-shader :DEFAULT-GLTF-SHADER
-                   :attr-size (gltf-type->size type)
-                   :attr-type componentType
-                   :offset (+ (:byteOffset bufferView) byteOffset)})))
-         attributes)
-        
-        (let [id-accessor   (get accessors indices)
-              id-bufferView (get bufferViews (:bufferView id-accessor))
-              id-byteOffset    (:byteOffset id-bufferView)
-              id-byteLength    (:byteLength id-bufferView)]
-          {:bind-buffer (str (:name mesh) "IBO")
-           :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
-           :buffer-type (gl game ELEMENT_ARRAY_BUFFER)})
-        
-        {:unbind-vao true}])))
-
   (def default-gltf-shader
     (let [vert   {:precision  "mediump float"
                   :inputs     '{POSITION   vec3
@@ -114,29 +114,31 @@
                                 uv vec2}
                   :outputs    '{o_color vec4}
                   :signatures '{main ([] void)}
-                  :functions  '{main ([] (= o_color (vec4 uv "1.0" "1.0")))}}]
+                  :functions  '{main ([] (= o_color (vec4 uv normal.y "0.2")))}}]
       {:esse-id :DEFAULT-GLTF-SHADER
        :program-data (shader/create-program game vert frag)}))
 
   (-> default-gltf-shader :program-data)
 
-  (def gltf-incantation
-    (gltf-magic gltf-json result-bin))
-
   (def summons
-    (gl-incantation game [default-gltf-shader] gltf-incantation))
+    (gl-incantation game
+                    [default-gltf-shader]
+                    (gltf-magic gltf-json result-bin)))
 
   (let [program (-> default-gltf-shader :program-data :program)
         uni-loc (-> default-gltf-shader :program-data :uni-locs)
         u_mvp   (get uni-loc 'u_mvp)
         vao     (nth (first summons) 2)
         id-mat4 (f32-arr (vec (mat/matrix44)))]
+
+    (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+    (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
     (gl game useProgram program)
     (gl game bindVertexArray vao)
     (gl game uniformMatrix4fv u_mvp false id-mat4)
-    (gl game drawElements 
-        (gl game TRIANGLES) 
-        #_"(manuallytaken) indices accessor count" 11904 
+    (gl game drawElements
+        (gl game TRIANGLES)
+        #_"(manuallytaken) indices accessor count" 11904
         #_"(manuallytaken) indices accessor componentType" 5125
         0))
 
