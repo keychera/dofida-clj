@@ -2,6 +2,9 @@
   (:require
    ["assimpjs" :as assimpjs]
    ["geotiff" :as geotiff]
+   [cljs.core.async :refer [go]]
+   [cljs.core.async.interop :refer-macros [<p!]]
+   [engine.macros :refer [vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
@@ -12,9 +15,7 @@
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [cljs.core.async :refer [go]]
-   [cljs.core.async.interop :refer-macros [<p!]]))
+   [thi.ng.math.core :as m]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -121,7 +122,7 @@
                       (def result-bin
                         (->> (.GetFile result 1)
                              (.GetContent))))))))))))
-
+  
   (#_"all data (w/o images bc it's too big to print in repl)"
    -> gltf-json
    (update :images (fn [images] (map #(update % :uri (juxt type count)) images))))
@@ -139,13 +140,32 @@
      (def the-texture (texture/texture-incantation game bitmap-data width height 0))))
 
   (go
-    (let [tiff   (<p! (geotiff/fromUrl "assets/models/ldem_4_uint.tif"))
+    (let [tiff   (<p! (geotiff/fromUrl "assets/models/ldem_4.tif"))
           image  (<p! (.getImage tiff))
-          rgb    (<p! (.readRGB image))
+          raster (<p! (.readRasters image #js {:samples #js [0]}))
+          raster (aget raster 0)
           width  (.getWidth image)
-          height (.getHeight image)]
-      (println "ldem" (type rgb) width height)
-      (def the-ldem-tex (texture/texture-incantation game rgb width height 1))))
+          height (.getHeight image)
+          tex-unit 1]
+      (println "ldem" (type raster) (.-length raster) width height)
+      (let [texture (gl game createTexture)]
+        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+        (gl game bindTexture (gl game TEXTURE_2D) texture)
+
+        (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game LINEAR))
+        (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game LINEAR))
+        (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_WRAP_S) (gl game REPEAT))
+        (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_WRAP_T) (gl game REPEAT))
+        (gl game texImage2D (gl game TEXTURE_2D)
+            #_:mip-level    0
+            #_:internal-fmt (gl game R32F)
+            (int width)
+            (int height)
+            #_:border       0
+            #_:src-fmt      (gl game RED)
+            #_:src-type     (gl game FLOAT)
+            raster)
+        (def the-ldem-tex (vars->map texture tex-unit)))))
 
   (def default-gltf-shader
     (let [vert   {:precision  "mediump float"
@@ -233,7 +253,7 @@
     (gl-incantation game
                     [default-gltf-shader]
                     (gltf-magic gltf-json result-bin)))
-
+  
   (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                               accessors (some-> gltf-json :accessors)
                               indices   (some-> mesh :primitives first :indices)]
@@ -261,14 +281,13 @@
         project         (mat/perspective fov aspect 0.1 100)
         [^float lx
          ^float ly
-         ^float lz]     (m/normalize (v/vec3 -1.0 0.0 1.0))
+         ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
 
         loop-fn         (fn [{:keys [total]}]
-                          (let [tt        (* 0.002 total)
-                                trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+                          (let [trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
                                 rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                                        (v/vec3 0.2 1.0 0.2)
-                                                        (m/radians (* tt 50.0))))
+                                                        (v/vec3 0.0 1.0 0.0)
+                                                        (m/radians 180.0)))
                                 scale-mat (m-ext/scaling-mat 1.0)
 
                                 model     (reduce m/* [trans-mat rot-mat scale-mat])
