@@ -185,11 +185,13 @@
                                 ([n] (=vec3 b (vec3 0))
                                      ("if (abs(n.x) <= abs(n.y))"
                                       ("if (abs(n.x) <= abs(n.z))"
-                                       (= b (vec3 1 0 0))
+                                       (= b (vec3 1 0 0)))
+                                      ("else"
                                        (= b (vec3 0 0 1))))
                                      ("else"
                                       ("if (abs(n.y) <= abs(n.z))"
-                                       (= b (vec3 0 1 0))
+                                       (= b (vec3 0 1 0)))
+                                      ("else"
                                        (= b (vec3 0 0 1))))
                                      (normalize (cross n b)))
 
@@ -259,7 +261,7 @@
         project         (mat/perspective fov aspect 0.1 100)
         [^float lx
          ^float ly
-         ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
+         ^float lz]     (m/normalize (v/vec3 -1.0 0.0 1.0))
 
         loop-fn         (fn [{:keys [total]}]
                           (let [tt        (* 0.002 total)
