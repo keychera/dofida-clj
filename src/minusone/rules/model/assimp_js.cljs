@@ -283,7 +283,8 @@
          ^float ly
          ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
 
-        loop-fn         (fn [{:keys [total]}]
+        loop-fn         #_{:clj-kondo/ignore [:unused-binding]}
+                        (fn [{:keys [total]}]
                           (let [trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
                                 rot-mat   (g/as-matrix (q/quat-from-axis-angle
                                                         (v/vec3 0.0 1.0 0.0)

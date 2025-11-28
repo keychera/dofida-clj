@@ -16,6 +16,7 @@ todo:
                 ✔ 2d plane texture @done(25-11-08 15:07)
                 ✔ sidestream asset involving texture @done(25-11-08 15:07)
         ✔ alpha clipping, probably need to learn render-to-texture @done(25-11-11 20:31)
+
         ☐ sidestream: t2d, non-destructive
             ☐ t3d?
             ☐ scene tree
@@ -24,9 +25,12 @@ todo:
         ☐ sidestream: anime, non destructive
         ☐ sidestream twod-picking
             ☐ threed-picking?
-        ☐ load proper mesh
+        ✔ load proper mesh @done(25-11-29 02:08)
             ✔ does assimp make sense in clojure? @done(25-11-22 16:22) assimpjs kinda attempted now, seems fine (not integrated yet)
             ✔ load model that is not compile-time for js @done(25-11-22 16:22) assimpjs saikou!
+            ☐ integrate assimp into rules engine
+            ☐ try lwjgl assimp as well
+            ☐ try pmx
         ✔ maybe try implementing opengl tutorial again regarding light and materials @done(25-11-25 21:47)
         ☐ sidestream: dialogue
         ☐ rethink director
@@ -38,7 +42,7 @@ todo:
             "do you even realize how lucky you are."
 
         ☐ we realized we made some todo as well down there, consider them the same
-            ☐ wedesoft
+            ✔ wedesoft @done(25-11-29 02:06) not sure if the ldem is applied correctly but it looks like the moon alright
             ☐ cmzw_
             ☐ tsoding
 
@@ -58,8 +62,8 @@ todo:
         ✔ make the shader and everything else works in java @done(25-10-11 19:47) slowly but surely we get to be familiar with the idiosyncracies
     ✔ world system @done(25-08-25 21:16)
 
-    ☐ cube
-    ☐ sphere
+    ✔ cube @done(25-11-29 02:10)
+    ✔ sphere @done(25-11-29 02:10)
     ☐ transform3d
 
     ☐ jvm reloaded
@@ -70,18 +74,18 @@ todo:
 
 play-cljc.gl:
     ☐ from zero
-        ☐ somehow we continued the tutorial (https://www.opengl-tutorial.org/beginners-tutorials)
+        ✔ somehow we continued the tutorial (https://www.opengl-tutorial.org/beginners-tutorials) @done(25-11-29 02:10)
             ✔ firstperson movement @done(25-10-13 00:01)
             ☐ movement with gravity
             ✔ jvm control, because it will be wildly different @done(25-10-13 01:46) not that wild apparently
             ✔ input dependency inversion @done(25-10-13 01:46)
             ☐ model loading, 
                 ✔ cube @done(25-10-13 23:55)
-                ☐ better texture
+                ✘ better texture @cancelled(25-11-29 02:09) dunno what this is
                 ✔ use normals, direction lighting and stuff @done(25-11-24 20:33)
-                ☐ following this as well https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
+                ✘ following this as well https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html @cancelled(25-11-29 02:09) assimp better
                 ☐ try using kenney 3d assets
-                ☐ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html)
+                ✔ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html) @done(25-11-29 02:09)
                 ☐ clicky-clicky (https://x.com/tsoding/status/1975233872221610206)   
                 ☐ play with fire (https://x.com/cmzw_/status/1730593875545477617/video/1)
             ☐ sidestream particle
@@ -91,11 +95,12 @@ play-cljc.gl:
             ☐ sidestream scene tree
             ☐ sidestream asset rules
                 ☐ find a way to structure 3d assets/scenes
+                    ☐ using gltf scene?
         ☐ text render
         ☐ dialogue render
         ☐ 3d text
         ☐ think of abstraction... 
-        ☐ reintro odoyle
+        ✔ reintro odoyle @done(25-11-29 02:10)
         ☐ UI
         ☐ button
         ☐ circle transition
@@ -150,4 +155,5 @@ bug:
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
     ☐ sidestream twoway, text as interface
-    ☐ the init still reload all assets
+    ✔ the init still reload all assets @done(25-11-29 02:11)
+        ☐ investigate the implication of reinserting all facts
