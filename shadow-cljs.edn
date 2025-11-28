@@ -8,7 +8,8 @@
    :compiler-options {:infer-externs :auto}
 
    :js-options
-   {:resolve {"assimpjs" {:target :global :global "assimpjs"}}}
+   {:resolve {"assimpjs" {:target :global :global "assimpjs"}
+              "geotiff" {:target :global :global "GeoTIFF"}}}
 
    :devtools
    {:http-root "resources/public"
