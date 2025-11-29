@@ -3,30 +3,27 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
-   [minusone.rules.gl.texture :as texture]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
-   [engine.utils :as utils]
    [engine.world :as world]
+   [minusone.esse :refer [esse]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
+   [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
+   [rules.interface.input :as input]
    [thi.ng.geom.core :as g]
+   [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [thi.ng.geom.matrix :as mat]))
+   [thi.ng.math.core :as m]))
 
 ;; for the umpteenth time, we learn opengl again
 ;; https://learnopengl.com/Getting-started/Transformations
-
-(def esse-default-facts [t3d/default])
-(defn esse [world id & facts]
-  (o/insert world id (apply utils/deep-merge (concat esse-default-facts facts))))
 
 (def cube-data
   (f32-arr
@@ -148,9 +145,11 @@
              #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/specular_map.png"}
              #::texture{:tex-unit 1})
       (esse ::a-cube
+            t3d/default
             #::shader{:program-data (shader/create-program game vertex-shader cube-fs)}
             #::vao{:use :cube-vao})
-      (esse ::light-cube
+      (esse ::light-cube 
+            t3d/default
             #::shader{:program-data (shader/create-program game vertex-shader light-cube-fs)}
             #::vao{:use :light-cube-vao})
       (esse ::shader/global
@@ -298,6 +297,7 @@
   [shader/system
    gl-magic/system
    projection/system
+   input/system
    firstperson/system
    t3d/system
    {::world/init-fn init-fn

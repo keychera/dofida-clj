@@ -46,7 +46,7 @@
    "MAT3"   9
    "MAT4"   16})
 
-(defn gltf-magic [gltf-json result-bin]
+(defn gltf-magic [game gltf-json result-bin]
   (let [mesh        (some-> gltf-json :meshes first)
         accessors   (some-> gltf-json :accessors)
         bufferViews (some-> gltf-json :bufferViews)
@@ -79,27 +79,32 @@
 
       {:unbind-vao true}])))
 
-(defn go-load-model
-  "go block to load model and pass the result via callback.
+;; https://shadow-cljs.github.io/docs/UsersGuide.html#infer-externs
+;; drop core.async, error msg are not nice there
+(defn then-load-model
+  "promise to load model and pass the result via .then callback.
    callback will receive {:keys [gltf bins]}"
   [files callback]
-  (go (let [ajs      (<p! (assimpjs))
-            arr-bufs (<p! (->> files
-                               (map (fn [file] (-> file js/fetch (.then (fn [res] (.arrayBuffer res))))))
-                               js/Promise.all))
-            ajs-file-list (new (.-FileList ajs))]
-        (dotimes [i (count files)]
-          (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arr-bufs i))))
-        (let [result (.ConvertFileList ajs ajs-file-list "gltf2")
-              gltf   (->> (.GetFile result 0)
-                          (.GetContent)
-                          (.decode (js/TextDecoder.))
-                          (js/JSON.parse)
-                          ((fn [json] (-> json (js->clj :keywordize-keys true)))))
-                     ;; only handle one binary for now, (TODO use .FileCount)
-              bins   [(->> (.GetFile result 1) (.GetContent))]]
-          (callback (vars->map gltf bins))))))
-
+  (-> (assimpjs)
+      (.then
+       (fn [ajs]
+         (-> (->> files
+                  (map (fn [f] (-> f js/fetch (.then (fn [res] (.arrayBuffer res))))))
+                  js/Promise.all)
+             (.then
+              (fn [arr-bufs]
+                (let [ajs-file-list (new (.-FileList ajs))]
+                  (dotimes [i (count files)]
+                    (.AddFile ^js ajs-file-list (nth files i) (js/Uint8Array. (aget arr-bufs i))))
+                  (let [result (.ConvertFileList ^js ajs ajs-file-list "gltf2")
+                        gltf   (->> (.GetFile ^js result 0)
+                                    (.GetContent)
+                                    (.decode (js/TextDecoder.))
+                                    (js/JSON.parse)
+                                    ((fn [json] (-> json (js->clj :keywordize-keys true)))))
+                                     ;; only handle one binary for now, (TODO use .FileCount)
+                        bins   [(->> (.GetFile result 1) (.GetContent))]]
+                    (callback (vars->map gltf bins)))))))))))
 
 (def rules
   (o/ruleset
@@ -115,9 +120,10 @@
     (let [model-files (:model-files model-to-load)
           esse-id     (:esse-id model-to-load)]
       (swap! world* o/retract esse-id ::assimp/model-to-load)
-      (go-load-model
+      (then-load-model
        model-files
        (fn [{:keys [gltf bins]}]
+         (println "[assimp-js] loaded" esse-id)
          (swap! world* o/insert esse-id {::assimp/gltf gltf ::assimp/bins bins}))))))
 
 (def system
@@ -146,10 +152,10 @@
   (do (gl game clearColor 0.02 0.02 0.0 1.0)
       (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
 
-  (go-load-model
+  (then-load-model
    (eduction (map #(str "assets/models/" %)) ["moon.glb"])
    #_{:clj-kondo/ignore [:inline-def]}
-   (fn [{:keys [gltf bins]}] 
+   (fn [{:keys [gltf bins]}]
      (def gltf-json gltf)
      (def result-bin (first bins))))
 
@@ -282,7 +288,7 @@
   (def summons
     (gl-incantation game
                     [default-gltf-shader]
-                    (gltf-magic gltf-json result-bin)))
+                    (gltf-magic game gltf-json result-bin)))
 
   (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                               accessors (some-> gltf-json :accessors)

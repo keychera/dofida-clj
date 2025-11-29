@@ -2,11 +2,13 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
+   #?(:cljs [minusone.rules.model.assimp-js :as assimp-js])
    [assets.asset :as asset]
    [com.rpl.specter :as sp]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
+   [minusone.learnopengl :as learnopengl]
    [odoyle.rules :as o]
    [rules.time :as time]
    [rules.window :as window]))
@@ -21,19 +23,23 @@
   (flatten
    [time/system
 
+    #?(:cljs assimp-js/system)
+
     asset/system
-    window/system]))
+    window/system
+
+    learnopengl/system]))
 
 (defn init [game]
   (println "init game")
   (gl game enable (gl game BLEND))
 
-  (let [all-rules  (apply concat (sp/select [sp/ALL ::world/rules] all-systems))
+  (let [all-rules  (distinct (apply concat (sp/select [sp/ALL ::world/rules] all-systems)))
         init-fns   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
         before-fns (sp/select [sp/ALL ::world/before-load-fn some?] all-systems)
         after-fns  (sp/select [sp/ALL ::world/after-load-fn some?] all-systems)
         render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)
-        [w h] (utils/get-size game)]
+        [w h]      (utils/get-size game)]
 
     (reset! (::render-fns* game) render-fns)
     (swap! (::world/atom* game)
@@ -41,7 +47,9 @@
              (-> (world/init-world world game all-rules before-fns init-fns after-fns)
                  (window/set-window w h)
                  (o/fire-rules))))
-    (asset/load-asset (::world/atom* game) game)))
+    (asset/load-asset (::world/atom* game) game)
+
+    #?(:cljs (assimp-js/load-models-from-world* (::world/atom* game)))))
 
 (defn tick [game]
   (if @*refresh?
@@ -52,7 +60,7 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      #_(let [{:keys [total-time delta-time]} game
+      (let [{:keys [total-time delta-time]} game
             [width height] (utils/get-size game)
             world (swap! (::world/atom* game)
                          #(-> %
