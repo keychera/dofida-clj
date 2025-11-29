@@ -97,32 +97,27 @@
   (do (gl game clearColor 0.02 0.02 0.0 1.0)
       (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
 
-  (let [files (eduction
-               (map #(str "assets/models/" %))
-               ["moon.glb"])]
-    (-> (assimpjs)
-        (.then
-         (fn [ajs]
-           (-> (->> files
-                    (map (fn [file] (-> file js/fetch (.then (fn [res] (.arrayBuffer res))))))
-                    js/Promise.all)
-               (.then
-                (fn [arrayBuffers]
-                  (let [ajs-file-list (new (.-FileList ajs))]
-                    (dotimes [i (count files)]
-                      (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arrayBuffers i))))
-                    (let [result (.ConvertFileList ajs ajs-file-list "gltf2")]
-                      ;; huh, there is no lint warning
-                      (def gltf-json
-                        (->> (.GetFile result 0)
-                             (.GetContent)
-                             (.decode (js/TextDecoder.))
-                             (js/JSON.parse)
-                             ((fn [json] (-> json (js->clj :keywordize-keys true))))))
-                      (def result-bin
-                        (->> (.GetFile result 1)
-                             (.GetContent))))))))))))
-  
+  (go
+    (let [files    (eduction (map #(str "assets/models/" %)) ["moon.glb"])
+          ajs      (<p! (assimpjs))
+          arr-bufs (<p! (->> files
+                             (map (fn [file] (-> file js/fetch (.then (fn [res] (.arrayBuffer res))))))
+                             js/Promise.all))
+          ajs-file-list (new (.-FileList ajs))]
+      (dotimes [i (count files)]
+        (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arr-bufs i))))
+      (let [result (.ConvertFileList ajs ajs-file-list "gltf2")]
+        ;; huh, there is no lint warning
+        (def gltf-json
+          (->> (.GetFile result 0)
+               (.GetContent)
+               (.decode (js/TextDecoder.))
+               (js/JSON.parse)
+               ((fn [json] (-> json (js->clj :keywordize-keys true))))))
+        (def result-bin
+          (->> (.GetFile result 1)
+               (.GetContent))))))
+
   (#_"all data (w/o images bc it's too big to print in repl)"
    -> gltf-json
    (update :images (fn [images] (map #(update % :uri (juxt type count)) images))))
@@ -253,7 +248,7 @@
     (gl-incantation game
                     [default-gltf-shader]
                     (gltf-magic gltf-json result-bin)))
-  
+
   (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                               accessors (some-> gltf-json :accessors)
                               indices   (some-> mesh :primitives first :indices)]
@@ -284,45 +279,45 @@
          ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
 
         loop-fn         #_{:clj-kondo/ignore [:unused-binding]}
-                        (fn [{:keys [total]}]
-                          (let [trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
-                                rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                                        (v/vec3 0.0 1.0 0.0)
-                                                        (m/radians 180.0)))
-                                scale-mat (m-ext/scaling-mat 1.0)
+        (fn [{:keys [total]}]
+          (let [trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+                rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                        (v/vec3 0.0 1.0 0.0)
+                                        (m/radians 180.0)))
+                scale-mat (m-ext/scaling-mat 1.0)
 
-                                model     (reduce m/* [trans-mat rot-mat scale-mat])
+                model     (reduce m/* [trans-mat rot-mat scale-mat])
 
-                                mvp       (reduce m/* [project view model])
-                                mvp       (f32-arr (vec mvp))]
-                            (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
-                            (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-                            (gl game viewport 0 0 width height)
+                mvp       (reduce m/* [project view model])
+                mvp       (f32-arr (vec mvp))]
+            (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+            (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+            (gl game viewport 0 0 width height)
 
-                            (gl game useProgram program)
-                            (gl game bindVertexArray vao)
-                            (gl game uniformMatrix4fv u_mvp false mvp)
+            (gl game useProgram program)
+            (gl game bindVertexArray vao)
+            (gl game uniformMatrix4fv u_mvp false mvp)
 
-                            (gl game uniform3f u_light_pos lx ly lz)
-                            (gl game uniform1f u_light_ambient 0.0)
-                            (gl game uniform1f u_light_diffuse 1.6)
-                            (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
+            (gl game uniform3f u_light_pos lx ly lz)
+            (gl game uniform1f u_light_ambient 0.0)
+            (gl game uniform1f u_light_diffuse 1.6)
+            (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
 
-                            (let [{:keys [tex-unit texture]} the-texture]
-                              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                              (gl game bindTexture (gl game TEXTURE_2D) texture)
-                              (gl game uniform1i u_mat tex-unit))
+            (let [{:keys [tex-unit texture]} the-texture]
+              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+              (gl game bindTexture (gl game TEXTURE_2D) texture)
+              (gl game uniform1i u_mat tex-unit))
 
-                            (let [{:keys [tex-unit texture]} the-ldem-tex]
-                              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                              (gl game bindTexture (gl game TEXTURE_2D) texture)
-                              (gl game uniform1i u_ldem tex-unit))
+            (let [{:keys [tex-unit texture]} the-ldem-tex]
+              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+              (gl game bindTexture (gl game TEXTURE_2D) texture)
+              (gl game uniform1i u_ldem tex-unit))
 
-                            (gl game drawElements
-                                (gl game TRIANGLES)
-                                (:count indices)
-                                (:componentType indices)
-                                0)))]
+            (gl game drawElements
+                (gl game TRIANGLES)
+                (:count indices)
+                (:componentType indices)
+                0)))]
     (gl game enable (gl game DEPTH_TEST)) ;; THIS HOLY MOLY, I THOUGHT MY UV IS ALL WRONG!!!!
     (limited-game-loop
      loop-fn
