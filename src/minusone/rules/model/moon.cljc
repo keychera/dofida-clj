@@ -130,6 +130,7 @@
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
+     [:minusone.learnopengl/light-cube :minusone.rules.transform3d/position light-pos]
      :then
      (println esse-id "all set!")]}))
 
@@ -153,7 +154,7 @@
           project         (:projection esse)
           [^float lx
            ^float ly
-           ^float lz]     (m/normalize (v/vec3 0.0 1.0 -2.0))
+           ^float lz]     (m/normalize (:light-pos esse))
           trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
           rot-mat   (g/as-matrix (q/quat-from-axis-angle
                                   (v/vec3 0.0 1.0 0.0)

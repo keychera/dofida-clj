@@ -168,7 +168,7 @@
 (defn after-load-fn [world _game]
   (-> world
       (esse ::light-cube
-            #::t3d{:position (v/vec3 0.0 1.0 -2.0)
+            #::t3d{:position (v/vec3 0.0 -1.0 2.0)
                    :scale (v/vec3 0.2)})))
 
 (def rules
@@ -188,13 +188,13 @@
      :then
      (println esse-id "ready to render")]}))
 
-(defonce random-cubes
+(def random-cubes
   (let [max-dist 10.0
         min-dist 0.1
         rand-val (fn [] (loop []
                           (let [v (* max-dist (- (rand 1) 0.5))]
                             (if (> (abs v) min-dist) v (recur)))))]
-    (take 12 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
+    (take 20 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
 
 #?(:clj #_"java only profilers"
    (comment
