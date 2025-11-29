@@ -99,11 +99,11 @@
 
 (def rules
   (o/ruleset
-   {::load-with-assimpjs
+   {::assimp/load-with-assimp
     [:what
      [esse-id ::assimp/model-to-load model-files]]
 
-    ::gl-texture-to-load
+    ::assimp/gl-texture-to-load
     [:what
      [esse-id ::assimp/gltf gltf-json]
      [esse-id ::assimp/tex-unit-offset tex-unit-offset]

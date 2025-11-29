@@ -8,3 +8,7 @@
 (s/def ::bins vector?)
 (s/def ::texture-loaded? boolean?)
 (s/def ::tex-unit-offset int?)
+
+;; rules name
+(s/def ::load-with-assimp any?)
+(s/def ::gl-texture-to-load any?)

@@ -2,13 +2,15 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   #?(:cljs [minusone.rules.model.assimp-js :as assimp-js])
+   #?(:clj  [minusone.rules.model.assimp-jvm :as assimp-jvm]
+      :cljs [minusone.rules.model.assimp-js :as assimp-js])
    [assets.asset :as asset]
    [com.rpl.specter :as sp]
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.learnopengl :as learnopengl]
+   [minusone.rules.model.assimp :as assimp]
    [minusone.rules.model.moon :as moon]
    [odoyle.rules :as o]
    [rules.time :as time]
@@ -24,7 +26,8 @@
   (flatten
    [time/system
 
-    #?(:cljs assimp-js/system)
+    #?(:clj  assimp-jvm/system
+       :cljs assimp-js/system)
 
     asset/system
     window/system
@@ -61,13 +64,10 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      #_{:clj-kondo/ignore [:unused-binding]}
-      (let [#_"the loading"
+      (let [#_"the loading zone"
             world*           (::world/atom* game)
-            models-to-load   #?(:clj  nil
-                                :cljs (o/query-all @world* ::assimp-js/load-with-assimpjs))
-            textures-to-load #?(:clj  nil
-                                :cljs (o/query-all @world* ::assimp-js/gl-texture-to-load))] 
+            models-to-load   (o/query-all @world* ::assimp/load-with-assimp)
+            textures-to-load (o/query-all @world* ::assimp/gl-texture-to-load)]
         (if (or (seq models-to-load) (seq textures-to-load))
           #?(:clj nil
              :cljs (do (some-> models-to-load (assimp-js/load-models-from-world* (::world/atom* game)))
