@@ -50,9 +50,7 @@
              (-> (world/init-world world game all-rules before-fns init-fns after-fns)
                  (window/set-window w h)
                  (o/fire-rules))))
-    (asset/load-asset (::world/atom* game) game)
-
-    #?(:cljs (assimp-js/load-models-from-world* (::world/atom* game)))))
+    (asset/load-asset (::world/atom* game) game)))
 
 (defn tick [game]
   (if @*refresh?
@@ -63,19 +61,31 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      (let [{:keys [total-time delta-time]} game
-            [width height] (utils/get-size game)
-            world (swap! (::world/atom* game)
-                         #(-> %
-                              (time/insert total-time delta-time)
-                              (o/fire-rules)))]
-        (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-        (gl game clearColor 0.02 0.02 0.12 1.0)
-        (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
-        (gl game viewport 0 0 width height)
+      #_{:clj-kondo/ignore [:unused-binding]}
+      (let [#_"the loading"
+            world*           (::world/atom* game)
+            models-to-load   #?(:clj  nil
+                                :cljs (o/query-all @world* ::assimp-js/load-with-assimpjs))
+            textures-to-load #?(:clj  nil
+                                :cljs (o/query-all @world* ::assimp-js/gl-texture-to-load))] 
+        (if (or (seq models-to-load) (seq textures-to-load))
+          #?(:clj nil
+             :cljs (do (some-> models-to-load (assimp-js/load-models-from-world* (::world/atom* game)))
+                       (some-> textures-to-load (assimp-js/load-texture-to-world* (::world/atom* game) game))))
+          (let [{:keys [total-time
+                        delta-time]} game
+                [width height]       (utils/get-size game)
+                world                (swap! (::world/atom* game)
+                                            #(-> %
+                                                 (time/insert total-time delta-time)
+                                                 (o/fire-rules)))]
+            (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+            (gl game clearColor 0.02 0.02 0.12 1.0)
+            (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+            (gl game viewport 0 0 width height)
 
-        (doseq [render-fn @(::render-fns* game)]
-          (render-fn world game)))
+            (doseq [render-fn @(::render-fns* game)]
+              (render-fn world game)))))
       #?(:clj  (catch Exception err (throw err))
          :cljs (catch js/Error err
                  (utils/log-limited err "[tick-error]")))))

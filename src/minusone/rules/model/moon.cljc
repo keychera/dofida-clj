@@ -1,16 +1,19 @@
 (ns minusone.rules.model.moon
   (:require
-   #?(:clj  [play-cljc.macros-java :refer [gl]]
+   #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   #?(:cljs ["geotiff" :as geotiff])
-   [engine.macros :refer [vars->map]]
+   #?@(:cljs [["geotiff" :as geotiff]
+              [minusone.rules.model.assimp-js :as assimp-js]])
+   [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
+   [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
-   [minusone.rules.gl.texture :as texture]
+   [minusone.rules.gl.magic :as gl.magic]
    [minusone.rules.gl.shader :as shader]
+   [minusone.rules.gl.texture :as texture]
+   [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp :as assimp]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
@@ -20,6 +23,7 @@
    [thi.ng.math.core :as m]))
 
 (def moon-vert
+
   {:precision  "mediump float"
    :inputs     '{POSITION   vec3
                  NORMAL     vec3
@@ -98,27 +102,90 @@
                   (=float phong (+ u_light_ambient (* u_light_diffuse (max "0.0" (dot u_light_pos (normal_fn horizon vpoint))))))
                   (= o_color (vec4 (* (.rgb (color (lonlat vpoint))) phong) "1.0")))}})
 
-(defn load-moon [game world]
+(defn init-fn [world game]
   (-> world
-      (esse ::gl-magic
-            #::gl.magic{:incantation []})
       (esse ::moon
+            #::assimp{:model-to-load ["assets/models/moon.glb"]
+                      :tex-unit-offset 3}
             #::shader{:program-data (shader/create-program game moon-vert moon-frag)})))
-
-(defn init-fn [world _game]
-  (o/insert world ::moon-glb ::assimp/model-to-load ["assets/models/moon.glb"]))
 
 (def rules
   (o/ruleset
-   {::the-moon
+   {::I-cast-gltf-loading!
     [:what
      [esse-id ::assimp/gltf gltf-json]
      [esse-id ::assimp/bins bins]
      :then
-     (println esse-id "loaded")]}))
+     (let [gltf-spell #?(:clj  []
+                         :cljs (assimp-js/gltf-magic esse-id gltf-json (first bins)))]
+       (s-> session (o/insert esse-id #::gl.magic{:incantation gltf-spell})))]
+
+    ::the-moon
+    [:what
+     [esse-id ::assimp/gltf gltf-json]
+     ["Sphere" ::vao/vao vao]
+     [esse-id ::texture/data texture-data]
+     [esse-id ::shader/program-data program-data]
+     :then
+     (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  [world game])
+  (when-let [{:keys [gltf-json vao texture-data program-data]} (first (o/query-all world ::the-moon))]
+    (let [indices         (let [mesh      (some-> gltf-json :meshes first)
+                                accessors (some-> gltf-json :accessors)
+                                indices   (some-> mesh :primitives first :indices)]
+                            (get accessors indices))
+          program         (-> program-data :program)
+          uni-loc         (-> program-data :uni-locs)
+          u_mvp           (get uni-loc 'u_mvp)
+
+          u_light_pos     (get uni-loc 'u_light_pos)
+          u_light_ambient (get uni-loc 'u_light_ambient)
+          u_light_diffuse (get uni-loc 'u_light_diffuse)
+          u_resolution    (get uni-loc 'u_resolution)
+          u_mat           (get uni-loc 'u_mat)
+
+          position        (v/vec3 0.0 0.0 3.0)
+          front           (v/vec3 0.0 0.0 -1.0)
+          up              (v/vec3 0.0 1.0 0.0)
+          view            (mat/look-at position (m/+ position front) up)
+
+          [w h]           (utils/get-size game)
+          fov             45.0
+          aspect          (/ w h)
+          project         (mat/perspective fov aspect 0.1 100)
+          [^float lx
+           ^float ly
+           ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
+          trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+          rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                  (v/vec3 0.0 1.0 0.0)
+                                  (m/radians 45.0)))
+          scale-mat (m-ext/scaling-mat 1.0)
+
+          model     (reduce m/* [trans-mat rot-mat scale-mat])
+
+          mvp       (reduce m/* [project view model])
+          mvp       (f32-arr (vec mvp))]
+      (gl game useProgram program)
+      (gl game bindVertexArray vao)
+      (gl game uniformMatrix4fv u_mvp false mvp)
+
+      (gl game uniform3f u_light_pos lx ly lz)
+      (gl game uniform1f u_light_ambient 0.0)
+      (gl game uniform1f u_light_diffuse 1.6)
+      (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
+
+      (let [{:keys [tex-unit texture]} texture-data]
+        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+        (gl game bindTexture (gl game TEXTURE_2D) texture)
+        (gl game uniform1i u_mat tex-unit))
+
+      (gl game drawElements
+          (gl game TRIANGLES)
+          (:count indices)
+          (:componentType indices)
+          0))))
 
 (def system
   {::world/init-fn init-fn
@@ -127,22 +194,22 @@
 
 #?(:cljs
    (#_"playground purposes"
-    do (require '[minusone.rules.model.assimp-js :as assimp-js])
-       (defonce canvas (js/document.querySelector "canvas"))
-       (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
-       (defonce width (-> canvas .-clientWidth))
-       (defonce height (-> canvas .-clientHeight))
-       (defonce game {:context gl-context})
-       (defn limited-game-loop
-         ([loop-fn time-data how-long]
-          (if (> how-long 0)
-            (js/requestAnimationFrame
-             (fn [ts]
-               (let [delta (- ts (:total time-data))
-                     time-data (assoc time-data :total ts :delta delta)]
-                 (loop-fn time-data)
-                 (limited-game-loop loop-fn time-data (- how-long delta)))))
-            (println "done"))))))
+    do
+    (defonce canvas (js/document.querySelector "canvas"))
+    (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
+    (defonce width (-> canvas .-clientWidth))
+    (defonce height (-> canvas .-clientHeight))
+    (defonce game {:context gl-context})
+    (defn limited-game-loop
+      ([loop-fn time-data how-long]
+       (if (> how-long 0)
+         (js/requestAnimationFrame
+          (fn [ts]
+            (let [delta (- ts (:total time-data))
+                  time-data (assoc time-data :total ts :delta delta)]
+              (loop-fn time-data)
+              (limited-game-loop loop-fn time-data (- how-long delta)))))
+         (println "done"))))))
 
 #?(:cljs
    (comment
@@ -213,7 +280,7 @@
      (def summons
        (gl-incantation game
                        [default-gltf-shader]
-                       (assimp-js/gltf-magic gltf-json result-bin)))
+                       (assimp-js/gltf-magic :DEFAULT-GLTF-SHADER gltf-json result-bin)))
 
      (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                                  accessors (some-> gltf-json :accessors)
@@ -275,9 +342,9 @@
                  (gl game uniform1i u_mat tex-unit))
 
                (let [{:keys [tex-unit texture]} the-ldem-tex]
-                   (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                   (gl game bindTexture (gl game TEXTURE_2D) texture)
-                   (gl game uniform1i u_ldem tex-unit))
+                 (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+                 (gl game bindTexture (gl game TEXTURE_2D) texture)
+                 (gl game uniform1i u_ldem tex-unit))
 
                (gl game drawElements
                    (gl game TRIANGLES)

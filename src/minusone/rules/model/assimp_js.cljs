@@ -13,7 +13,7 @@
 
 ;; following this on loading image to bindTexture with blob
 ;; https://webglfundamentals.org/webgl/lessons/webgl-qna-how-to-load-images-in-the-background-with-no-jank.html
-(defn data-uri->ImageBitmap 
+(defn data-uri->ImageBitmap
   "parse data-uri and pass the resulting bitmap to callback.
    callback will receive {:keys [bitmap width height]}"
   [data-uri callback]
@@ -38,38 +38,39 @@
 
 (def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
 
-(defn gltf-magic [gltf-json result-bin]
+(defn gltf-magic [from-shader gltf-json result-bin]
   (let [mesh        (some-> gltf-json :meshes first)
         accessors   (some-> gltf-json :accessors)
         bufferViews (some-> gltf-json :bufferViews)
         attributes  (some-> mesh :primitives first :attributes)
         indices     (some-> mesh :primitives first :indices)]
-    (flatten
-     [{:bind-buffer (:name mesh) :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
-      {:bind-vao (:name mesh)}
+    (->> (flatten
+          [{:bind-buffer (:name mesh) :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
+           {:bind-vao (:name mesh)}
 
-      (eduction
-       (map (fn [[attr-name accessor]]
-              (merge {:attr-name attr-name}
-                     (get accessors accessor))))
-       (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
-              (let [bufferView (get bufferViews bufferView)]
-                {:point-attr (symbol attr-name)
-                 :from-shader :DEFAULT-GLTF-SHADER
-                 :attr-size (gltf-type->size type)
-                 :attr-type componentType
-                 :offset (+ (:byteOffset bufferView) byteOffset)})))
-       attributes)
+           (eduction
+            (map (fn [[attr-name accessor]]
+                   (merge {:attr-name attr-name}
+                          (get accessors accessor))))
+            (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
+                   (let [bufferView (get bufferViews bufferView)]
+                     {:point-attr (symbol attr-name)
+                      :from-shader from-shader
+                      :attr-size (gltf-type->size type)
+                      :attr-type componentType
+                      :offset (+ (:byteOffset bufferView) byteOffset)})))
+            attributes)
 
-      (let [id-accessor   (get accessors indices)
-            id-bufferView (get bufferViews (:bufferView id-accessor))
-            id-byteOffset (:byteOffset id-bufferView)
-            id-byteLength (:byteLength id-bufferView)]
-        {:bind-buffer (str (:name mesh) "IBO")
-         :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
-         :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
+           (let [id-accessor   (get accessors indices)
+                 id-bufferView (get bufferViews (:bufferView id-accessor))
+                 id-byteOffset (:byteOffset id-bufferView)
+                 id-byteLength (:byteLength id-bufferView)]
+             {:bind-buffer (str (:name mesh) "IBO")
+              :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
+              :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
 
-      {:unbind-vao true}])))
+           {:unbind-vao true}])
+         (into []))))
 
 ;; https://shadow-cljs.github.io/docs/UsersGuide.html#infer-externs
 ;; drop core.async, error msg are not nice there
@@ -104,35 +105,44 @@
 
     ::gl-texture-to-load
     [:what
-     [esse-id ::assimp/gltf gltf-json]]}))
+     [esse-id ::assimp/gltf gltf-json]
+     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
+     [esse-id ::assimp/texture-loaded? false]]}))
 
 (defn load-models-from-world*
   "load models from world* and fire callback for each models loaded.
    this will retract the ::assimp/model-to-load facts"
-  [world*]
-  (doseq [model-to-load (o/query-all @world* ::load-with-assimpjs)]
+  [models-to-load world*]
+  (doseq [model-to-load models-to-load]
     (let [model-files (:model-files model-to-load)
           esse-id     (:esse-id model-to-load)]
+      (println "[assimp-js] loading model" esse-id)
       (swap! world* o/retract esse-id ::assimp/model-to-load)
       (then-load-model
        model-files
        (fn [{:keys [gltf bins]}]
          (println "[assimp-js] loaded" esse-id)
-         (swap! world* o/insert esse-id {::assimp/gltf gltf ::assimp/bins bins}))))))
+         (swap! world* o/insert esse-id
+                {::assimp/gltf gltf
+                 ::assimp/bins bins
+                 ::assimp/texture-loaded? false}))))))
 
 (defn load-texture-to-world*
-  [world* game]
-  (doseq [texture-to-shove (o/query-all @world* ::gl-texture-to-load)]
-    (let [gltf-json (:gltf-json texture-to-shove)
-          esse-id   (:esse-id texture-to-shove)
+  [textures-to-load world* game]
+  (doseq [to-load textures-to-load]
+    (let [gltf-json (:gltf-json to-load)
+          esse-id   (:esse-id to-load)
           ;; only one image for now
-          data-uri  (some-> gltf-json :images first :uri)]
-      (swap! world* o/retract esse-id ::gl-texture-to-load)
+          data-uri  (some-> gltf-json :images first :uri)
+          tex-unit  (:tex-unit-offset to-load)]
+      (println "[assimp-js] loading texture" esse-id)
+      (swap! world* o/insert esse-id ::assimp/texture-loaded? true)
       (some-> data-uri
-        (data-uri->ImageBitmap 
-         (fn [{:keys [bitmap width height]}]
-           (let [tex-data (texture/texture-incantation game bitmap width height 0)]
-             (swap! world* o/insert esse-id ::texture/data tex-data))))))))
+              (data-uri->ImageBitmap
+               (fn [{:keys [bitmap width height]}]
+                 (let [tex-data (texture/texture-incantation game bitmap width height tex-unit)]
+                   (println "[assimp-js] loaded" esse-id tex-data)
+                   (swap! world* o/insert esse-id ::texture/data tex-data))))))))
 
 (def system
   {::world/rules rules})
