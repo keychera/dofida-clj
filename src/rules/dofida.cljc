@@ -285,7 +285,7 @@
      [:what
       [esse-id ::esse-3d esse-3d] ;; contains vao, program, vbo etc, will decomplect later
       [esse-id ::asset/use tex-id]
-      [tex-id  ::texture/from-png texture] ;; (vars->map texture tex-unit)
+      [tex-id  ::texture/data texture] ;; (vars->map texture tex-unit)
       [::dofida-fbo ::texture/fbo fbo]     ;; (vars->map frame-buf fbo-tex tex-unit), hardcoded-id for now
       [tex-id ::asset/loaded? true]]})
 

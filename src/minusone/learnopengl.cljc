@@ -180,8 +180,8 @@
      [vao-id ::vao/vao vao]
      [esse-id ::t3d/local-transform transform]
      [::light-cube ::t3d/position light-pos]
-     [::container-texture ::texture/from-png tex-data]
-     [::specular-map ::texture/from-png spec-tex-data]
+     [::container-texture ::texture/data tex-data]
+     [::specular-map ::texture/data spec-tex-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
@@ -194,7 +194,7 @@
         rand-val (fn [] (loop []
                           (let [v (* max-dist (- (rand 1) 0.5))]
                             (if (> (abs v) min-dist) v (recur)))))]
-    (take 200 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
+    (take 12 (repeatedly (fn [] [(rand-val) (rand-val) (rand-val)])))))
 
 #?(:clj #_"java only profilers"
    (comment

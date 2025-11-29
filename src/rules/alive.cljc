@@ -126,7 +126,7 @@
      [:what
       [:rules.dofida/herself :rules.dofida/esse-3d esse-3d] ;; borrow from dofida for now
       [::window/window ::window/dimension window-dim]
-      [::eye-texture ::texture/from-png eye-texture]
+      [::eye-texture ::texture/data eye-texture]
       [::eye-fbo ::texture/fbo eye-fbo]
       [::eye-atlas ::asset/loaded? true]]})
 

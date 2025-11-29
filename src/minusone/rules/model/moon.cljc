@@ -170,9 +170,9 @@
 
      (assimp-js/data-uri->ImageBitmap
       (-> gltf-json :images first :uri)
-      (fn [bitmap-data width height]
+      (fn [{:keys [bitmap width height]}]
         #_{:clj-kondo/ignore [:inline-def]}
-        (def the-texture (texture/texture-incantation game bitmap-data width height 0))))
+        (def the-texture (texture/texture-incantation game bitmap width height 0))))
 
      (.then (geotiff/fromUrl "assets/models/ldem_4.tif")
             (fn [tiff]

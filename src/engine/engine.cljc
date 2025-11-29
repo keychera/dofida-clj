@@ -8,6 +8,7 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
+   [minusone.learnopengl :as learnopengl]
    [minusone.rules.model.moon :as moon]
    [odoyle.rules :as o]
    [rules.time :as time]
@@ -30,7 +31,7 @@
 
     moon/system
 
-    #_learnopengl/system]))
+    learnopengl/system]))
 
 (defn init [game]
   (println "init game")
@@ -62,7 +63,7 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      #_(let [{:keys [total-time delta-time]} game
+      (let [{:keys [total-time delta-time]} game
             [width height] (utils/get-size game)
             world (swap! (::world/atom* game)
                          #(-> %

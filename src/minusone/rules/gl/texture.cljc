@@ -59,7 +59,7 @@
     (vars->map frame-buf fbo-tex tex-unit)))
 
 (s/def ::tex-unit int?)
-(s/def ::from-png map?)
+(s/def ::data (s/keys :req-un [::texture ::tex-unit]))
 
 (defmethod asset/process-asset ::asset/texture-from-png
   [world* game asset-id {::asset/keys [asset-to-load] ::keys [tex-unit]}]
@@ -67,7 +67,7 @@
    asset-to-load
    (fn on-image-load [{:keys [data width height]}]
      (let [texture (texture-incantation game data width height tex-unit)]
-       (swap! world* o/insert asset-id {::asset/loaded? true ::from-png texture})))))
+       (swap! world* o/insert asset-id {::asset/loaded? true ::data texture})))))
 
 (s/def ::fbo map?)
 

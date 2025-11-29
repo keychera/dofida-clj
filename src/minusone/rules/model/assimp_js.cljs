@@ -2,9 +2,10 @@
   (:require
    ["assimpjs" :as assimpjs]
    [engine.macros :refer [vars->map]]
+   [engine.world :as world]
+   [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
-   [odoyle.rules :as o]
-   [engine.world :as world]))
+   [odoyle.rules :as o]))
 
 (defn data-uri->header+Uint8Array [data-uri]
   (let [[header base64-str] (.split data-uri ",")]
@@ -12,7 +13,10 @@
 
 ;; following this on loading image to bindTexture with blob
 ;; https://webglfundamentals.org/webgl/lessons/webgl-qna-how-to-load-images-in-the-background-with-no-jank.html
-(defn data-uri->ImageBitmap [data-uri callback]
+(defn data-uri->ImageBitmap 
+  "parse data-uri and pass the resulting bitmap to callback.
+   callback will receive {:keys [bitmap width height]}"
+  [data-uri callback]
   (let [[header uint8-arr] (data-uri->header+Uint8Array data-uri)
         data-type          (second (re-matches #".*:(.*);.*" header))
         blob               (js/Blob. #js [uint8-arr] #js {:type data-type})]
@@ -21,7 +25,7 @@
              (let [width  (.-width bitmap)
                    height (.-height bitmap)]
                (println "blob:" data-type "count" (.-length uint8-arr))
-               (callback bitmap width height))))))
+               (callback (vars->map bitmap width height)))))))
 
 (def gltf-type->size
   {"SCALAR" 1
@@ -96,7 +100,11 @@
   (o/ruleset
    {::load-with-assimpjs
     [:what
-     [esse-id ::assimp/model-to-load model-files]]}))
+     [esse-id ::assimp/model-to-load model-files]]
+
+    ::gl-texture-to-load
+    [:what
+     [esse-id ::assimp/gltf gltf-json]]}))
 
 (defn load-models-from-world*
   "load models from world* and fire callback for each models loaded.
@@ -111,6 +119,20 @@
        (fn [{:keys [gltf bins]}]
          (println "[assimp-js] loaded" esse-id)
          (swap! world* o/insert esse-id {::assimp/gltf gltf ::assimp/bins bins}))))))
+
+(defn load-texture-to-world*
+  [world* game]
+  (doseq [texture-to-shove (o/query-all @world* ::gl-texture-to-load)]
+    (let [gltf-json (:gltf-json texture-to-shove)
+          esse-id   (:esse-id texture-to-shove)
+          ;; only one image for now
+          data-uri  (some-> gltf-json :images first :uri)]
+      (swap! world* o/retract esse-id ::gl-texture-to-load)
+      (some-> data-uri
+        (data-uri->ImageBitmap 
+         (fn [{:keys [bitmap width height]}]
+           (let [tex-data (texture/texture-incantation game bitmap width height 0)]
+             (swap! world* o/insert esse-id ::texture/data tex-data))))))))
 
 (def system
   {::world/rules rules})
