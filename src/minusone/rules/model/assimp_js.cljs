@@ -10,18 +10,15 @@
    [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
+   [minusone.rules.model.assimp :as assimp]
+   [odoyle.rules :as o]
    [play-cljc.macros-js :refer-macros [gl]]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
-
-(defonce canvas (js/document.querySelector "canvas"))
-(defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
-(defonce width (-> canvas .-clientWidth))
-(defonce height (-> canvas .-clientHeight))
-(defonce game {:context gl-context})
+   [thi.ng.math.core :as m]
+   [engine.world :as world]))
 
 (defn data-uri->header+Uint8Array [data-uri]
   (let [[header base64-str] (.split data-uri ",")]
@@ -82,6 +79,52 @@
 
       {:unbind-vao true}])))
 
+(defn go-load-model
+  "go block to load model and pass the result via callback.
+   callback will receive {:keys [gltf bins]}"
+  [files callback]
+  (go (let [ajs      (<p! (assimpjs))
+            arr-bufs (<p! (->> files
+                               (map (fn [file] (-> file js/fetch (.then (fn [res] (.arrayBuffer res))))))
+                               js/Promise.all))
+            ajs-file-list (new (.-FileList ajs))]
+        (dotimes [i (count files)]
+          (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arr-bufs i))))
+        (let [result (.ConvertFileList ajs ajs-file-list "gltf2")
+              gltf   (->> (.GetFile result 0)
+                          (.GetContent)
+                          (.decode (js/TextDecoder.))
+                          (js/JSON.parse)
+                          ((fn [json] (-> json (js->clj :keywordize-keys true)))))
+                     ;; only handle one binary for now, (TODO use .FileCount)
+              bins   [(->> (.GetFile result 1) (.GetContent))]]
+          (callback (vars->map gltf bins))))))
+
+
+(def rules
+  (o/ruleset
+   {::load-with-assimpjs
+    [:what
+     [esse-id ::assimp/model-to-load model-files]]}))
+
+(defn load-models-from-world*
+  "load models from world* and fire callback for each models loaded.
+   this will retract the ::assimp/model-to-load facts"
+  [world*]
+  (doseq [model-to-load (o/query-all @world* ::load-with-assimpjs)]
+    (let [model-files (:model-files model-to-load)
+          esse-id     (:esse-id model-to-load)]
+      (swap! world* o/retract esse-id ::assimp/model-to-load)
+      (go-load-model
+       model-files
+       (fn [{:keys [gltf bins]}]
+         (swap! world* o/insert esse-id {::assimp/gltf gltf ::assimp/bins bins}))))))
+
+(def system
+  {::world/rules rules})
+
+;; REPL playground starts here
+
 (defn limited-game-loop
   ([loop-fn time-data how-long]
    (if (> how-long 0)
@@ -93,30 +136,22 @@
           (limited-game-loop loop-fn time-data (- how-long delta)))))
      (println "done"))))
 
+(defonce canvas (js/document.querySelector "canvas"))
+(defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
+(defonce width (-> canvas .-clientWidth))
+(defonce height (-> canvas .-clientHeight))
+(defonce game {:context gl-context})
+
 (comment
   (do (gl game clearColor 0.02 0.02 0.0 1.0)
       (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
 
-  (go
-    (let [files    (eduction (map #(str "assets/models/" %)) ["moon.glb"])
-          ajs      (<p! (assimpjs))
-          arr-bufs (<p! (->> files
-                             (map (fn [file] (-> file js/fetch (.then (fn [res] (.arrayBuffer res))))))
-                             js/Promise.all))
-          ajs-file-list (new (.-FileList ajs))]
-      (dotimes [i (count files)]
-        (.AddFile ajs-file-list (nth files i) (js/Uint8Array. (aget arr-bufs i))))
-      (let [result (.ConvertFileList ajs ajs-file-list "gltf2")]
-        ;; huh, there is no lint warning
-        (def gltf-json
-          (->> (.GetFile result 0)
-               (.GetContent)
-               (.decode (js/TextDecoder.))
-               (js/JSON.parse)
-               ((fn [json] (-> json (js->clj :keywordize-keys true))))))
-        (def result-bin
-          (->> (.GetFile result 1)
-               (.GetContent))))))
+  (go-load-model
+   (eduction (map #(str "assets/models/" %)) ["moon.glb"])
+   #_{:clj-kondo/ignore [:inline-def]}
+   (fn [{:keys [gltf bins]}] 
+     (def gltf-json gltf)
+     (def result-bin (first bins))))
 
   (#_"all data (w/o images bc it's too big to print in repl)"
    -> gltf-json
