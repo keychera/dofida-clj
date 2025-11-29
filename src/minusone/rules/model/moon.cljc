@@ -4,18 +4,19 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    #?@(:cljs [["geotiff" :as geotiff]
               [minusone.rules.model.assimp-js :as assimp-js]])
-   [engine.macros :refer [s->]]
+   [engine.macros :refer [s-> vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
-   [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.magic :as gl.magic]
+   [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp :as assimp]
+   [minusone.rules.projection :as projection]
    [odoyle.rules :as o]
+   [minusone.rules.view.firstperson :as firstperson]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
@@ -126,11 +127,14 @@
      ["Sphere" ::vao/vao vao]
      [esse-id ::texture/data texture-data]
      [esse-id ::shader/program-data program-data]
+     [::world/global ::projection/matrix projection]
+     [::firstperson/player ::firstperson/look-at look-at {:then false}]
+     [::firstperson/player ::firstperson/position cam-position {:then false}]
      :then
      (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  (when-let [{:keys [gltf-json vao texture-data program-data]} (first (o/query-all world ::the-moon))]
+  (when-let [{:keys [gltf-json vao texture-data program-data] :as esse} (first (o/query-all world ::the-moon))]
     (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                                 accessors (some-> gltf-json :accessors)
                                 indices   (some-> mesh :primitives first :indices)]
@@ -145,22 +149,15 @@
           u_resolution    (get uni-loc 'u_resolution)
           u_mat           (get uni-loc 'u_mat)
 
-          position        (v/vec3 0.0 0.0 3.0)
-          front           (v/vec3 0.0 0.0 -1.0)
-          up              (v/vec3 0.0 1.0 0.0)
-          view            (mat/look-at position (m/+ position front) up)
-
-          [w h]           (utils/get-size game)
-          fov             45.0
-          aspect          (/ w h)
-          project         (mat/perspective fov aspect 0.1 100)
+          view            (:look-at esse)
+          project         (:projection esse)
           [^float lx
            ^float ly
-           ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
+           ^float lz]     (m/normalize (v/vec3 0.0 1.0 -2.0))
           trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
           rot-mat   (g/as-matrix (q/quat-from-axis-angle
                                   (v/vec3 0.0 1.0 0.0)
-                                  (m/radians 45.0)))
+                                  (m/radians 0.0)))
           scale-mat (m-ext/scaling-mat 1.0)
 
           model     (reduce m/* [trans-mat rot-mat scale-mat])
@@ -211,10 +208,14 @@
               (limited-game-loop loop-fn time-data (- how-long delta)))))
          (println "done"))))))
 
-#?(:cljs
+#?(:clj
+   (comment 
+     ;; just to remove unused warning in clj side 
+     vars->map gl-incantation mat/matrix44)
+   :cljs
    (comment
      ;; playground
-
+     
      (do (gl game clearColor 0.02 0.02 0.04 1.0)
          (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
 
@@ -335,7 +336,7 @@
                (gl game uniform1f u_light_ambient 0.0)
                (gl game uniform1f u_light_diffuse 1.6)
                (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
-
+               
                (let [{:keys [tex-unit texture]} the-texture]
                  (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
                  (gl game bindTexture (gl game TEXTURE_2D) texture)
