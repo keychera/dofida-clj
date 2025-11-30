@@ -10,7 +10,8 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
+   [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
+   [minusone.rules.gl.gltf :refer [gltf-magic]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
@@ -89,9 +90,6 @@ void main()
       (def gltf-json gltf)
       (def result-bin (first bins)))))
 
-(def gl-array-type assimp-js/gl-array-type)
-(def gltf-type->size assimp-js/gltf-type->size)
-
 #?(:clj
    (comment
      ;; just to remove unused warning in clj side 
@@ -122,9 +120,9 @@ void main()
      (-> pmx-gltf-shader :program-data)
 
      (def gltf-spell
-       (assimp-js/gltf-magic gltf-json result-bin
-                             {:from-shader :PMX-SHADER
-                              :tex-unit-offset 0}))
+       (gltf-magic gltf-json result-bin
+                   {:from-shader :PMX-SHADER
+                    :tex-unit-offset 0}))
 
      (let [get-fn #(nth % 1)
            summons

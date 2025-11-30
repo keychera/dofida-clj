@@ -3,13 +3,14 @@
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    #?@(:cljs [[minusone.rules.model.assimp-js :as assimp-js]])
-   [engine.macros :refer [s-> vars->map]]
+   [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
+   [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
+   [minusone.rules.gl.gltf :refer [gltf-magic]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
@@ -107,8 +108,8 @@
   (-> world
       (esse ::moon
             #::assimp{:model-to-load (into []
-                                      (map #(str "assets/models/" %))
-                                      ["moon.gltf" "moon.bin"])
+                                           (map #(str "assets/models/" %))
+                                           ["moon.gltf" "moon.bin"])
                       :tex-unit-offset 3}
             #::shader{:program-data (shader/create-program game moon-vert moon-frag)})))
 
@@ -118,14 +119,15 @@
     [:what
      [esse-id ::assimp/gltf gltf-json]
      [esse-id ::assimp/bins bins]
+     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
      :then
      (println "spell for" esse-id)
      (let [gltf-spell #?(:clj  []
-                         :cljs (assimp-js/gltf-magic
+                         :cljs (gltf-magic
                                 gltf-json (first bins)
                                 {:from-shader esse-id
-                                 :tex-unit-offset 2}))]
-       (s-> session (o/insert esse-id #::gl.magic{:incantation (first gltf-spell)})))]
+                                 :tex-unit-offset tex-unit-offset}))]
+       (s-> session (o/insert esse-id #::gl-magic{:incantation (first gltf-spell)})))]
 
     ::the-moon
     [:what
@@ -218,14 +220,14 @@
 #?(:clj
    (comment
      ;; just to remove unused warning in clj side 
-     vars->map gl-incantation mat/matrix44)
+     utils/get-image gl-incantation mat/matrix44)
    :cljs
    (comment
      ;; playground
 
      (do (gl game clearColor 0.02 0.02 0.04 1.0)
          (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
-     
+
      (assimp-js/then-load-model
       (eduction
        (map #(str "assets/models/" %))
@@ -235,7 +237,7 @@
       (fn [{:keys [gltf bins]}]
         (def gltf-json gltf)
         (def result-bin (first bins))))
-     
+
      (#_"all data (w/o images bc it's too big to print in repl)"
       -> gltf-json)
 
@@ -254,7 +256,7 @@
      (-> default-gltf-shader :program-data)
 
      (def gltf-spell
-       (assimp-js/gltf-magic
+       (gltf-magic
         gltf-json result-bin
         {:from-shader :DEFAULT-GLTF-SHADER
          :tex-unit-offset 0}))
@@ -262,10 +264,10 @@
      (def summons
        (gl-incantation game
                        [default-gltf-shader]
-                       (first gltf-spell))) 
+                       (first gltf-spell)))
 
-     (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]} 
-            (into {} (comp (filter #(= (first %) "tex0")) (map #(drop 1 %)) (map vec)) summons)]
+     (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]}
+           (into {} (comp (filter #(= (first %) "tex0")) (map #(drop 1 %)) (map vec)) summons)]
        (println "load tex from img" uri-to-load tex-unit)
        (utils/get-image
         uri-to-load
