@@ -42,35 +42,39 @@
   (let [mesh        (some-> gltf-json :meshes first)
         accessors   (some-> gltf-json :accessors)
         bufferViews (some-> gltf-json :bufferViews)
-        attributes  (some-> mesh :primitives first :attributes)
-        indices     (some-> mesh :primitives first :indices)]
-    (->> (flatten
-          [{:bind-buffer (:name mesh) :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
-           {:bind-vao (:name mesh)}
-
-           (eduction
-            (map (fn [[attr-name accessor]]
-                   (merge {:attr-name attr-name}
-                          (get accessors accessor))))
-            (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
-                   (let [bufferView (get bufferViews bufferView)]
-                     {:point-attr (symbol attr-name)
-                      :from-shader from-shader
-                      :attr-size (gltf-type->size type)
-                      :attr-type componentType
-                      :offset (+ (:byteOffset bufferView) byteOffset)})))
-            attributes)
-
-           (let [id-accessor   (get accessors indices)
-                 id-bufferView (get bufferViews (:bufferView id-accessor))
-                 id-byteOffset (:byteOffset id-bufferView)
-                 id-byteLength (:byteLength id-bufferView)]
-             {:bind-buffer (str (:name mesh) "IBO")
-              :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
-              :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
-
-           {:unbind-vao true}])
-         (into []))))
+        primitives  (some-> mesh :primitives)]
+    (eduction
+     (map-indexed
+      (fn [idx {:keys [attributes indices]}]
+        (let [vao-name (str "vao" (.padStart (str idx) 4 "0") "_" (:name mesh))]
+          (->> (flatten
+                [{:bind-buffer vao-name :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
+                 {:bind-vao vao-name}
+  
+                 (eduction
+                  (map (fn [[attr-name accessor]]
+                         (merge {:attr-name attr-name}
+                                (get accessors accessor))))
+                  (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
+                         (let [bufferView (get bufferViews bufferView)]
+                           {:point-attr (symbol attr-name)
+                            :from-shader from-shader
+                            :attr-size (gltf-type->size type)
+                            :attr-type componentType
+                            :offset (+ (:byteOffset bufferView) byteOffset)})))
+                  attributes)
+  
+                 (let [id-accessor   (get accessors indices)
+                       id-bufferView (get bufferViews (:bufferView id-accessor))
+                       id-byteOffset (:byteOffset id-bufferView)
+                       id-byteLength (:byteLength id-bufferView)]
+                   {:bind-buffer (str vao-name "_IBO")
+                    :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
+                    :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
+  
+                 {:unbind-vao true}])
+               (into [])))))
+     primitives)))
 
 ;; https://shadow-cljs.github.io/docs/UsersGuide.html#infer-externs
 ;; drop core.async, error msg are not nice there

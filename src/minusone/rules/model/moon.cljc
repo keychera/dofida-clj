@@ -119,12 +119,12 @@
      :then
      (let [gltf-spell #?(:clj  []
                          :cljs (assimp-js/gltf-magic esse-id gltf-json (first bins)))]
-       (s-> session (o/insert esse-id #::gl.magic{:incantation gltf-spell})))]
+       (s-> session (o/insert esse-id #::gl.magic{:incantation (first gltf-spell)})))]
 
     ::the-moon
     [:what
      [esse-id ::assimp/gltf gltf-json]
-     ["Sphere" ::vao/vao vao]
+     ["vao0000_Sphere" ::vao/vao vao]
      [esse-id ::texture/data texture-data]
      [esse-id ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
@@ -282,7 +282,7 @@
      (def summons
        (gl-incantation game
                        [default-gltf-shader]
-                       (assimp-js/gltf-magic :DEFAULT-GLTF-SHADER gltf-json result-bin)))
+                       (first (assimp-js/gltf-magic :DEFAULT-GLTF-SHADER gltf-json result-bin))))
 
      (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                                  accessors (some-> gltf-json :accessors)
