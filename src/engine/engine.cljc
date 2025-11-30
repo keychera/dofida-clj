@@ -67,7 +67,7 @@
             :cljs (catch js/Error err
                     (utils/log-limited err "[init-error]"))))
     (try
-      (let [#_"the loading zone"
+      #_(let [#_"the loading zone"
             world*           (::world/atom* game)
             models-to-load   (o/query-all @world* ::assimp/load-with-assimp)
             data-uri-to-load (o/query-all @world* ::texture/uri-to-load)]
