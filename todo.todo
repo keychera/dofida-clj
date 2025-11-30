@@ -28,13 +28,26 @@ todo:
         ✔ load proper mesh @done(25-11-29 02:08)
             ✔ does assimp make sense in clojure? @done(25-11-22 16:22) assimpjs kinda attempted now, seems fine (not integrated yet)
             ✔ load model that is not compile-time for js @done(25-11-22 16:22) assimpjs saikou!
-            ☐ integrate assimp into rules engine
+            ✔ integrate assimp into rules engine @done(25-11-30 22:38) kinda done, still needs many rework in the optimized loading part
             ☐ try lwjgl assimp as well
-            ☐ try pmx
+            ✔ try pmx @done(25-11-30 22:38) baby steps but we got it! -> move to rubah-perak
         ✔ maybe try implementing opengl tutorial again regarding light and materials @done(25-11-25 21:47)
         ☐ sidestream: dialogue
         ☐ rethink director
 
+        rubah-perak:
+            ☐ load the binary buffer only once
+            ☐ integrate rubah perak like the moon
+            ☐ render the whole mesh.primitives
+            ☐ stress test and load other model as well
+            ☐ check the UV, are they correct? seems weird
+            ☐ understand skinning, joint, weight, this is what we truly need
+                ☐ does anime-clj integrate with this?? let's find out
+            ☐ understand scene and nodes
+            ☐ check our assumptions
+            ☐ the blender gizmo
+            ☐ arcball recreate
+        
         ☐ skybox
         ☐ better first person control feel
 
