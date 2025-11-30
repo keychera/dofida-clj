@@ -6,7 +6,6 @@
 (s/def ::model-to-load (s/coll-of string?))
 (s/def ::gltf map?)
 (s/def ::bins vector?)
-(s/def ::texture-loaded? boolean?)
 (s/def ::tex-unit-offset int?)
 
 ;; rules name

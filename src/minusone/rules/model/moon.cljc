@@ -117,15 +117,19 @@
      [esse-id ::assimp/gltf gltf-json]
      [esse-id ::assimp/bins bins]
      :then
+     (println "spell for" esse-id)
      (let [gltf-spell #?(:clj  []
-                         :cljs (assimp-js/gltf-magic esse-id gltf-json (first bins)))]
+                         :cljs (assimp-js/gltf-magic
+                                gltf-json (first bins)
+                                {:from-shader esse-id
+                                 :tex-unit-offset 2}))]
        (s-> session (o/insert esse-id #::gl.magic{:incantation (first gltf-spell)})))]
 
     ::the-moon
     [:what
      [esse-id ::assimp/gltf gltf-json]
      ["vao0000_Sphere" ::vao/vao vao]
-     [esse-id ::texture/data texture-data]
+     ["tex0" ::texture/data texture-data]
      [esse-id ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]

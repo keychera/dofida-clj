@@ -3,7 +3,6 @@
    ["assimpjs" :as assimpjs]
    [engine.macros :refer [vars->map]]
    [engine.world :as world]
-   [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
    [odoyle.rules :as o]))
 
@@ -18,7 +17,7 @@
    callback will receive {:keys [bitmap width height]}"
   [data-uri callback]
   (let [[header uint8-arr] (data-uri->header+Uint8Array data-uri)
-        data-type          (second (re-matches #".*:(.*);.*" header))
+        data-type          (second (re-matches #"data:(.*);.*" header))
         blob               (js/Blob. #js [uint8-arr] #js {:type data-type})]
     (.then (js/createImageBitmap blob)
            (fn [bitmap]
@@ -38,17 +37,22 @@
 
 (def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
 
-(defn gltf-magic [from-shader gltf-json result-bin]
+(defn gltf-magic 
+  [gltf-json result-bin {:keys [from-shader tex-unit-offset] :as _data}]
   (let [mesh        (some-> gltf-json :meshes first)
         accessors   (some-> gltf-json :accessors)
         bufferViews (some-> gltf-json :bufferViews)
+        materials   (some-> gltf-json :materials)
+        textures    (some-> gltf-json :textures)
+        images      (some-> gltf-json :images)
         primitives  (some-> mesh :primitives)]
     (eduction
      (map-indexed
-      (fn [idx {:keys [attributes indices]}]
+      (fn [idx {:keys [attributes indices material]}]
         (let [vao-name (str "vao" (.padStart (str idx) 4 "0") "_" (:name mesh))]
           (->> (flatten
-                [{:bind-buffer vao-name :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
+                [;; assume one glb/gltf = one binary for the time being 
+                 {:bind-buffer "the-binary" :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
                  {:bind-vao vao-name}
   
                  (eduction
@@ -68,9 +72,19 @@
                        id-bufferView (get bufferViews (:bufferView id-accessor))
                        id-byteOffset (:byteOffset id-bufferView)
                        id-byteLength (:byteLength id-bufferView)]
-                   {:bind-buffer (str vao-name "_IBO")
+                   {:bind-buffer "IBO"
                     :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
                     :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
+                 
+                 ;; assume one primitive = one material = one image texture for the time being
+                 ;; if multiple primitive uses the same image, it will produce the same fact
+                 (let [material (get materials material)
+                       tex-idx  (some-> material :pbrMetallicRoughness :baseColorTexture :index)
+                       texture  (get textures tex-idx)
+                       image    (get images (:source texture))]
+                   {:bind-texture (str "tex" tex-idx)
+                    :image        image
+                    :tex-unit     (+ tex-unit-offset tex-idx)})
   
                  {:unbind-vao true}])
                (into [])))))
@@ -105,13 +119,7 @@
   (o/ruleset
    {::assimp/load-with-assimp
     [:what
-     [esse-id ::assimp/model-to-load model-files]]
-
-    ::assimp/gl-texture-to-load
-    [:what
-     [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
-     [esse-id ::assimp/texture-loaded? false]]}))
+     [esse-id ::assimp/model-to-load model-files]]}))
 
 (defn load-models-from-world*
   "load models from world* and fire callback for each models loaded.
@@ -128,25 +136,7 @@
          (println "[assimp-js] loaded" esse-id)
          (swap! world* o/insert esse-id
                 {::assimp/gltf gltf
-                 ::assimp/bins bins
-                 ::assimp/texture-loaded? false}))))))
-
-(defn load-texture-to-world*
-  [textures-to-load world* game]
-  (doseq [to-load textures-to-load]
-    (let [gltf-json (:gltf-json to-load)
-          esse-id   (:esse-id to-load)
-          ;; only one image for now
-          data-uri  (some-> gltf-json :images first :uri)
-          tex-unit  (:tex-unit-offset to-load)]
-      (println "[assimp-js] loading texture" esse-id)
-      (swap! world* o/insert esse-id ::assimp/texture-loaded? true)
-      (some-> data-uri
-              (data-uri->ImageBitmap
-               (fn [{:keys [bitmap width height]}]
-                 (let [tex-data (texture/texture-incantation game bitmap width height tex-unit)]
-                   (println "[assimp-js] loaded" esse-id tex-data)
-                   (swap! world* o/insert esse-id ::texture/data tex-data))))))))
+                 ::assimp/bins bins}))))))
 
 (def system
   {::world/rules rules})

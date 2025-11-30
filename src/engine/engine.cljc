@@ -14,7 +14,8 @@
    [minusone.rules.model.moon :as moon]
    [odoyle.rules :as o]
    [rules.time :as time]
-   [rules.window :as window]))
+   [rules.window :as window]
+   [minusone.rules.gl.texture :as texture]))
 
 (defn ->game [context]
   (merge
@@ -31,6 +32,8 @@
 
     asset/system
     window/system
+
+    texture/system
 
     moon/system
 
@@ -67,11 +70,11 @@
       (let [#_"the loading zone"
             world*           (::world/atom* game)
             models-to-load   (o/query-all @world* ::assimp/load-with-assimp)
-            textures-to-load (o/query-all @world* ::assimp/gl-texture-to-load)]
-        (if (or (seq models-to-load) (seq textures-to-load))
+            data-uri-to-load (o/query-all @world* ::texture/data-uri-to-load)]
+        (if (or (seq models-to-load) (seq data-uri-to-load))
           #?(:clj nil
              :cljs (do (some-> models-to-load (assimp-js/load-models-from-world* (::world/atom* game)))
-                       (some-> textures-to-load (assimp-js/load-texture-to-world* (::world/atom* game) game))))
+                       (some-> data-uri-to-load (texture/data-uri->texture->world* (::world/atom* game) game))))
           (let [{:keys [total-time
                         delta-time]} game
                 [width height]       (utils/get-size game)
