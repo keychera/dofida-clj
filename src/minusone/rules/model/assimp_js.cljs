@@ -4,7 +4,8 @@
    [engine.macros :refer [vars->map]]
    [engine.world :as world]
    [minusone.rules.model.assimp :as assimp]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o]
+   [clojure.string :as str]))
 
 (defn data-uri->header+Uint8Array [data-uri]
   (let [[header base64-str] (.split data-uri ",")]
@@ -37,9 +38,10 @@
 
 (def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
 
-(defn gltf-magic 
-  [gltf-json result-bin {:keys [from-shader tex-unit-offset] :as _data}]
-  (let [mesh        (some-> gltf-json :meshes first)
+(defn gltf-magic
+  [gltf-json result-bin {:keys [from-shader tex-unit-offset]}]
+  (let [gltf-dir    (some-> gltf-json :asset :dir)
+        mesh        (some-> gltf-json :meshes first)
         accessors   (some-> gltf-json :accessors)
         bufferViews (some-> gltf-json :bufferViews)
         materials   (some-> gltf-json :materials)
@@ -54,7 +56,7 @@
                 [;; assume one glb/gltf = one binary for the time being 
                  {:bind-buffer "the-binary" :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
                  {:bind-vao vao-name}
-  
+
                  (eduction
                   (map (fn [[attr-name accessor]]
                          (merge {:attr-name attr-name}
@@ -67,7 +69,7 @@
                             :attr-type componentType
                             :offset (+ (:byteOffset bufferView) byteOffset)})))
                   attributes)
-  
+
                  (let [id-accessor   (get accessors indices)
                        id-bufferView (get bufferViews (:bufferView id-accessor))
                        id-byteOffset (:byteOffset id-bufferView)
@@ -75,17 +77,20 @@
                    {:bind-buffer "IBO"
                     :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
                     :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
-                 
+
                  ;; assume one primitive = one material = one image texture for the time being
                  ;; if multiple primitive uses the same image, it will produce the same fact
                  (let [material (get materials material)
                        tex-idx  (some-> material :pbrMetallicRoughness :baseColorTexture :index)
                        texture  (get textures tex-idx)
-                       image    (get images (:source texture))]
+                       image    (get images (:source texture))
+                       image    (cond-> image
+                                  (not (str/starts-with? (:uri image) "data:"))
+                                  (update :uri (fn [f] (str gltf-dir "/" f))))]
                    {:bind-texture (str "tex" tex-idx)
                     :image        image
                     :tex-unit     (+ tex-unit-offset tex-idx)})
-  
+
                  {:unbind-vao true}])
                (into [])))))
      primitives)))
@@ -111,7 +116,9 @@
                                         (.decode (js/TextDecoder.))
                                         (js/JSON.parse)
                                         ((fn [json] (-> json (js->clj :keywordize-keys true)))))
-                                                          ;; only handle one binary for now, (TODO use .FileCount)
+                            dir    (-> (first files) (str/split "/") butlast ((fn [p] (str/join "/" p))))
+                            gltf   (assoc-in gltf [:asset :dir] dir)
+                            ;; only handle one binary for now, (TODO use .FileCount)
                             bins   [(->> (.GetFile result 1) (.GetContent))]]
                         (callback (vars->map gltf bins)))))))))
 

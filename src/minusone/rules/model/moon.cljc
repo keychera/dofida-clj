@@ -2,11 +2,11 @@
   (:require
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   #?@(:cljs [["geotiff" :as geotiff]
-              [minusone.rules.model.assimp-js :as assimp-js]])
+   #?@(:cljs [[minusone.rules.model.assimp-js :as assimp-js]])
    [engine.macros :refer [s-> vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
+   [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
    [minusone.rules.gl.magic :as gl.magic :refer [gl-incantation]]
@@ -15,8 +15,8 @@
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.projection :as projection]
-   [odoyle.rules :as o]
    [minusone.rules.view.firstperson :as firstperson]
+   [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
@@ -106,7 +106,9 @@
 (defn init-fn [world game]
   (-> world
       (esse ::moon
-            #::assimp{:model-to-load ["assets/models/moon.glb"]
+            #::assimp{:model-to-load (into []
+                                      (map #(str "assets/models/" %))
+                                      ["moon.gltf" "moon.bin"])
                       :tex-unit-offset 3}
             #::shader{:program-data (shader/create-program game moon-vert moon-frag)})))
 
@@ -214,26 +216,28 @@
          (println "done"))))))
 
 #?(:clj
-   (comment 
+   (comment
      ;; just to remove unused warning in clj side 
      vars->map gl-incantation mat/matrix44)
    :cljs
    (comment
      ;; playground
-     
+
      (do (gl game clearColor 0.02 0.02 0.04 1.0)
          (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
-
+     
      (assimp-js/then-load-model
-      ["assets/models/moon.glb"]
+      (eduction
+       (map #(str "assets/models/" %))
+       ["moon.gltf"
+        "moon.bin"])
       #_{:clj-kondo/ignore [:inline-def]}
       (fn [{:keys [gltf bins]}]
         (def gltf-json gltf)
         (def result-bin (first bins))))
-
+     
      (#_"all data (w/o images bc it's too big to print in repl)"
-      -> gltf-json
-      (update :images (fn [images] (map #(update % :uri (juxt type count)) images))))
+      -> gltf-json)
 
      (#_"the texture byte array"
       -> gltf-json :images first :uri assimp-js/data-uri->header+Uint8Array
@@ -241,41 +245,7 @@
              (comp type second)
              (comp (fn [arr] (.-length arr)) second))))
 
-     (assimp-js/data-uri->ImageBitmap
-      (-> gltf-json :images first :uri)
-      (fn [{:keys [bitmap width height]}]
-        #_{:clj-kondo/ignore [:inline-def]}
-        (def the-texture (texture/texture-incantation game bitmap width height 0))))
-
-     (.then (geotiff/fromUrl "assets/models/ldem_4.tif")
-            (fn [tiff]
-              (.then (.getImage tiff)
-                     (fn [image]
-                       (.then (.readRasters image #js {:samples #js [0]})
-                              (fn [raster]
-                                (let [raster (aget raster 0)
-                                      width  (.getWidth image)
-                                      height (.getHeight image)
-                                      tex-unit 1]
-                                  (println "ldem" (type raster) (.-length raster) width height)
-                                  (let [texture (gl game createTexture)]
-                                    (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                                    (gl game bindTexture (gl game TEXTURE_2D) texture)
-
-                                    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game LINEAR))
-                                    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game LINEAR))
-                                    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_WRAP_S) (gl game REPEAT))
-                                    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_WRAP_T) (gl game REPEAT))
-                                    (gl game texImage2D (gl game TEXTURE_2D)
-                                        #_:mip-level    0
-                                        #_:internal-fmt (gl game R32F)
-                                        (int width)
-                                        (int height)
-                                        #_:border       0
-                                        #_:src-fmt      (gl game RED)
-                                        #_:src-type     (gl game FLOAT)
-                                        raster)
-                                    (def the-ldem-tex (vars->map texture tex-unit))))))))))
+     (.-length result-bin)
 
      (def default-gltf-shader
        {:esse-id :DEFAULT-GLTF-SHADER
@@ -283,10 +253,25 @@
 
      (-> default-gltf-shader :program-data)
 
+     (def gltf-spell
+       (assimp-js/gltf-magic
+        gltf-json result-bin
+        {:from-shader :DEFAULT-GLTF-SHADER
+         :tex-unit-offset 0}))
+
      (def summons
        (gl-incantation game
                        [default-gltf-shader]
-                       (first (assimp-js/gltf-magic :DEFAULT-GLTF-SHADER gltf-json result-bin))))
+                       (first gltf-spell))) 
+
+     (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]} 
+            (into {} (comp (filter #(= (first %) "tex0")) (map #(drop 1 %)) (map vec)) summons)]
+       (println "load tex from img" uri-to-load tex-unit)
+       (utils/get-image
+        uri-to-load
+        (fn [{:keys [data width height]}]
+          #_{:clj-kondo/ignore [:inline-def]}
+          (def the-texture (texture/texture-incantation game data width height tex-unit)))))
 
      (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                                  accessors (some-> gltf-json :accessors)
@@ -301,7 +286,6 @@
            u_light_diffuse (get uni-loc 'u_light_diffuse)
            u_resolution    (get uni-loc 'u_resolution)
            u_mat           (get uni-loc 'u_mat)
-           u_ldem          (get uni-loc 'u_ldem)
 
            vao             (nth (first summons) 2)
 
@@ -341,16 +325,11 @@
                (gl game uniform1f u_light_ambient 0.0)
                (gl game uniform1f u_light_diffuse 1.6)
                (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
-               
+
                (let [{:keys [tex-unit texture]} the-texture]
                  (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
                  (gl game bindTexture (gl game TEXTURE_2D) texture)
                  (gl game uniform1i u_mat tex-unit))
-
-               (let [{:keys [tex-unit texture]} the-ldem-tex]
-                 (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                 (gl game bindTexture (gl game TEXTURE_2D) texture)
-                 (gl game uniform1i u_ldem tex-unit))
 
                (gl game drawElements
                    (gl game TRIANGLES)
