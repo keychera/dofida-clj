@@ -70,11 +70,11 @@
       (let [#_"the loading zone"
             world*           (::world/atom* game)
             models-to-load   (o/query-all @world* ::assimp/load-with-assimp)
-            data-uri-to-load (o/query-all @world* ::texture/data-uri-to-load)]
+            data-uri-to-load (o/query-all @world* ::texture/uri-to-load)]
         (if (or (seq models-to-load) (seq data-uri-to-load))
-          #?(:clj nil
+          #?(:clj (some-> data-uri-to-load (texture/load-texture->world* (::world/atom* game) game))
              :cljs (do (some-> models-to-load (assimp-js/load-models-from-world* (::world/atom* game)))
-                       (some-> data-uri-to-load (texture/data-uri->texture->world* (::world/atom* game) game))))
+                       (some-> data-uri-to-load (texture/load-texture->world* (::world/atom* game) game))))
           (let [{:keys [total-time
                         delta-time]} game
                 [width height]       (utils/get-size game)

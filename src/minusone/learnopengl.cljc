@@ -2,7 +2,6 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [assets.asset :as asset :refer [asset]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
@@ -138,12 +137,10 @@
 (defn init-fn [world game]
   (gl game enable (gl game DEPTH_TEST)) ;; probably better to be called elsewhere
   (-> world
-      (asset ::container-texture
-             #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/container.png"}
-             #::texture{:tex-unit 0})
-      (asset ::specular-map
-             #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/specular_map.png"}
-             #::texture{:tex-unit 1})
+      (esse ::container-texture 
+             #::texture{:uri-to-load "from_learnopengl/container.png" :tex-unit 0})
+      (esse ::specular-map 
+             #::texture{:uri-to-load "from_learnopengl/specular_map.png" :tex-unit 1})
       (esse ::a-cube
             t3d/default
             #::shader{:program-data (shader/create-program game vertex-shader cube-fs)}

@@ -8,7 +8,8 @@
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o]
+   [clojure.string :as str]))
 
 (defn texture-incantation [game data width height tex-unit]
   (let [texture (gl game #?(:clj genTextures :cljs createTexture))]
@@ -60,21 +61,6 @@
 
     (vars->map frame-buf fbo-tex tex-unit)))
 
-(s/def ::texture any?)
-(s/def ::tex-unit int?)
-(s/def ::data (s/keys :req-un [::texture ::tex-unit]))
-
-(s/def ::data-uri-to-load string?)
-(s/def ::texture-loaded? #{:pending :loading true})
-
-(defmethod asset/process-asset ::asset/texture-from-png
-  [world* game asset-id {::asset/keys [asset-to-load] ::keys [tex-unit]}]
-  (utils/get-image
-   asset-to-load
-   (fn on-image-load [{:keys [data width height]}]
-     (let [texture (texture-incantation game data width height tex-unit)]
-       (swap! world* o/insert asset-id {::asset/loaded? true ::data texture})))))
-
 (s/def ::fbo map?)
 
 (defmethod asset/process-asset ::asset/fbo
@@ -83,33 +69,50 @@
         fbo            (fbo-incantation game width height tex-unit)]
     (swap! world* o/insert asset-id {::asset/loaded? true ::fbo fbo})))
 
+(s/def ::texture any?)
+(s/def ::tex-unit int?)
+(s/def ::data (s/keys :req-un [::texture ::tex-unit]))
+
+(s/def ::uri-to-load string?)
+(s/def ::texture-loaded? #{:pending :loading true})
+
 (def rules
   (o/ruleset
-   {::data-uri-to-load
+   {::uri-to-load
     [:what
-     [tex-id ::data-uri-to-load data-uri]
-     [tex-id ::tex-unit tex-unit]
-     [tex-id ::texture-loaded? :pending]]}))
+     [tex-id ::uri-to-load uri]
+     [tex-id ::tex-unit tex-unit]]}))
 
 (def system
   {::world/rules rules})
 
-(defn data-uri->texture->world*
+(defn load-texture->world*
   [textures-to-load world* game]
   (doseq [to-load textures-to-load]
     (let [tex-id   (:tex-id to-load)
-          data-uri (:data-uri to-load)
+          uri      (:uri to-load)
           tex-unit (:tex-unit to-load)]
-      (println "loading texture" tex-id)
+      (println "[minusone.texture] loading texture" tex-id)
       (swap! world* #(-> %
-                         (o/retract tex-id ::data-uri-to-load)
+                         (o/retract tex-id ::uri-to-load)
                          (o/insert tex-id ::texture-loaded? :loading)))
-      #?(:clj :noop
-         :cljs
-         (data-uri->ImageBitmap
-          data-uri
-          (fn [{:keys [bitmap width height]}]
-            (let [tex-data (texture-incantation game bitmap width height tex-unit)]
-              (println "[assimp-js] loaded" tex-id tex-data)
-              (swap! world* o/insert tex-id {::data tex-data ::texture-loaded? true}))))))))
+      (cond
+        (str/starts-with? uri "data:")
+        #?(:clj  (println "[minusone.texture] no data-uri handling yet in JVM")
+           :cljs (data-uri->ImageBitmap
+                  uri
+                  (fn [{:keys [bitmap width height]}]
+                    (let [tex-data (texture-incantation game bitmap width height tex-unit)]
+                      (println "[minusone.texture] loaded" tex-id tex-data)
+                      (swap! world* o/insert tex-id {::data tex-data ::texture-loaded? true})))))
+
+        (str/ends-with? uri ".png")
+        (utils/get-image
+         uri
+         (fn on-image-load [{:keys [data width height]}]
+           (let [tex-data (texture-incantation game data width height tex-unit)]
+             (swap! world* o/insert tex-id {::data tex-data ::texture-loaded? true}))))
+
+        :else
+        (println uri "not supported")))))
 

@@ -5,7 +5,6 @@
    #?(:clj  [clojure.core.match :refer [match]]
       :cljs [cljs.core.match :refer-macros [match]])
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]
    [engine.macros :refer [s->]]
    [engine.world :as world]
    [minusone.rules.gl.shader :as shader]
@@ -55,17 +54,11 @@
                 tex-unit (:tex-unit entry)
                 tex-id   (:bind-texture entry)]
             (println "[assimp-js] binding" tex-id "to" tex-unit)
-            (cond
-              (str/starts-with? uri "data:")
-              (recur remaining
-                     (conj summons
-                           [tex-id ::texture/data-uri-to-load uri]
-                           [tex-id ::texture/tex-unit tex-unit]
-                           [tex-id ::texture/texture-loaded? :pending]))
-
-              :else
-              (do (println "not handled yet")
-                  (recur remaining summons))))
+            (recur remaining
+                   (conj summons
+                         [tex-id ::texture/uri-to-load uri]
+                         [tex-id ::texture/tex-unit tex-unit]
+                         [tex-id ::texture/texture-loaded? :pending])))
 
           [{:unbind-vao _}]
           (do (gl game bindVertexArray #?(:clj 0 :cljs nil))
