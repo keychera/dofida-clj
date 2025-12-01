@@ -9,8 +9,8 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
    [minusone.rules.gl.gltf :refer [gltf-magic]]
+   [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
@@ -122,18 +122,16 @@
      [esse-id ::assimp/tex-unit-offset tex-unit-offset]
      :then
      (println "spell for" esse-id)
-     (let [gltf-spell #?(:clj  []
-                         :cljs (gltf-magic
-                                gltf-json (first bins)
-                                {:from-shader esse-id
-                                 :tex-unit-offset tex-unit-offset}))]
-       (s-> session (o/insert esse-id #::gl-magic{:incantation (first gltf-spell)})))]
+     (let [gltf-spell (gltf-magic gltf-json (first bins)
+                                  {:from-shader esse-id
+                                   :tex-unit-offset tex-unit-offset})]
+       (s-> session (o/insert esse-id #::gl-magic{:incantation gltf-spell})))]
 
     ::the-moon
     [:what
      [esse-id ::assimp/gltf gltf-json]
-     ["vao0000_Sphere" ::vao/vao vao]
-     ["tex0" ::texture/data texture-data]
+     ["Sphere_vao0000" ::vao/vao vao]
+     ["image0" ::texture/data texture-data]
      [esse-id ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
@@ -217,90 +215,6 @@
               (limited-game-loop loop-fn time-data (- how-long delta)))))
          (println "done"))))))
 
-(def gltf-type->size
-  {"SCALAR" 1
-   "VEC2"   2
-   "VEC3"   3
-   "VEC4"   4
-   "MAT2"   4
-   "MAT3"   9
-   "MAT4"   16})
-
-(def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
-
-(defn new-gltf-magic
-  "magic to pass to gl-incantation"
-  [gltf-json result-bin {:keys [from-shader tex-unit-offset]}]
-  (let [gltf-dir    (some-> gltf-json :asset :dir)
-        mesh        (some-> gltf-json :meshes first)
-        accessors   (some-> gltf-json :accessors)
-        bufferViews (some-> gltf-json :bufferViews)
-        materials   (some-> gltf-json :materials)
-        textures    (some-> gltf-json :textures)
-        images      (some-> gltf-json :images)
-        primitives  (into []
-                          (map-indexed
-                           (fn [idx primitive]
-                             (let [vao-name #?(:clj  (format "vao%04d_%s" idx (:name mesh))
-                                               :cljs (str "vao" (.padStart (str idx) 4 "0") "_" (:name mesh)))]
-                               (assoc primitive :vao-name vao-name))))
-                          (some-> mesh :primitives))]
-    ;; assume one glb/gltf = one binary for the time being
-    (flatten
-     [{:bind-buffer "the-binary" :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
-      (transduce
-       (map
-        (fn [{:keys [vao-name attributes indices material]}]
-          [{:bind-vao vao-name}
-
-           (eduction
-            (map (fn [[attr-name accessor]]
-                   (merge {:attr-name attr-name}
-                          (get accessors accessor))))
-            (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
-                   (let [bufferView (get bufferViews bufferView)]
-                     {:point-attr (symbol attr-name)
-                      :from-shader from-shader
-                      :attr-size (gltf-type->size type)
-                      :attr-type componentType
-                      :offset (+ (:byteOffset bufferView) byteOffset)})))
-            attributes)
-
-           (let [id-accessor   (get accessors indices)
-                 id-bufferView (get bufferViews (:bufferView id-accessor))
-                 id-byteOffset (:byteOffset id-bufferView)
-                 id-byteLength (:byteLength id-bufferView)]
-             {:bind-buffer "IBO"
-              :buffer-data #?(:clj  nil
-                              :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))
-              :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
-
-                                               ;; assume one primitive = one material = one image texture for the time being
-                                               ;; if multiple primitive uses the same image, it will produce the same fact
-           (let [material (get materials material)
-                 tex-idx  (some-> material :pbrMetallicRoughness :baseColorTexture :index)
-                 texture  (get textures tex-idx)
-                 image    (get images (:source texture))
-                 image    (cond-> image
-                            (not (clojure.string/starts-with? (:uri image) "data:"))
-                            (update :uri (fn [f] (str gltf-dir "/" f))))]
-             {:bind-texture (str "tex" tex-idx)
-              :image        image
-              :tex-unit     (+ tex-unit-offset tex-idx)})
-
-           {:unbind-vao true}]))
-       concat primitives)])))
-
-(assimp-js/then-load-model
- (eduction
-  (map #(str "assets/models/" %))
-  ["moon.gltf"
-   "moon.bin"])
- #_{:clj-kondo/ignore [:inline-def]}
- (fn [{:keys [gltf bins]}]
-   (def gltf-json gltf)
-   (def result-bin (first bins))))
-
 #?(:clj
    (comment
      ;; just to remove unused warning in clj side 
@@ -340,10 +254,12 @@
      (-> default-gltf-shader :program-data)
 
      (def gltf-spell
-       (new-gltf-magic
+       (gltf-magic
         gltf-json result-bin
         {:from-shader :DEFAULT-GLTF-SHADER
          :tex-unit-offset 0}))
+
+     (last gltf-spell)
 
      (def summons
        (gl-incantation game
@@ -351,7 +267,7 @@
                        gltf-spell))
 
      (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]}
-           (into {} (comp (filter #(= (first %) "tex0")) (map #(drop 1 %)) (map vec)) summons)]
+           (into {} (comp (filter #(= (first %) "image0")) (map #(drop 1 %)) (map vec)) summons)]
        (println "load tex from img" uri-to-load tex-unit)
        (utils/get-image
         uri-to-load
@@ -373,7 +289,7 @@
            u_resolution    (get uni-loc 'u_resolution)
            u_mat           (get uni-loc 'u_mat)
 
-           vao             (nth (first summons) 2)
+           vao             (nth (first (eduction (filter #(= (first %) "Sphere_vao0000")) summons)) 2)
 
            position        (v/vec3 0.0 0.0 3.0)
            front           (v/vec3 0.0 0.0 -1.0)

@@ -1,6 +1,7 @@
 (ns minusone.rules.gl.gltf
   (:require
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [clojure.spec.alpha :as s]))
 
 (def gltf-type->size
   {"SCALAR" 1
@@ -13,60 +14,89 @@
 
 (def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
 
+(s/def ::primitives sequential?)
+
+(defn create-vao-names [prefix]
+  (map-indexed
+   (fn [idx primitive]
+     (let [vao-name #?(:clj  (format "%s_vao%04d" idx prefix)
+                       :cljs (str prefix "_vao" (.padStart (str idx) 4 "0")))]
+       (assoc primitive :vao-name vao-name)))))
+
+(defn match-textures [tex-unit-offset materials textures images]
+  (map
+   (fn [{:keys [material] :as primitive}]
+     (let [material (get materials material)
+           tex-idx  (some-> material :pbrMetallicRoughness :baseColorTexture :index)
+           texture  (get textures tex-idx)
+           image    (nth images (:source texture))]
+       (assoc primitive
+              :tex-name (:tex-name image)
+              :tex-unit (+ tex-unit-offset tex-idx))))))
+
+(defn primitive-incantation [gltf-json result-bin from-shader]
+  (let [accessors   (some-> gltf-json :accessors)
+        bufferViews (some-> gltf-json :bufferViews)]
+    (map
+     (fn [{:keys [vao-name attributes indices]}]
+       [{:bind-vao vao-name}
+
+        (eduction
+         (map (fn [[attr-name accessor]]
+                (merge {:attr-name attr-name}
+                       (get accessors accessor))))
+         (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
+                (let [bufferView (get bufferViews bufferView)]
+                  {:point-attr (symbol attr-name)
+                   :from-shader from-shader
+                   :attr-size (gltf-type->size type)
+                   :attr-type componentType
+                   :offset (+ (:byteOffset bufferView) byteOffset)})))
+         attributes)
+
+        (let [id-accessor   (get accessors indices)
+              id-bufferView (get bufferViews (:bufferView id-accessor))
+              id-byteOffset (:byteOffset id-bufferView)
+              id-byteLength (:byteLength id-bufferView)]
+          {:bind-buffer "IBO"
+           :buffer-data #?(:clj  [(count result-bin) id-byteOffset id-byteLength :jvm-not-handled]
+                           :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))
+           :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
+        {:unbind-vao true}]))))
+
+(defn process-image [gltf-dir]
+  (map-indexed
+   (fn [idx image]
+     (let [tex-name (str "image" idx)
+           image    (cond-> image
+                      (not (str/starts-with? (:uri image) "data:"))
+                      (update :uri (fn [f] (str gltf-dir "/" f))))]
+       (assoc image :image-idx idx :tex-name tex-name)))))
+
 (defn gltf-magic
   "magic to pass to gl-incantation"
   [gltf-json result-bin {:keys [from-shader tex-unit-offset]}]
-  (let [gltf-dir    (some-> gltf-json :asset :dir)
-        mesh        (some-> gltf-json :meshes first)
-        accessors   (some-> gltf-json :accessors)
-        bufferViews (some-> gltf-json :bufferViews)
-        materials   (some-> gltf-json :materials)
-        textures    (some-> gltf-json :textures)
-        images      (some-> gltf-json :images)
-        primitives  (some-> mesh :primitives)]
-    (eduction
-     (map-indexed
-      (fn [idx {:keys [attributes indices material]}]
-        (let [vao-name (str "vao" (.padStart (str idx) 4 "0") "_" (:name mesh))]
-          (->> (flatten
-                [;; assume one glb/gltf = one binary for the time being 
-                 {:bind-buffer "the-binary" :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
-                 {:bind-vao vao-name}
+  (let [gltf-dir   (some-> gltf-json :asset :dir)
+        _          (assert gltf-dir "no parent dir data in [:asset :dir]")
+        mesh       (some-> gltf-json :meshes first) ;; only handle one mesh for now
+        materials  (some-> gltf-json :materials)
+        textures   (some-> gltf-json :textures)
+        images     (eduction
+                    (process-image gltf-dir)
+                    (some-> gltf-json :images))
+        primitives (eduction
+                    (create-vao-names (:name mesh))
+                    (match-textures tex-unit-offset materials textures images)
+                    (some-> mesh :primitives))]
+    ;; assume one glb/gltf = one binary for the time being
+    (flatten
+     [{:bind-buffer "the-binary" :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
 
-                 (eduction
-                  (map (fn [[attr-name accessor]]
-                         (merge {:attr-name attr-name}
-                                (get accessors accessor))))
-                  (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
-                         (let [bufferView (get bufferViews bufferView)]
-                           {:point-attr (symbol attr-name)
-                            :from-shader from-shader
-                            :attr-size (gltf-type->size type)
-                            :attr-type componentType
-                            :offset (+ (:byteOffset bufferView) byteOffset)})))
-                  attributes)
+      (eduction
+       (map (fn [{:keys [image-idx tex-name] :as image}]
+              {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
+       images)
 
-                 (let [id-accessor   (get accessors indices)
-                       id-bufferView (get bufferViews (:bufferView id-accessor))
-                       id-byteOffset (:byteOffset id-bufferView)
-                       id-byteLength (:byteLength id-bufferView)]
-                   {:bind-buffer "IBO"
-                    :buffer-data (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset))
-                    :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
+      (eduction (primitive-incantation gltf-json result-bin from-shader) primitives)
 
-                 ;; assume one primitive = one material = one image texture for the time being
-                 ;; if multiple primitive uses the same image, it will produce the same fact
-                 (let [material (get materials material)
-                       tex-idx  (some-> material :pbrMetallicRoughness :baseColorTexture :index)
-                       texture  (get textures tex-idx)
-                       image    (get images (:source texture))
-                       image    (cond-> image
-                                  (not (str/starts-with? (:uri image) "data:"))
-                                  (update :uri (fn [f] (str gltf-dir "/" f))))]
-                   {:bind-texture (str "tex" tex-idx)
-                    :image        image
-                    :tex-unit     (+ tex-unit-offset tex-idx)})
-
-                 {:unbind-vao true}])
-               (into [])))))
-     primitives)))
+      {:insert-facts [[from-shader ::primitives primitives]]}])))

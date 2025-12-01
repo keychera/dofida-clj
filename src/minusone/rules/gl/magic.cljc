@@ -13,7 +13,7 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]))
 
-(s/def ::incantation vector?)
+(s/def ::incantation sequential?)
 (s/def ::all-shader vector?)
 
 (s/def ::err nil?)
@@ -22,10 +22,9 @@
   "chant some gl magic. incantations are order-sensitive.
    some incantations will produce fact as `summons`.
    this fn will return the summoned facts"
-  [game all-shader incantation]
+  [game all-shader incantations]
   (let [all-attr-locs (into {} (map (juxt :esse-id (comp :attr-locs :program-data))) all-shader)]
-    (loop [[entry & remaining] incantation
-           summons []]
+    (loop [[entry & remaining] incantations summons []]
       (if entry
         (match [entry]
           [{:bind-vao _}] ;; entry: vao binding
@@ -63,6 +62,11 @@
           [{:unbind-vao _}]
           (do (gl game bindVertexArray #?(:clj 0 :cljs nil))
               (recur remaining summons))
+
+          [{:insert-facts _}]
+          (let [facts (:insert-facts entry)]
+            (println "will insert" (count facts) "fact(s)")
+            (recur remaining (concat summons facts)))
 
           #_"no else handling. match will throw on faulty incantation.")
         summons))))
