@@ -14,7 +14,6 @@
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
-   [rules.interface.input :as input]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
@@ -292,16 +291,10 @@
           (gl game drawArrays (gl game TRIANGLES) 0 36))))))
 
 (def system
-  [shader/system
-   gl-magic/system
-   projection/system
-   input/system
-   firstperson/system
-   t3d/system
-   {::world/init-fn init-fn
-    ::world/after-load-fn after-load-fn
-    ::world/rules rules
-    ::world/render-fn render-fn}])
+  {::world/init-fn init-fn
+   ::world/after-load-fn after-load-fn
+   ::world/rules rules
+   ::world/render-fn render-fn})
 
 (comment
   (o/query-all (:world hmm) ::esses)

@@ -10,12 +10,18 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.learnopengl :as learnopengl]
+   [minusone.rules.gl.magic :as gl-magic]
+   [minusone.rules.gl.shader :as shader]
+   [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.model.moon :as moon]
+   [minusone.rules.projection :as projection]
+   [minusone.rules.transform3d :as t3d]
+   [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
+   [rules.interface.input :as input]
    [rules.time :as time]
-   [rules.window :as window]
-   [minusone.rules.gl.texture :as texture]))
+   [rules.window :as window]))
 
 (defn ->game [context]
   (merge
@@ -34,6 +40,13 @@
     window/system
 
     texture/system
+
+    gl-magic/system
+    shader/system
+    projection/system
+    input/system
+    firstperson/system
+    t3d/system
 
     moon/system
 
