@@ -3,6 +3,7 @@
    ["assimpjs" :as assimpjs]
    [engine.macros :refer [vars->map]]
    [engine.world :as world]
+   [minusone.rules.gl.gl :as gl]
    [minusone.rules.model.assimp :as assimp]
    [odoyle.rules :as o]
    [clojure.string :as str]))
@@ -75,7 +76,8 @@
          (println "[assimp-js] loaded" esse-id)
          (swap! world* o/insert esse-id
                 {::assimp/gltf gltf
-                 ::assimp/bins bins}))))))
+                 ::assimp/bins bins
+                 ::gl/loaded?  :pending}))))))
 
 (def system
   {::world/rules rules})

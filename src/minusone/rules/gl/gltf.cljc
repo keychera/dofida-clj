@@ -64,10 +64,10 @@
                            :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
 
-(defn process-image [gltf-dir]
+(defn process-image [model-id gltf-dir]
   (map-indexed
    (fn [idx image]
-     (let [tex-name (str "image" idx)
+     (let [tex-name (str model-id "_image" idx)
            image    (cond-> image
                       (not (str/starts-with? (:uri image) "data:"))
                       (update :uri (fn [f] (str gltf-dir "/" f))))]
@@ -82,10 +82,10 @@
         materials  (some-> gltf-json :materials)
         textures   (some-> gltf-json :textures)
         images     (eduction
-                    (process-image gltf-dir)
+                    (process-image model-id gltf-dir)
                     (some-> gltf-json :images))
         primitives (eduction
-                    (create-vao-names (:name mesh))
+                    (create-vao-names (str model-id "_" (:name mesh)))
                     (match-textures tex-unit-offset materials textures images)
                     (some-> mesh :primitives))]
     ;; assume one glb/gltf = one binary for the time being

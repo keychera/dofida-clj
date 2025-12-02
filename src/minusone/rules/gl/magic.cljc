@@ -3,10 +3,11 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    #?(:clj  [clojure.core.match :refer [match]]
-      :cljs [cljs.core.match :refer-macros [match]])
+      :cljs [cljs.core.match :refer-macros [match]]) 
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.world :as world]
+   [minusone.rules.gl.gl :as gl] 
    [minusone.rules.gl.gltf :as gltf :refer [gltf-magic]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
@@ -15,8 +16,10 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]))
 
+
 (s/def ::incantation sequential?)
 (s/def ::all-shader vector?)
+(s/def ::gl-loaded? #{:pending :loading true})
 
 (s/def ::err nil?)
 
@@ -93,8 +96,26 @@
      (let [all-shader (o/query-all session ::all-shader)]
        (s-> session
             (o/insert ::shader/global ::all-shader all-shader)))]
-
-    ::do-some-magic!
+    
+    ::I-cast-gltf-loading!
+    [:what
+     [esse-id ::assimp/gltf gltf-json]
+     [esse-id ::shader/use shader]
+     [esse-id ::assimp/bins bins]
+     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
+     [esse-id ::gl/loaded? :pending]
+     :then
+     (println "[magic] gltf spell for" esse-id)
+     (let [gltf-spell (gltf-magic gltf-json (first bins)
+                                  {:model-id esse-id
+                                   :use-shader shader
+                                   :tex-unit-offset tex-unit-offset})]
+       (s-> session 
+            
+            (o/insert esse-id {::gl/loaded? :loading
+                               ::incantation gltf-spell})))]
+    
+     ::do-some-magic!
     [:what
      [::shader/global ::shader/context context]
      [::shader/global ::all-shader all-shader]
@@ -103,21 +124,8 @@
      (let [summons (gl-incantation context all-shader incantation)]
        (s-> session
             (o/retract esse-id ::incantation)
-            ((fn [s'] (reduce o/insert s' summons)))))]
-
-    ::I-cast-gltf-loading!
-    [:what
-     [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::shader/use shader]
-     [esse-id ::assimp/bins bins]
-     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
-     :then
-     (println "[magic] gltf spell for" esse-id)
-     (let [gltf-spell (gltf-magic gltf-json (first bins)
-                                  {:model-id esse-id
-                                   :use-shader shader
-                                   :tex-unit-offset tex-unit-offset})]
-       (s-> session (o/insert esse-id {::incantation gltf-spell})))]}))
+            (o/insert esse-id ::gl/loaded? true)
+            ((fn [s'] (reduce o/insert s' summons)))))]}))
 
 (def system
   {::world/rules rules})

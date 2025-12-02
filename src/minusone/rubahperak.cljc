@@ -14,6 +14,7 @@
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.projection :as projection]
+   [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
@@ -60,22 +61,32 @@ void main()
 (defn init-fn [world game]
   (-> world
       (esse ::pmx-shader #::shader{:program-data (shader/create-program game pmx-vert pmx-frag)})
-      #_(esse ::models
+      (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 0}
               #::shader{:use ::pmx-shader})
       (esse ::topaz
             #::assimp{:model-to-load ["assets/models/TopazAndNumby/Topaz.pmx"] :tex-unit-offset 5}
             #::shader{:use ::pmx-shader})
-      #_(esse ::numby
+      (esse ::numby
               #::assimp{:model-to-load ["assets/models/TopazAndNumby/Numby.pmx"] :tex-unit-offset 10}
               #::shader{:use ::pmx-shader})))
+
+(defn after-load-fn [world _game]
+  (-> world
+      (esse ::rubahperak 
+            #::t3d{:position (v/vec3 -1.5 -3.5 0.0)})
+      (esse ::topaz
+            #::t3d{:position (v/vec3 1.5 -3.5 0.0)})
+      (esse ::numby
+            #::t3d{:position (v/vec3 0 -3.5 0.0)})))
 
 (def rules
   (o/ruleset
    {::pmx-models
     [:what
-     [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::gltf/primitives primitives]
+     [esse-id ::assimp/gltf gltf-json {:then false}]
+     [esse-id ::gltf/primitives primitives {:then false}]
+     [esse-id ::t3d/position position]
      [::pmx-shader ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
@@ -84,7 +95,7 @@ void main()
      (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::pmx-models))]
+  (doseq [{:keys [primitives position] :as esse} (o/query-all world ::pmx-models)]
     (let [gltf-json (:gltf-json esse)
           accessors     (:accessors gltf-json)
           program-data  (:program-data esse)
@@ -99,14 +110,17 @@ void main()
             (let [indices       (get accessors (:indices prim))
                   view          (:look-at esse)
                   project       (:projection esse)
-                  trans-mat     (m-ext/translation-mat -1.5 -3.5 0.0)
+                  [^float x
+                   ^float y
+                   ^float z]    position
+                  trans-mat     (m-ext/translation-mat x y z)
                   rot-mat       (g/as-matrix (q/quat-from-axis-angle
                                               (v/vec3 0.0 1.0 0.0)
                                               (m/radians 0.18)))
                   scale-mat     (m-ext/scaling-mat 0.22)
 
                   model         (reduce m/* [trans-mat rot-mat scale-mat])
-
+                  
                   mvp           (reduce m/* [project view model])
                   mvp           (f32-arr (vec mvp))]
               (gl game useProgram program)
@@ -122,10 +136,12 @@ void main()
                   (gl game TRIANGLES)
                   (:count indices)
                   (:componentType indices)
-                  0))))))))
+                  0)
+              (gl game bindVertexArray #?(:clj 0 :cljs nil)))))))))
 
 (def system
   {::world/init-fn init-fn
+   ::world/after-load-fn after-load-fn
    ::world/render-fn render-fn
    ::world/rules rules})
 
