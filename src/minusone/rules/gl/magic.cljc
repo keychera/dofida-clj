@@ -43,8 +43,8 @@
               (gl game bufferData buffer-type buffer-data (gl game STATIC_DRAW)))
             (recur remaining summons))
 
-          [{:point-attr _ :attr-size _ :attr-type _ :from-shader _}] ;; entry: attrib pointing
-          (if-let [attr-loc (get-in all-attr-locs [(:from-shader entry) (:point-attr entry)])]
+          [{:point-attr _ :attr-size _ :attr-type _ :use-shader _}] ;; entry: attrib pointing 
+          (if-let [attr-loc (get-in all-attr-locs [(:use-shader entry) (:point-attr entry)])]
             (let [{:keys [attr-size attr-type stride offset] :or {stride 0 offset 0}} entry]
               (gl game enableVertexAttribArray attr-loc)
               (gl game vertexAttribPointer attr-loc attr-size attr-type false stride offset)
@@ -80,6 +80,7 @@
     [:what
      [esse-id ::shader/program-data program-data]
      :then
+     (println "collecting shader:" esse-id)
      (let [all-shader (o/query-all session ::all-shader)]
        (s-> session
             (o/insert ::shader/global ::all-shader all-shader)))]
@@ -94,16 +95,18 @@
        (s-> session
             (o/retract esse-id ::incantation)
             ((fn [s'] (reduce o/insert s' summons)))))]
-    
+
     ::I-cast-gltf-loading!
     [:what
      [esse-id ::assimp/gltf gltf-json]
+     [esse-id ::shader/use shader]
      [esse-id ::assimp/bins bins]
      [esse-id ::assimp/tex-unit-offset tex-unit-offset]
      :then
      (println "[magic] gltf spell for" esse-id)
      (let [gltf-spell (gltf-magic gltf-json (first bins)
-                                  {:from-shader esse-id
+                                  {:model-id esse-id
+                                   :use-shader shader
                                    :tex-unit-offset tex-unit-offset})]
        (s-> session (o/insert esse-id {::incantation gltf-spell})))]}))
 

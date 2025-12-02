@@ -246,7 +246,8 @@
      (def gltf-spell
        (gltf-magic
         gltf-json result-bin
-        {:from-shader :DEFAULT-GLTF-SHADER
+        {:model-id :any
+         :use-shader :DEFAULT-GLTF-SHADER
          :tex-unit-offset 0}))
      
      (def summons

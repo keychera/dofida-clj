@@ -34,7 +34,7 @@
               :tex-name (:tex-name image)
               :tex-unit (+ tex-unit-offset tex-idx))))))
 
-(defn primitive-incantation [gltf-json result-bin from-shader]
+(defn primitive-incantation [gltf-json result-bin use-shader]
   (let [accessors   (some-> gltf-json :accessors)
         bufferViews (some-> gltf-json :bufferViews)]
     (map
@@ -48,7 +48,7 @@
          (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
                 (let [bufferView (get bufferViews bufferView)]
                   {:point-attr (symbol attr-name)
-                   :from-shader from-shader
+                   :use-shader use-shader
                    :attr-size (gltf-type->size type)
                    :attr-type componentType
                    :offset (+ (:byteOffset bufferView) byteOffset)})))
@@ -75,7 +75,7 @@
 
 (defn gltf-magic
   "magic to pass to gl-incantation"
-  [gltf-json result-bin {:keys [from-shader tex-unit-offset]}]
+  [gltf-json result-bin {:keys [model-id use-shader tex-unit-offset]}]
   (let [gltf-dir   (some-> gltf-json :asset :dir)
         _          (assert gltf-dir "no parent dir data in [:asset :dir]")
         mesh       (some-> gltf-json :meshes first) ;; only handle one mesh for now
@@ -97,7 +97,7 @@
               {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
        images)
 
-      (eduction (primitive-incantation gltf-json result-bin from-shader) primitives)
+      (eduction (primitive-incantation gltf-json result-bin use-shader) primitives)
 
-      {:insert-facts [[from-shader ::primitives 
+      {:insert-facts [[model-id ::primitives 
                        (mapv (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])) primitives)]]}])))

@@ -152,12 +152,12 @@
             #::gl-magic{:incantation
                         [{:bind-buffer "cube" :buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
                          {:bind-vao :cube-vao}
-                         {:point-attr 'a_pos :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
-                         {:point-attr 'a_normal :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :offset 12 :stride 32}
-                         {:point-attr 'a_uv :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 24 :stride 32}
+                         {:point-attr 'a_pos :use-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
+                         {:point-attr 'a_normal :use-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :offset 12 :stride 32}
+                         {:point-attr 'a_uv :use-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 24 :stride 32}
                          {:bind-vao :light-cube-vao}
                          ;; rebinding actually make the data disappear for light-cube-vao
-                         {:point-attr 'a_pos :from-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
+                         {:point-attr 'a_pos :use-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
                          {:unbind-vao true}]})
       (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))))
 

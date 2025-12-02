@@ -59,17 +59,24 @@ void main()
 
 (defn init-fn [world game]
   (-> world
-      (esse ::rubahperak
-            #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 4}
-            #::shader{:program-data (shader/create-program game pmx-vert pmx-frag)})))
+      (esse ::pmx-shader #::shader{:program-data (shader/create-program game pmx-vert pmx-frag)})
+      #_(esse ::models
+              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 0}
+              #::shader{:use ::pmx-shader})
+      (esse ::topaz
+            #::assimp{:model-to-load ["assets/models/TopazAndNumby/Topaz.pmx"] :tex-unit-offset 5}
+            #::shader{:use ::pmx-shader})
+      #_(esse ::numby
+              #::assimp{:model-to-load ["assets/models/TopazAndNumby/Numby.pmx"] :tex-unit-offset 10}
+              #::shader{:use ::pmx-shader})))
 
 (def rules
   (o/ruleset
-   {::rubahperak
+   {::pmx-models
     [:what
      [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::shader/program-data program-data]
      [esse-id ::gltf/primitives primitives]
+     [::pmx-shader ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
@@ -77,7 +84,7 @@ void main()
      (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::rubahperak))]
+  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::pmx-models))]
     (let [gltf-json (:gltf-json esse)
           accessors     (:accessors gltf-json)
           program-data  (:program-data esse)
@@ -89,7 +96,7 @@ void main()
         (let [vao  (get @vao/db* (:vao-name prim))
               tex  (get @texture/db* (:tex-name prim))]
           (when (and vao tex)
-            (let [indices       (get accessors (:indices prim)) 
+            (let [indices       (get accessors (:indices prim))
                   view          (:look-at esse)
                   project       (:projection esse)
                   trans-mat     (m-ext/translation-mat -1.5 -3.5 0.0)
@@ -141,6 +148,14 @@ void main()
               (limited-game-loop loop-fn time-data (- how-long delta)))))
          (println "done"))))))
 
+#?(:cljs
+   (assimp-js/then-load-model
+    ["assets/models/TopazAndNumby/Topaz.pmx"]
+    #_{:clj-kondo/ignore [:inline-def]}
+    (fn [{:keys [gltf bins]}]
+      (def gltf-json gltf)
+      (def result-bin (first bins)))))
+
 #?(:clj
    (comment
      ;; just to remove unused warning in clj side 
@@ -154,13 +169,15 @@ void main()
 
      #?(:cljs
         (assimp-js/then-load-model
-         ["assets/models/SilverWolf/银狼.pmx"]
+         ["assets/models/TopazAndNumby/Numby.pmx"]
          #_{:clj-kondo/ignore [:inline-def]}
          (fn [{:keys [gltf bins]}]
            (def gltf-json gltf)
            (def result-bin (first bins)))))
 
-     (-> gltf-json :meshes)
+     (select-keys
+      gltf-json
+      [:meshes :images])
 
      ((juxt (comp #(get % 2) :nodes)) gltf-json)
 
@@ -180,8 +197,9 @@ void main()
 
      (def gltf-spell
        (minusone.rules.gl.gltf/gltf-magic gltf-json result-bin
-                   {:from-shader :PMX-SHADER
-                    :tex-unit-offset 0}))
+                                          {:model-id :any
+                                           :use-shader :PMX-SHADER
+                                           :tex-unit-offset 0}))
 
      (let [get-fn #(nth % 1)
            summons
@@ -190,7 +208,7 @@ void main()
                            (-> gltf-spell get-fn))]
        (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]}
              (into {} (comp (filter #(string? (first %))) #_{:clj-kondo/ignore [:unresolved-namespace]}
-                                                          (filter #(str/starts-with? (first %) "tex")) (map #(drop 1 %)) (map vec)) summons)]
+                            (filter #(str/starts-with? (first %) "tex")) (map #(drop 1 %)) (map vec)) summons)]
          (println "load tex from img" uri-to-load tex-unit)
          #_{:clj-kondo/ignore [:unresolved-namespace]}
          (utils/get-image

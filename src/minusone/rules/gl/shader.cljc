@@ -9,6 +9,7 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]))
 
+(s/def ::use keyword?)
 (s/def ::context map?) ;; this is a map from play-cljc.gl.core/->game
 (s/def ::program-data map?)
 
