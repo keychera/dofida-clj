@@ -5,7 +5,6 @@
    #?@(:cljs [[minusone.rules.model.assimp-js :as assimp-js]])
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
-   [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
    [minusone.rules.gl.gltf :as gltf]
@@ -78,48 +77,45 @@ void main()
      (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::rubahperak))] 
-    (doseq [prim (take 1 (drop 0 primitives))]
-      (let [vao  (get @vao/db* (:vao-name prim))
-            tex  (get @texture/db* (:tex-name prim))] 
-        (when (and vao tex)
-          (let [gltf-json     (:gltf-json esse)
-                program-data  (:program-data esse)
-                indices       (let [mesh      (some-> gltf-json :meshes first)
-                                    accessors (some-> gltf-json :accessors)
-                                    indices   (some-> mesh :primitives first :indices)]
-                                (get accessors indices))
-                program       (:program program-data)
-                uni-loc       (:uni-locs program-data)
-                u_mvp         (get uni-loc 'u_mvp)
-                u_mat_diffuse (get uni-loc 'u_mat_diffuse)
+  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::rubahperak))]
+    (let [gltf-json (:gltf-json esse)
+          accessors     (:accessors gltf-json)
+          program-data  (:program-data esse)
+          program       (:program program-data)
+          uni-loc       (:uni-locs program-data)
+          u_mvp         (get uni-loc 'u_mvp)
+          u_mat_diffuse (get uni-loc 'u_mat_diffuse)]
+      (doseq [prim primitives]
+        (let [vao  (get @vao/db* (:vao-name prim))
+              tex  (get @texture/db* (:tex-name prim))]
+          (when (and vao tex)
+            (let [indices       (get accessors (:indices prim)) 
+                  view          (:look-at esse)
+                  project       (:projection esse)
+                  trans-mat     (m-ext/translation-mat -1.5 -3.5 0.0)
+                  rot-mat       (g/as-matrix (q/quat-from-axis-angle
+                                              (v/vec3 0.0 1.0 0.0)
+                                              (m/radians 0.18)))
+                  scale-mat     (m-ext/scaling-mat 0.22)
 
-                view          (:look-at esse)
-                project       (:projection esse)
-                trans-mat     (m-ext/translation-mat -1.5 -4.5 0.0)
-                rot-mat       (g/as-matrix (q/quat-from-axis-angle
-                                            (v/vec3 0.0 1.0 0.0)
-                                            (m/radians 0.18)))
-                scale-mat     (m-ext/scaling-mat 0.22)
+                  model         (reduce m/* [trans-mat rot-mat scale-mat])
 
-                model         (reduce m/* [trans-mat rot-mat scale-mat])
+                  mvp           (reduce m/* [project view model])
+                  mvp           (f32-arr (vec mvp))]
+              (gl game useProgram program)
+              (gl game bindVertexArray vao)
+              (gl game uniformMatrix4fv u_mvp false mvp)
 
-                mvp           (reduce m/* [project view model])
-                mvp           (f32-arr (vec mvp))]
-            (gl game useProgram program)
-            (gl game bindVertexArray vao)
-            (gl game uniformMatrix4fv u_mvp false mvp)
+              (let [{:keys [tex-unit texture]} tex]
+                (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+                (gl game bindTexture (gl game TEXTURE_2D) texture)
+                (gl game uniform1i u_mat_diffuse tex-unit))
 
-            (let [{:keys [tex-unit texture]} tex]
-              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-              (gl game bindTexture (gl game TEXTURE_2D) texture)
-              (gl game uniform1i u_mat_diffuse tex-unit))
-
-            (gl game drawElements
-                (gl game TRIANGLES)
-                (:count indices)
-                (:componentType indices)
-                0)))))))
+              (gl game drawElements
+                  (gl game TRIANGLES)
+                  (:count indices)
+                  (:componentType indices)
+                  0))))))))
 
 (def system
   {::world/init-fn init-fn
@@ -158,7 +154,7 @@ void main()
 
      #?(:cljs
         (assimp-js/then-load-model
-         "assets/models/SilverWolf/银狼.pmx"
+         ["assets/models/SilverWolf/银狼.pmx"]
          #_{:clj-kondo/ignore [:inline-def]}
          (fn [{:keys [gltf bins]}]
            (def gltf-json gltf)
@@ -183,7 +179,7 @@ void main()
      (-> pmx-gltf-shader :program-data)
 
      (def gltf-spell
-       (gltf-magic gltf-json result-bin
+       (minusone.rules.gl.gltf/gltf-magic gltf-json result-bin
                    {:from-shader :PMX-SHADER
                     :tex-unit-offset 0}))
 
@@ -193,8 +189,10 @@ void main()
                            [pmx-gltf-shader]
                            (-> gltf-spell get-fn))]
        (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]}
-             (into {} (comp (filter #(string? (first %))) (filter #(str/starts-with? (first %) "tex")) (map #(drop 1 %)) (map vec)) summons)]
+             (into {} (comp (filter #(string? (first %))) #_{:clj-kondo/ignore [:unresolved-namespace]}
+                                                          (filter #(str/starts-with? (first %) "tex")) (map #(drop 1 %)) (map vec)) summons)]
          (println "load tex from img" uri-to-load tex-unit)
+         #_{:clj-kondo/ignore [:unresolved-namespace]}
          (utils/get-image
           uri-to-load
           (fn [{:keys [data width height]}]

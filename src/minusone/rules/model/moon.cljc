@@ -134,10 +134,8 @@
       (when (and vao tex)
         (let [gltf-json       (:gltf-json esse)
               program-data    (:program-data esse)
-              indices         (let [mesh      (some-> gltf-json :meshes first)
-                                    accessors (some-> gltf-json :accessors)
-                                    indices   (some-> mesh :primitives first :indices)]
-                                (get accessors indices))
+              accessors       (:accessors gltf-json)
+              indices         (get accessors (:indices prim)) 
               program         (:program program-data)
               uni-loc         (:uni-locs program-data)
               u_mvp           (get uni-loc 'u_mvp)

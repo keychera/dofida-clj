@@ -100,4 +100,4 @@
       (eduction (primitive-incantation gltf-json result-bin from-shader) primitives)
 
       {:insert-facts [[from-shader ::primitives 
-                       (mapv (fn [p] (select-keys p [:tex-name :tex-unit :vao-name])) primitives)]]}])))
+                       (mapv (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])) primitives)]]}])))
