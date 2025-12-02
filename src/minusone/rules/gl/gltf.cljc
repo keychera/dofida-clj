@@ -40,7 +40,7 @@
     (map
      (fn [{:keys [vao-name attributes indices]}]
        [{:bind-vao vao-name}
-
+        {:bind-current-buffer true}
         (eduction
          (map (fn [[attr-name accessor]]
                 (merge {:attr-name attr-name}
@@ -59,9 +59,9 @@
               id-byteOffset (:byteOffset id-bufferView)
               id-byteLength (:byteLength id-bufferView)]
           {:bind-buffer "IBO"
+           :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)
            :buffer-data #?(:clj  [(count result-bin) id-byteOffset id-byteLength :jvm-not-handled]
-                           :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))
-           :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)})
+                           :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
 
 (defn process-image [gltf-dir]
@@ -90,8 +90,7 @@
                     (some-> mesh :primitives))]
     ;; assume one glb/gltf = one binary for the time being
     (flatten
-     [{:bind-buffer "the-binary" :buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
-
+     [{:buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)} 
       (eduction
        (map (fn [{:keys [image-idx tex-name] :as image}]
               {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))

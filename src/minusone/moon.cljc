@@ -1,4 +1,4 @@
-(ns minusone.rules.model.moon
+(ns minusone.moon
   (:require
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
@@ -105,20 +105,20 @@
 
 (defn init-fn [world game]
   (-> world
+      (esse ::moon-shader
+            #::shader{:program-data (shader/create-program game moon-vert moon-frag)})
       (esse ::moon
-            #::assimp{:model-to-load (into []
-                                           (map #(str "assets/models/" %))
-                                           ["moon.gltf" "moon.bin"])
+            #::assimp{:model-to-load (into [] (map #(str "assets/models/" %)) ["moon.gltf" "moon.bin"])
                       :tex-unit-offset 3}
-            #::shader{:program-data (shader/create-program game moon-vert moon-frag)})))
+            #::shader{:use ::moon-shader})))
 
-(def rules
+(def rules 
   (o/ruleset
    {::the-moon
     [:what
      [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::shader/program-data program-data]
      [esse-id ::gltf/primitives primitives]
+     [::moon-shader ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]

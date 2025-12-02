@@ -26,50 +26,59 @@
    this fn will return the summoned facts"
   [game all-shader incantations]
   (let [all-attr-locs (into {} (map (juxt :esse-id (comp :attr-locs :program-data))) all-shader)]
-    (loop [[entry & remaining] incantations summons []]
+    (loop [[entry & remaining] incantations summons [] state {}]
       (if entry
         (match [entry]
           [{:bind-vao _}] ;; entry: vao binding
           (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
             (gl game bindVertexArray vao)
             (swap! vao/db* assoc (:bind-vao entry) vao)
-            (recur remaining summons))
-
-          [{:bind-buffer _ :buffer-type _}] ;; entry: buffer binding
-          (let [buffer      (gl-utils/create-buffer game)
-                buffer-type (:buffer-type entry)]
+            (recur remaining summons state))
+          
+          [{:buffer-data _ :buffer-type _}] ;; entry: buffer binding
+          (let [buffer (gl-utils/create-buffer game)
+                buffer-type (:buffer-type entry)
+                buffer-data (:buffer-data entry)]
             (gl game bindBuffer buffer-type buffer)
-            (when-let [buffer-data (:buffer-data entry)]
-              (gl game bufferData buffer-type buffer-data (gl game STATIC_DRAW)))
-            (recur remaining summons))
+            (gl game bufferData buffer-type buffer-data (gl game STATIC_DRAW))
+            (recur remaining summons (assoc state :current-buffer buffer :buffer-type buffer-type)))
+          
+          [{:bind-current-buffer _}]
+          (let [current-buffer (:current-buffer state)
+                buffer-type    (:buffer-type state)]
+            (gl game bindBuffer buffer-type current-buffer)
+            (recur remaining summons state))
 
           [{:point-attr _ :attr-size _ :attr-type _ :use-shader _}] ;; entry: attrib pointing 
           (if-let [attr-loc (get-in all-attr-locs [(:use-shader entry) (:point-attr entry)])]
             (let [{:keys [attr-size attr-type stride offset] :or {stride 0 offset 0}} entry]
-              (gl game enableVertexAttribArray attr-loc)
               (gl game vertexAttribPointer attr-loc attr-size attr-type false stride offset)
-              (recur remaining summons))
-            (recur remaining (conj summons [:err-fact ::err (str (:point-attr entry) " is not found in any shader program")])))
+              (gl game enableVertexAttribArray attr-loc)
+              (recur remaining summons state))
+            (recur remaining 
+                   (conj summons [:err-fact ::err (str (:point-attr entry) " is not found in any shader program")])
+                   state))
 
           [{:bind-texture _ :image _ :tex-unit _}] ;; entry: texture binding
           (let [uri      (-> entry :image :uri)
                 tex-unit (:tex-unit entry)
-                tex-name   (:bind-texture entry)]
+                tex-name (:bind-texture entry)]
             (println "[assimp-js] binding" tex-name "to" tex-unit)
             (recur remaining
                    (conj summons
                          [tex-name ::texture/uri-to-load uri]
                          [tex-name ::texture/tex-unit tex-unit]
-                         [tex-name ::texture/loaded? :pending])))
+                         [tex-name ::texture/loaded? :pending])
+                   state))
 
           [{:unbind-vao _}]
           (do (gl game bindVertexArray #?(:clj 0 :cljs nil))
-              (recur remaining summons))
+              (recur remaining summons state))
 
           [{:insert-facts _}]
           (let [facts (:insert-facts entry)]
             (println "will insert" (count facts) "fact(s)")
-            (recur remaining (concat summons facts)))
+            (recur remaining (concat summons facts) state))
 
           #_"no else handling. match will throw on faulty incantation.")
         summons))))

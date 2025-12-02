@@ -150,13 +150,14 @@
             #::vao{:use :light-cube-vao})
       (esse ::shader/global
             #::gl-magic{:incantation
-                        [{:bind-buffer "cube" :buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
+                        [{:buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
                          {:bind-vao :cube-vao}
+                         {:bind-current-buffer true}
                          {:point-attr 'a_pos :use-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
                          {:point-attr 'a_normal :use-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :offset 12 :stride 32}
                          {:point-attr 'a_uv :use-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 24 :stride 32}
                          {:bind-vao :light-cube-vao}
-                         ;; rebinding actually make the data disappear for light-cube-vao
+                         {:bind-current-buffer true} ;; I think the previous one that cause the light cube to disapper is because we create new buffer every bind
                          {:point-attr 'a_pos :use-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
                          {:unbind-vao true}]})
       (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))))
