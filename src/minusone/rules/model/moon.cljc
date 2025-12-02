@@ -9,11 +9,10 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.gltf :refer [gltf-magic]]
+   [minusone.rules.gl.gltf :as gltf :refer [gltf-magic]]
    [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
-   [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.projection :as projection]
    [minusone.rules.view.firstperson :as firstperson]
@@ -22,7 +21,8 @@
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minusone.rules.gl.vao :as vao]))
 
 (def moon-vert
 
@@ -130,9 +130,8 @@
     ::the-moon
     [:what
      [esse-id ::assimp/gltf gltf-json]
-     ["Sphere_vao0000" ::vao/vao vao]
-     ["image0" ::texture/data texture-data]
      [esse-id ::shader/program-data program-data]
+     [esse-id ::gltf/primitives primitives]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
@@ -141,55 +140,61 @@
      (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  (when-let [{:keys [gltf-json vao texture-data program-data] :as esse} (first (o/query-all world ::the-moon))]
-    (let [indices         (let [mesh      (some-> gltf-json :meshes first)
-                                accessors (some-> gltf-json :accessors)
-                                indices   (some-> mesh :primitives first :indices)]
-                            (get accessors indices))
-          program         (-> program-data :program)
-          uni-loc         (-> program-data :uni-locs)
-          u_mvp           (get uni-loc 'u_mvp)
+  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::the-moon))]
+    (let [prim (first primitives)
+          vao  (get @vao/db* (:vao-name prim))
+          tex  (get @texture/db* (:tex-name prim))]
+      (when (and vao tex)
+        (let [gltf-json       (:gltf-json esse)
+              program-data    (:program-data esse)
+              indices         (let [mesh      (some-> gltf-json :meshes first)
+                                    accessors (some-> gltf-json :accessors)
+                                    indices   (some-> mesh :primitives first :indices)]
+                                (get accessors indices))
+              program         (:program program-data)
+              uni-loc         (:uni-locs program-data)
+              u_mvp           (get uni-loc 'u_mvp)
 
-          u_light_pos     (get uni-loc 'u_light_pos)
-          u_light_ambient (get uni-loc 'u_light_ambient)
-          u_light_diffuse (get uni-loc 'u_light_diffuse)
-          u_resolution    (get uni-loc 'u_resolution)
-          u_mat           (get uni-loc 'u_mat)
+              u_light_pos     (get uni-loc 'u_light_pos)
+              u_light_ambient (get uni-loc 'u_light_ambient)
+              u_light_diffuse (get uni-loc 'u_light_diffuse)
+              u_resolution    (get uni-loc 'u_resolution)
+              u_mat           (get uni-loc 'u_mat)
 
-          view            (:look-at esse)
-          project         (:projection esse)
-          [^float lx
-           ^float ly
-           ^float lz]     (m/normalize (:light-pos esse))
-          trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
-          rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                  (v/vec3 0.0 1.0 0.0)
-                                  (m/radians 0.0)))
-          scale-mat (m-ext/scaling-mat 1.0)
+              view            (:look-at esse)
+              project         (:projection esse)
+              [^float lx
+               ^float ly
+               ^float lz]     (m/normalize (:light-pos esse))
+              trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+              rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                      (v/vec3 0.0 1.0 0.0)
+                                      (m/radians 0.0)))
+              scale-mat (m-ext/scaling-mat 1.0)
 
-          model     (reduce m/* [trans-mat rot-mat scale-mat])
+              model     (reduce m/* [trans-mat rot-mat scale-mat])
 
-          mvp       (reduce m/* [project view model])
-          mvp       (f32-arr (vec mvp))]
-      (gl game useProgram program)
-      (gl game bindVertexArray vao)
-      (gl game uniformMatrix4fv u_mvp false mvp)
+              mvp       (reduce m/* [project view model])
+              mvp       (f32-arr (vec mvp))]
+          (gl game useProgram program)
+          (gl game bindVertexArray vao)
+          (gl game uniformMatrix4fv u_mvp false mvp)
 
-      (gl game uniform3f u_light_pos lx ly lz)
-      (gl game uniform1f u_light_ambient 0.0)
-      (gl game uniform1f u_light_diffuse 1.6)
-      (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
+          (gl game uniform3f u_light_pos lx ly lz)
+          (gl game uniform1f u_light_ambient 0.0)
+          (gl game uniform1f u_light_diffuse 1.6)
+          (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
 
-      (let [{:keys [tex-unit texture]} texture-data]
-        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-        (gl game bindTexture (gl game TEXTURE_2D) texture)
-        (gl game uniform1i u_mat tex-unit))
+          (let [{:keys [tex-unit texture]} tex]
+            (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+            (gl game bindTexture (gl game TEXTURE_2D) texture)
+            (gl game uniform1i u_mat tex-unit))
 
-      (gl game drawElements
-          (gl game TRIANGLES)
-          (:count indices)
-          (:componentType indices)
-          0))))
+          (gl game drawElements
+              (gl game TRIANGLES)
+              (:count indices)
+              (:componentType indices)
+              0))))))
 
 (def system
   {::world/init-fn init-fn
@@ -258,9 +263,7 @@
         gltf-json result-bin
         {:from-shader :DEFAULT-GLTF-SHADER
          :tex-unit-offset 0}))
-
-     (last gltf-spell)
-
+     
      (def summons
        (gl-incantation game
                        [default-gltf-shader]
@@ -274,6 +277,8 @@
         (fn [{:keys [data width height]}]
           #_{:clj-kondo/ignore [:inline-def]}
           (def the-texture (texture/texture-incantation game data width height tex-unit)))))
+
+     (-> summons last last)
 
      (let [indices         (let [mesh      (some-> gltf-json :meshes first)
                                  accessors (some-> gltf-json :accessors)
@@ -289,7 +294,7 @@
            u_resolution    (get uni-loc 'u_resolution)
            u_mat           (get uni-loc 'u_mat)
 
-           vao             (nth (first (eduction (filter #(= (first %) "Sphere_vao0000")) summons)) 2)
+           vao             (get @vao/db* (-> summons last last last :vao-name))
 
            position        (v/vec3 0.0 0.0 3.0)
            front           (v/vec3 0.0 0.0 -1.0)

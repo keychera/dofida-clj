@@ -173,12 +173,11 @@
    {::esses
     [:what
      [esse-id ::shader/program-data program-data]
-     [esse-id ::vao/use vao-id]
-     [vao-id ::vao/vao vao]
+     [esse-id ::vao/use vao-name]
      [esse-id ::t3d/local-transform transform]
      [::light-cube ::t3d/position light-pos]
-     [::container-texture ::texture/data tex-data]
-     [::specular-map ::texture/data spec-tex-data]
+     [::container-texture ::texture/loaded? true]
+     [::specular-map ::texture/loaded? true]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
@@ -213,7 +212,8 @@
   (def hmm {:world world})
   #_"light cube, deliberate code duplication because we haven't senses the common denominator yet"
   (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))]
-    (let [{:keys [program-data vao transform]} esse
+    (let [{:keys [program-data vao-name transform]} esse
+          vao       (get @vao/db* vao-name)
           cube-uni  (:uni-locs program-data)
           ^int u_p_v (get cube-uni 'u_p_v)
           ^int u_model (get cube-uni 'u_model)
@@ -229,7 +229,8 @@
       (gl game drawArrays (gl game TRIANGLES) 0 36)))
 
   (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
-    (let [{:keys [program-data vao cam-position light-pos]} esse
+    (let [{:keys [program-data vao-name cam-position light-pos]} esse
+          vao       (get @vao/db* vao-name)
           cube-uni  (:uni-locs program-data)
 
               ;; uniform for vertex shaders
@@ -258,12 +259,12 @@
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
 
-      (let [{:keys [tex-unit texture]} (:tex-data esse)]
+      (when-let [{:keys [tex-unit texture]} (get @texture/db* ::container-texture)]
         (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
         (gl game bindTexture (gl game TEXTURE_2D) texture)
         (gl game uniform1i u_mat_diffuse tex-unit))
 
-      (let [{:keys [tex-unit texture]} (:spec-tex-data esse)]
+      (when-let [{:keys [tex-unit texture]} (get @texture/db* ::specular-map)]
         (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
         (gl game bindTexture (gl game TEXTURE_2D) texture)
         (gl game uniform1i u_mat_specular tex-unit))

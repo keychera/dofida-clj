@@ -30,7 +30,8 @@
           [{:bind-vao _}] ;; entry: vao binding
           (let [vao (gl game #?(:clj genVertexArrays :cljs createVertexArray))]
             (gl game bindVertexArray vao)
-            (recur remaining (conj summons [(:bind-vao entry) ::vao/vao vao])))
+            (swap! vao/db* assoc (:bind-vao entry) vao)
+            (recur remaining summons))
 
           [{:bind-buffer _ :buffer-type _}] ;; entry: buffer binding
           (let [buffer      (gl-utils/create-buffer game)
@@ -51,13 +52,13 @@
           [{:bind-texture _ :image _ :tex-unit _}] ;; entry: texture binding
           (let [uri      (-> entry :image :uri)
                 tex-unit (:tex-unit entry)
-                tex-id   (:bind-texture entry)]
-            (println "[assimp-js] binding" tex-id "to" tex-unit)
+                tex-name   (:bind-texture entry)]
+            (println "[assimp-js] binding" tex-name "to" tex-unit)
             (recur remaining
                    (conj summons
-                         [tex-id ::texture/uri-to-load uri]
-                         [tex-id ::texture/tex-unit tex-unit]
-                         [tex-id ::texture/texture-loaded? :pending])))
+                         [tex-name ::texture/uri-to-load uri]
+                         [tex-name ::texture/tex-unit tex-unit]
+                         [tex-name ::texture/loaded? :pending])))
 
           [{:unbind-vao _}]
           (do (gl game bindVertexArray #?(:clj 0 :cljs nil))

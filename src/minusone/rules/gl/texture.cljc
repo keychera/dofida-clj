@@ -74,14 +74,16 @@
 (s/def ::data (s/keys :req-un [::texture ::tex-unit]))
 
 (s/def ::uri-to-load string?)
-(s/def ::texture-loaded? #{:pending :loading true})
+(s/def ::loaded? #{:pending :loading true})
+
+(defonce db* (atom {}))
 
 (def rules
   (o/ruleset
    {::uri-to-load
     [:what
-     [tex-id ::uri-to-load uri]
-     [tex-id ::tex-unit tex-unit]]}))
+     [tex-name ::uri-to-load uri]
+     [tex-name ::tex-unit tex-unit]]}))
 
 (def system
   {::world/rules rules})
@@ -89,13 +91,13 @@
 (defn load-texture->world*
   [textures-to-load world* game]
   (doseq [to-load textures-to-load]
-    (let [tex-id   (:tex-id to-load)
+    (let [tex-name (:tex-name to-load)
           uri      (:uri to-load)
           tex-unit (:tex-unit to-load)]
-      (println "[minusone.texture] loading texture" tex-id)
+      (println "[minusone.texture] loading texture" tex-name)
       (swap! world* #(-> %
-                         (o/retract tex-id ::uri-to-load)
-                         (o/insert tex-id ::texture-loaded? :loading)))
+                         (o/retract tex-name ::uri-to-load)
+                         (o/insert tex-name ::loaded? :loading)))
       (cond
         (str/starts-with? uri "data:")
         #?(:clj  (println "[minusone.texture] no data-uri handling yet in JVM")
@@ -103,15 +105,17 @@
                   uri
                   (fn [{:keys [bitmap width height]}]
                     (let [tex-data (texture-incantation game bitmap width height tex-unit)]
-                      (println "[minusone.texture] loaded" tex-id tex-data)
-                      (swap! world* o/insert tex-id {::data tex-data ::texture-loaded? true})))))
+                      (println "[minusone.texture] loaded" tex-name tex-data)
+                      (swap! db* assoc tex-name tex-data)
+                      (swap! world* o/insert tex-name {::loaded? true})))))
 
         (str/ends-with? uri ".png")
         (utils/get-image
          uri
          (fn on-image-load [{:keys [data width height]}]
            (let [tex-data (texture-incantation game data width height tex-unit)]
-             (swap! world* o/insert tex-id {::data tex-data ::texture-loaded? true}))))
+             (swap! db* assoc tex-name tex-data)
+             (swap! world* o/insert tex-name {::loaded? true}))))
 
         :else
         (println uri "not supported")))))

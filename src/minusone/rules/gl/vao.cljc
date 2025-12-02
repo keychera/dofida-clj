@@ -3,4 +3,5 @@
     [clojure.spec.alpha :as s]))
 
 (s/def ::use keyword?)
-(s/def ::vao any?)
+
+(defonce db* (atom {}))
