@@ -15,7 +15,7 @@
   (let [texture (gl game #?(:clj genTextures :cljs createTexture))]
     (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
     (gl game bindTexture (gl game TEXTURE_2D) texture)
-    #?(:cljs (gl game pixelStorei (gl game UNPACK_FLIP_Y_WEBGL) true))
+    #?(:cljs (gl game pixelStorei (gl game UNPACK_FLIP_Y_WEBGL) false))
 
     (gl game texImage2D (gl game TEXTURE_2D)
         #_:mip-level    0
