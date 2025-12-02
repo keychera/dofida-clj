@@ -3,7 +3,6 @@
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    #?@(:cljs [[minusone.rules.model.assimp-js :as assimp-js]])
-   [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
@@ -115,19 +114,7 @@
 
 (def rules
   (o/ruleset
-   {::I-cast-gltf-loading!
-    [:what
-     [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::assimp/bins bins]
-     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
-     :then
-     (println "spell for" esse-id)
-     (let [gltf-spell (gltf-magic gltf-json (first bins)
-                                  {:from-shader esse-id
-                                   :tex-unit-offset tex-unit-offset})]
-       (s-> session (o/insert esse-id #::gl-magic{:incantation gltf-spell})))]
-
-    ::the-moon
+   {::the-moon
     [:what
      [esse-id ::assimp/gltf gltf-json]
      [esse-id ::shader/program-data program-data]
@@ -223,7 +210,7 @@
 #?(:clj
    (comment
      ;; just to remove unused warning in clj side 
-     utils/get-image gl-incantation mat/matrix44)
+     utils/get-image gltf-magic gl-incantation mat/matrix44)
    :cljs
    (comment
      ;; playground

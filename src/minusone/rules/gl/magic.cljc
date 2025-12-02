@@ -7,9 +7,11 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.world :as world]
+   [minusone.rules.gl.gltf :as gltf :refer [gltf-magic]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
+   [minusone.rules.model.assimp :as assimp]
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]))
 
@@ -91,7 +93,19 @@
      (let [summons (gl-incantation context all-shader incantation)]
        (s-> session
             (o/retract esse-id ::incantation)
-            ((fn [s'] (reduce o/insert s' summons)))))]}))
+            ((fn [s'] (reduce o/insert s' summons)))))]
+    
+    ::I-cast-gltf-loading!
+    [:what
+     [esse-id ::assimp/gltf gltf-json]
+     [esse-id ::assimp/bins bins]
+     [esse-id ::assimp/tex-unit-offset tex-unit-offset]
+     :then
+     (println "[magic] gltf spell for" esse-id)
+     (let [gltf-spell (gltf-magic gltf-json (first bins)
+                                  {:from-shader esse-id
+                                   :tex-unit-offset tex-unit-offset})]
+       (s-> session (o/insert esse-id {::incantation gltf-spell})))]}))
 
 (def system
   {::world/rules rules})
