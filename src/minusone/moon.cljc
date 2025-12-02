@@ -2,14 +2,11 @@
   (:require
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   #?@(:cljs [[minusone.rules.model.assimp-js :as assimp-js]])
    [engine.math :as m-ext]
-   [engine.sugar :refer [f32-arr]]
-   [engine.utils :as utils]
+   [engine.sugar :refer [f32-arr]] 
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.gltf :as gltf :refer [gltf-magic]]
-   [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
+   [minusone.rules.gl.gltf :as gltf] 
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
@@ -17,7 +14,6 @@
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
-   [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
@@ -109,23 +105,23 @@
             #::shader{:program-data (shader/create-program game moon-vert moon-frag)})
       (esse ::moon
             #::assimp{:model-to-load (into [] (map #(str "assets/models/" %)) ["moon.gltf" "moon.bin"])
-                      :tex-unit-offset 3}
+                      :tex-unit-offset 2}
             #::shader{:use ::moon-shader})))
 
 (def rules 
   (o/ruleset
    {::the-moon
     [:what
-     [esse-id ::assimp/gltf gltf-json]
-     [esse-id ::gltf/primitives primitives]
+     [::moon ::assimp/gltf gltf-json]
+     [::moon ::gltf/primitives primitives]
      [::moon-shader ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
      [:minusone.learnopengl/light-cube :minusone.rules.transform3d/position light-pos]
      :then
-     (println esse-id "all set!")]}))
-
+     (println ::moon "all set!")]}))
+1
 (defn render-fn [world game]
   (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::the-moon))]
     (let [prim (first primitives)
@@ -151,7 +147,7 @@
               [^float lx
                ^float ly
                ^float lz]     (m/normalize (:light-pos esse))
-              trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
+              trans-mat (m-ext/translation-mat 0.0 1.6 0.0)
               rot-mat   (g/as-matrix (q/quat-from-axis-angle
                                       (v/vec3 0.0 1.0 0.0)
                                       (m/radians 0.0)))
@@ -185,153 +181,3 @@
   {::world/init-fn init-fn
    ::world/render-fn render-fn
    ::world/rules rules})
-
-#?(:cljs
-   (#_"playground purposes"
-    do
-    (defonce canvas (js/document.querySelector "canvas"))
-    (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
-    (defonce width (-> canvas .-clientWidth))
-    (defonce height (-> canvas .-clientHeight))
-    (defonce game {:context gl-context})
-    (defn limited-game-loop
-      ([loop-fn time-data how-long]
-       (if (> how-long 0)
-         (js/requestAnimationFrame
-          (fn [ts]
-            (let [delta (- ts (:total time-data))
-                  time-data (assoc time-data :total ts :delta delta)]
-              (loop-fn time-data)
-              (limited-game-loop loop-fn time-data (- how-long delta)))))
-         (println "done"))))))
-
-#?(:clj
-   (comment
-     ;; just to remove unused warning in clj side 
-     utils/get-image gltf-magic gl-incantation mat/matrix44)
-   :cljs
-   (comment
-     ;; playground
-
-     (do (gl game clearColor 0.02 0.02 0.04 1.0)
-         (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
-
-     (assimp-js/then-load-model
-      (eduction
-       (map #(str "assets/models/" %))
-       ["moon.gltf"
-        "moon.bin"])
-      #_{:clj-kondo/ignore [:inline-def]}
-      (fn [{:keys [gltf bins]}]
-        (def gltf-json gltf)
-        (def result-bin (first bins))))
-
-     (#_"all data (w/o images bc it's too big to print in repl)"
-      -> gltf-json)
-
-     (#_"the texture byte array"
-      -> gltf-json :images first :uri assimp-js/data-uri->header+Uint8Array
-      ((juxt (comp (fn [data-header] (re-matches #"(.*):(.*);(.*)" data-header)) first)
-             (comp type second)
-             (comp (fn [arr] (.-length arr)) second))))
-
-     (.-length result-bin)
-
-     (def default-gltf-shader
-       {:esse-id :DEFAULT-GLTF-SHADER
-        :program-data (shader/create-program game moon-vert moon-frag)})
-
-     (-> default-gltf-shader :program-data)
-
-     (def gltf-spell
-       (gltf-magic
-        gltf-json result-bin
-        {:model-id :any
-         :use-shader :DEFAULT-GLTF-SHADER
-         :tex-unit-offset 0}))
-     
-     (def summons
-       (gl-incantation game
-                       [default-gltf-shader]
-                       gltf-spell))
-
-     (let [{:minusone.rules.gl.texture/keys [uri-to-load tex-unit]}
-           (into {} (comp (filter #(= (first %) "image0")) (map #(drop 1 %)) (map vec)) summons)]
-       (println "load tex from img" uri-to-load tex-unit)
-       (utils/get-image
-        uri-to-load
-        (fn [{:keys [data width height]}]
-          #_{:clj-kondo/ignore [:inline-def]}
-          (def the-texture (texture/texture-incantation game data width height tex-unit)))))
-
-     (-> summons last last)
-
-     (let [indices         (let [mesh      (some-> gltf-json :meshes first)
-                                 accessors (some-> gltf-json :accessors)
-                                 indices   (some-> mesh :primitives first :indices)]
-                             (get accessors indices))
-           program         (-> default-gltf-shader :program-data :program)
-           uni-loc         (-> default-gltf-shader :program-data :uni-locs)
-           u_mvp           (get uni-loc 'u_mvp)
-
-           u_light_pos     (get uni-loc 'u_light_pos)
-           u_light_ambient (get uni-loc 'u_light_ambient)
-           u_light_diffuse (get uni-loc 'u_light_diffuse)
-           u_resolution    (get uni-loc 'u_resolution)
-           u_mat           (get uni-loc 'u_mat)
-
-           vao             (get @vao/db* (-> summons last last last :vao-name))
-
-           position        (v/vec3 0.0 0.0 3.0)
-           front           (v/vec3 0.0 0.0 -1.0)
-           up              (v/vec3 0.0 1.0 0.0)
-           view            (mat/look-at position (m/+ position front) up)
-
-           fov             45.0
-           aspect          (/ width height)
-           project         (mat/perspective fov aspect 0.1 100)
-           [^float lx
-            ^float ly
-            ^float lz]     (m/normalize (v/vec3 -1.0 0.0 -1.0))
-
-           loop-fn         #_{:clj-kondo/ignore [:unused-binding]}
-           (fn [{:keys [total]}]
-             (let [trans-mat (m-ext/translation-mat 0.0 0.0 0.0)
-                   rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                           (v/vec3 0.0 1.0 0.0)
-                                           (m/radians (* total 0.18))))
-                   scale-mat (m-ext/scaling-mat 1.0)
-
-                   model     (reduce m/* [trans-mat rot-mat scale-mat])
-
-                   mvp       (reduce m/* [project view model])
-                   mvp       (f32-arr (vec mvp))]
-               (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
-               (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
-               (gl game viewport 0 0 width height)
-
-               (gl game useProgram program)
-               (gl game bindVertexArray vao)
-               (gl game uniformMatrix4fv u_mvp false mvp)
-
-               (gl game uniform3f u_light_pos lx ly lz)
-               (gl game uniform1f u_light_ambient 0.0)
-               (gl game uniform1f u_light_diffuse 1.6)
-               (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
-
-               (let [{:keys [tex-unit texture]} the-texture]
-                 (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                 (gl game bindTexture (gl game TEXTURE_2D) texture)
-                 (gl game uniform1i u_mat tex-unit))
-
-               (gl game drawElements
-                   (gl game TRIANGLES)
-                   (:count indices)
-                   (:componentType indices)
-                   0)))]
-       (gl game enable (gl game DEPTH_TEST)) ;; THIS HOLY MOLY, I THOUGHT MY UV IS ALL WRONG!!!!
-       (limited-game-loop
-        loop-fn
-        {:total (js/performance.now)
-         :delta 0}
-        5000))))

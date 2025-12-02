@@ -18,7 +18,7 @@ todo:
         ✔ alpha clipping, probably need to learn render-to-texture @done(25-11-11 20:31)
 
         ☐ sidestream: t2d, non-destructive
-            ☐ t3d?
+            ✔ t3d? @done(25-12-03 01:56)
             ☐ scene tree
             ✔ blender control instead of first-person movement @done(25-11-20 00:03) poorman's arcball
             ✔ the alpha clipping + t3d + atlas/instancing @done(25-11-18 00:12)
@@ -36,12 +36,13 @@ todo:
         ☐ rethink director
 
         rubah-perak:
-            ☐ load the binary buffer only once
-            ☐ integrate rubah perak like the moon
-            ☐ render the whole mesh.primitives
-            ☐ stress test and load other model as well
-            ☐ check the UV, are they correct? seems weird
+            ✔ load the binary buffer only once @done(25-12-03 01:56)
+            ✔ integrate rubah perak like the moon @done(25-12-03 01:56)
+            ✔ render the whole mesh.primitives @done(25-12-03 01:56)
+            ✔ stress test and load other model as well @done(25-12-03 01:56) numby
+            ✔ check the UV, are they correct? seems weird @done(25-12-03 01:56) it was flipped!
             ☐ understand skinning, joint, weight, this is what we truly need
+                ☐ the bone hierarchy
                 ☐ does anime-clj integrate with this?? let's find out
             ☐ understand scene and nodes
             ☐ check our assumptions

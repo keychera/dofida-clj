@@ -10,6 +10,7 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.learnopengl :as learnopengl]
+   [minusone.moon :as moon]
    [minusone.rubahperak :as rubahperak]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
@@ -49,8 +50,7 @@
     t3d/system
 
     rubahperak/system
-    #_moon/system
-
+    moon/system
     learnopengl/system]))
 
 (defn init [game]
