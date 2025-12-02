@@ -3,22 +3,20 @@
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    #?@(:cljs [[minusone.rules.model.assimp-js :as assimp-js]])
-   [clojure.string :as str]
-   [engine.macros :refer [s-> vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+   [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.gl.magic :as gl-magic :refer [gl-incantation]]
-   [minusone.rules.gl.gltf :refer [gltf-magic]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.projection :as projection]
-   [odoyle.rules :as o]
    [minusone.rules.view.firstperson :as firstperson]
+   [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
@@ -29,14 +27,18 @@
   {:precision  "mediump float"
    :inputs     '{POSITION   vec3
                  NORMAL     vec3
-                 TEXCOORD_0 vec2}
+                 TEXCOORD_0 vec2
+                 JOINTS_0 vec4
+                 WEIGHTS_0 vec4}
    :outputs    '{FragPos vec3
                  Normal vec3
                  TexCoords vec2}
    :uniforms   '{u_mvp mat4}
    :signatures '{main ([] void)}
    :functions  '{main ([]
-                       (= gl_Position (* u_mvp (vec4 POSITION "1.0")))
+                       (=vec4 dummy (- JOINTS_0.xyzw WEIGHTS_0.xyzw)) ;; to make it not trimmed by shader compiler
+                       (=vec4 dummy2 (- WEIGHTS_0.xyzw JOINTS_0.xyzw))
+                       (= gl_Position (* u_mvp (+ (vec4 POSITION "1.0") dummy dummy2)))
                        (= FragPos POSITION)
                        (= Normal NORMAL)
                        (= TexCoords TEXCOORD_0))}})
@@ -55,6 +57,74 @@ void main()
     vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
     o_color = vec4(result, 1.0);
 }"})
+
+(defn init-fn [world game]
+  (-> world
+      (esse ::rubahperak
+            #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 4}
+            #::shader{:program-data (shader/create-program game pmx-vert pmx-frag)})))
+
+(def rules
+  (o/ruleset
+   {::rubahperak
+    [:what
+     [esse-id ::assimp/gltf gltf-json]
+     [esse-id ::shader/program-data program-data]
+     [esse-id ::gltf/primitives primitives]
+     [::world/global ::projection/matrix projection]
+     [::firstperson/player ::firstperson/look-at look-at {:then false}]
+     [::firstperson/player ::firstperson/position cam-position {:then false}]
+     :then
+     (println esse-id "all set!")]}))
+
+(defn render-fn [world game]
+  (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::rubahperak))] 
+    (doseq [prim (take 1 (drop 0 primitives))]
+      (let [vao  (get @vao/db* (:vao-name prim))
+            tex  (get @texture/db* (:tex-name prim))] 
+        (when (and vao tex)
+          (let [gltf-json     (:gltf-json esse)
+                program-data  (:program-data esse)
+                indices       (let [mesh      (some-> gltf-json :meshes first)
+                                    accessors (some-> gltf-json :accessors)
+                                    indices   (some-> mesh :primitives first :indices)]
+                                (get accessors indices))
+                program       (:program program-data)
+                uni-loc       (:uni-locs program-data)
+                u_mvp         (get uni-loc 'u_mvp)
+                u_mat_diffuse (get uni-loc 'u_mat_diffuse)
+
+                view          (:look-at esse)
+                project       (:projection esse)
+                trans-mat     (m-ext/translation-mat -1.5 -4.5 0.0)
+                rot-mat       (g/as-matrix (q/quat-from-axis-angle
+                                            (v/vec3 0.0 1.0 0.0)
+                                            (m/radians 0.18)))
+                scale-mat     (m-ext/scaling-mat 0.22)
+
+                model         (reduce m/* [trans-mat rot-mat scale-mat])
+
+                mvp           (reduce m/* [project view model])
+                mvp           (f32-arr (vec mvp))]
+            (gl game useProgram program)
+            (gl game bindVertexArray vao)
+            (gl game uniformMatrix4fv u_mvp false mvp)
+
+            (let [{:keys [tex-unit texture]} tex]
+              (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
+              (gl game bindTexture (gl game TEXTURE_2D) texture)
+              (gl game uniform1i u_mat_diffuse tex-unit))
+
+            (gl game drawElements
+                (gl game TRIANGLES)
+                (:count indices)
+                (:componentType indices)
+                0)))))))
+
+(def system
+  {::world/init-fn init-fn
+   ::world/render-fn render-fn
+   ::world/rules rules})
 
 #?(:cljs
    (#_"playground purposes"
@@ -75,31 +145,24 @@ void main()
               (limited-game-loop loop-fn time-data (- how-long delta)))))
          (println "done"))))))
 
-#?(:cljs
-   (assimp-js/then-load-model
-    (eduction (map #(str "assets/models/SilverWolf/" %))
-              #_["sw.glb"]
-              ["银狼.pmx"
-               #_#_#_#_#_"外套.png"
-                       "头发.png"
-                     "脸.png"
-                   "衣服.png"
-                 "表情.png"])
-    #_{:clj-kondo/ignore [:inline-def]}
-    (fn [{:keys [gltf bins]}]
-      (def gltf-json gltf)
-      (def result-bin (first bins)))))
-
 #?(:clj
    (comment
      ;; just to remove unused warning in clj side 
-     vars->map gl-incantation mat/matrix44)
+     gl-incantation mat/matrix44)
    :cljs
    (comment
      ;; playground
 
      (do (gl game clearColor 0.2 0.2 0.4 1.0)
          (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
+
+     #?(:cljs
+        (assimp-js/then-load-model
+         "assets/models/SilverWolf/银狼.pmx"
+         #_{:clj-kondo/ignore [:inline-def]}
+         (fn [{:keys [gltf bins]}]
+           (def gltf-json gltf)
+           (def result-bin (first bins)))))
 
      (-> gltf-json :meshes)
 

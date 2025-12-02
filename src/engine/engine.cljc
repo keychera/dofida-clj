@@ -10,11 +10,11 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.learnopengl :as learnopengl]
+   [minusone.rubahperak :as rubahperak]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
-   [minusone.rules.model.moon :as moon]
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
@@ -48,7 +48,8 @@
     firstperson/system
     t3d/system
 
-    moon/system
+    rubahperak/system
+    #_moon/system
 
     learnopengl/system]))
 
