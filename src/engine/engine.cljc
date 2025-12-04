@@ -15,6 +15,7 @@
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
+   [minusone.rules.gizmo.perspective-grid :as perspective-lines]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
@@ -49,7 +50,9 @@
     firstperson/system
     t3d/system
 
-    rubahperak/system
+    perspective-lines/system
+
+    #_#_rubahperak/system
     moon/system
     learnopengl/system]))
 

@@ -159,8 +159,7 @@
                          {:bind-vao :light-cube-vao}
                          {:bind-current-buffer true} ;; I think the previous one that cause the light cube to disapper is because we create new buffer every bind
                          {:point-attr 'a_pos :use-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
-                         {:unbind-vao true}]})
-      (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))))
+                         {:unbind-vao true}]})))
 
 (defn after-load-fn [world _game]
   (-> world

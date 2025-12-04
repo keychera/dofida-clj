@@ -19,7 +19,6 @@
 
 (s/def ::incantation sequential?)
 (s/def ::all-shader vector?)
-(s/def ::gl-loaded? #{:pending :loading true})
 
 (s/def ::err nil?)
 
