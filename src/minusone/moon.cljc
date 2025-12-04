@@ -121,7 +121,7 @@
      [:minusone.learnopengl/light-cube :minusone.rules.transform3d/position light-pos]
      :then
      (println ::moon "all set!")]}))
-1
+
 (defn render-fn [world game]
   (when-let [{:keys [primitives] :as esse} (first (o/query-all world ::the-moon))]
     (let [prim (first primitives)
