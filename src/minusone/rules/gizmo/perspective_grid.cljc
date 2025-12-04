@@ -27,7 +27,6 @@
    '{main ([]
            (=vec4 pos (vec4 a_pos.x a_pos.y "1.0" "1.0")) 
            (=vec4 view_dir (* u_inv_proj pos))
-           (= view_dir (/ view_dir view_dir.w))
            (=vec4 world_dir (* u_inv_view (vec4 view_dir.xyz "0.0")))
            (= v_world_dir (normalize world_dir.xyz))
            (= gl_Position pos))}})
@@ -41,7 +40,7 @@
    ;; Pristine grid from The Best Darn Grid Shader (yet)
    ;; https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
    "// grid-shader
-const float N = 64.0;
+const float N = 128.0;
 float pristineGrid( in vec2 uv, vec2 lineWidth) {
     vec2 ddx = dFdx(uv);
     vec2 ddy = dFdy(uv);
@@ -67,10 +66,10 @@ float pristineGrid( in vec2 uv, vec2 lineWidth) {
 
 void main() {
   vec3  ray = v_world_dir;
-  if (ray.y >= 0.0) {
+  vec3  cam = u_cam_pos;  
+  if (ray.y >= 0.0 && cam.y > 0.0 || ray.y <= 0.0 && cam.y < 0.0) {
      discard;
   }
-  vec3  cam = u_cam_pos;
 
   // if ray.y is almost zero, ray is nearly parallel to plane
   float   t = -cam.y / ray.y;
@@ -78,8 +77,7 @@ void main() {
     
   vec2   uv = hit.xz;
   float   g = pristineGrid( uv, vec2(1.0/N) );
-  vec3 mate = vec3(1.0);
-  o_color   = vec4(mate, g);
+  o_color   = vec4(vec3(1.0), g * 0.3);
 }
     
     "})
@@ -109,7 +107,7 @@ void main() {
 
 (defn after-load-fn [world game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 1.0 3.0) (v/vec3 0.0 0.0 -1.0))
+      (firstperson/insert-player (v/vec3 0.0 1.5 3.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo-shader
             #::shader{:program-data (shader/create-program game vert frag)})))
 

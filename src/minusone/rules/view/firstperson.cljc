@@ -64,7 +64,6 @@
      [::time/now ::time/step 1]
      [::player ::view-dx view-dx]
      [::player ::view-dy view-dy]
-     [::player ::position position {:then false}]
      [::player ::yaw yaw {:then false}]
      [::player ::pitch pitch {:then false}]
      :then
