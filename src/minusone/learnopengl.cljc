@@ -164,7 +164,7 @@
 (defn after-load-fn [world _game]
   (-> world
       (esse ::light-cube
-            #::t3d{:position (v/vec3 0.0 -1.0 2.0)
+            #::t3d{:position (v/vec3 0.0 0.0 0.0)
                    :scale (v/vec3 0.2)})))
 
 (def rules
