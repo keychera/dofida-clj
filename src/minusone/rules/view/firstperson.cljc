@@ -46,7 +46,7 @@
      [::player ::front front {:then false}]
      [::player ::move-control control {:then false}]
      :then
-     (let [speed   0.01
+     (let [speed   0.05
            right   (m/normalize (m/cross front up))
            [x _ z] (case control
                     ::forward  (m/* front (* delta-time speed))

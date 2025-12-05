@@ -71,11 +71,11 @@ void main()
 (defn after-load-fn [world _game]
   (-> world
       (esse ::rubahperak 
-            #::t3d{:position (v/vec3 -1.5 -3.5 0.0)})
+            #::t3d{:position (v/vec3 -5.5 0 0.0)})
       (esse ::topaz
-            #::t3d{:position (v/vec3 1.5 -3.5 0.0)})
+            #::t3d{:position (v/vec3 5.5 0 0.0)})
       (esse ::numby
-            #::t3d{:position (v/vec3 0 -3.5 0.0)})))
+            #::t3d{:position (v/vec3 0 0 0.0)})))
 
 (def rules
   (o/ruleset
@@ -114,7 +114,7 @@ void main()
                   rot-mat       (g/as-matrix (q/quat-from-axis-angle
                                               (v/vec3 0.0 1.0 0.0)
                                               (m/radians 0.18)))
-                  scale-mat     (m-ext/scaling-mat 0.22)
+                  scale-mat     (m-ext/scaling-mat 1.0)
 
                   model         (reduce m/* [trans-mat rot-mat scale-mat])
                   

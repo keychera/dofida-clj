@@ -9,8 +9,6 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.learnopengl :as learnopengl]
-   [minusone.moon :as moon]
    [minusone.rubahperak :as rubahperak]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
@@ -52,9 +50,9 @@
 
     perspective-lines/system
 
-    #_#_rubahperak/system
-    moon/system
-    learnopengl/system]))
+    rubahperak/system
+    #_moon/system
+    #_learnopengl/system]))
 
 (defn init [game]
   (println "init game")

@@ -40,7 +40,7 @@
    ;; Pristine grid from The Best Darn Grid Shader (yet)
    ;; https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
    "// grid-shader
-const float N = 128.0;
+const float N = 32.0;
 float pristineGrid( in vec2 uv, vec2 lineWidth) {
     vec2 ddx = dFdx(uv);
     vec2 ddy = dFdy(uv);
@@ -76,7 +76,7 @@ void main() {
   vec3  hit = cam + ray * t;
     
   vec2   uv = hit.xz;
-  float   g = pristineGrid( uv, vec2(1.0/N) );
+  float   g = pristineGrid( uv * 0.25, vec2(1.0/N) );
   o_color   = vec4(vec3(1.0), g * 0.3);
 }
     
@@ -107,7 +107,7 @@ void main() {
 
 (defn after-load-fn [world game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 1.5 3.0) (v/vec3 0.0 0.0 -1.0))
+      (firstperson/insert-player (v/vec3 0.0 18.0 32.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo-shader
             #::shader{:program-data (shader/create-program game vert frag)})))
 
