@@ -6,7 +6,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.gltf :as gltf] 
+   [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
@@ -30,12 +30,14 @@
    :outputs    '{FragPos vec3
                  Normal vec3
                  TexCoords vec2}
-   :uniforms   '{u_mvp mat4}
+   :uniforms   '{u_model mat4
+                 u_view mat4
+                 u_projection mat4}
    :signatures '{main ([] void)}
    :functions  '{main ([]
                        (=vec4 dummy (- JOINTS_0.xyzw WEIGHTS_0.xyzw)) ;; to make it not trimmed by shader compiler
                        (=vec4 dummy2 (- WEIGHTS_0.xyzw JOINTS_0.xyzw))
-                       (= gl_Position (* u_mvp (+ (vec4 POSITION "1.0") dummy dummy2)))
+                       (= gl_Position (* u_projection u_view u_model (+ (vec4 POSITION "1.0") dummy dummy2)))
                        (= FragPos POSITION)
                        (= Normal NORMAL)
                        (= TexCoords TEXCOORD_0))}})
@@ -59,18 +61,18 @@ void main()
   (-> world
       (esse ::pmx-shader #::shader{:program-data (shader/create-program game pmx-vert pmx-frag)})
       (esse ::rubahperak
-              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 3}
-              #::shader{:use ::pmx-shader})
+            #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 3}
+            #::shader{:use ::pmx-shader})
       (esse ::topaz
             #::assimp{:model-to-load ["assets/models/TopazAndNumby/Topaz.pmx"] :tex-unit-offset 8}
             #::shader{:use ::pmx-shader})
       (esse ::numby
-              #::assimp{:model-to-load ["assets/models/TopazAndNumby/Numby.pmx"] :tex-unit-offset 13}
-              #::shader{:use ::pmx-shader})))
+            #::assimp{:model-to-load ["assets/models/TopazAndNumby/Numby.pmx"] :tex-unit-offset 13}
+            #::shader{:use ::pmx-shader})))
 
 (defn after-load-fn [world _game]
   (-> world
-      (esse ::rubahperak 
+      (esse ::rubahperak
             #::t3d{:position (v/vec3 -5.5 0 0.0)})
       (esse ::topaz
             #::t3d{:position (v/vec3 5.5 0 0.0)})
@@ -93,36 +95,42 @@ void main()
 
 (defn render-fn [world game]
   (doseq [{:keys [primitives position] :as esse} (o/query-all world ::pmx-models)]
-    (let [gltf-json (:gltf-json esse)
+    (let [gltf-json     (:gltf-json esse)
           accessors     (:accessors gltf-json)
           program-data  (:program-data esse)
           program       (:program program-data)
           uni-loc       (:uni-locs program-data)
-          u_mvp         (get uni-loc 'u_mvp)
-          u_mat_diffuse (get uni-loc 'u_mat_diffuse)]
+          u_model       (get uni-loc 'u_model)
+          u_view        (get uni-loc 'u_view)
+          u_projection  (get uni-loc 'u_projection)
+          u_mat_diffuse (get uni-loc 'u_mat_diffuse)
+          view          (:look-at esse)
+          project       (:projection esse)
+          view          (f32-arr (vec view))
+          project       (f32-arr (vec project))]
+      (when (seq primitives)
+        (gl game useProgram program)
+        (gl game uniformMatrix4fv u_view false view)
+        (gl game uniformMatrix4fv u_projection false project))
       (doseq [prim primitives]
-        (let [vao  (get @vao/db* (:vao-name prim))
-              tex  (get @texture/db* (:tex-name prim))]
+        (let [vao (get @vao/db* (:vao-name prim))
+              tex (get @texture/db* (:tex-name prim))]
           (when (and vao tex)
-            (let [indices       (get accessors (:indices prim))
-                  view          (:look-at esse)
-                  project       (:projection esse)
+            (let [indices   (get accessors (:indices prim))
+
                   [^float x
                    ^float y
-                   ^float z]    position
-                  trans-mat     (m-ext/translation-mat x y z)
-                  rot-mat       (g/as-matrix (q/quat-from-axis-angle
-                                              (v/vec3 0.0 1.0 0.0)
-                                              (m/radians 0.18)))
-                  scale-mat     (m-ext/scaling-mat 1.0)
+                   ^float z]   position
+                  trans-mat (m-ext/translation-mat x y z)
+                  rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                          (v/vec3 0.0 1.0 0.0)
+                                          (m/radians 0.18)))
+                  scale-mat (m-ext/scaling-mat 1.0)
 
-                  model         (reduce m/* [trans-mat rot-mat scale-mat])
-                  
-                  mvp           (reduce m/* [project view model])
-                  mvp           (f32-arr (vec mvp))]
-              (gl game useProgram program)
+                  model     (reduce m/* [trans-mat rot-mat scale-mat])
+                  model     (f32-arr (vec model))]
               (gl game bindVertexArray vao)
-              (gl game uniformMatrix4fv u_mvp false mvp)
+              (gl game uniformMatrix4fv u_model false model)
 
               (let [{:keys [tex-unit texture]} tex]
                 (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))

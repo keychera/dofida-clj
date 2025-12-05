@@ -1,9 +1,8 @@
 (ns playground
   (:require
    [minusone.rules.model.assimp-js :as assimp-js]
-   [play-cljc.macros-js :refer-macros [gl]])
-  (:require-macros  
-   [macros :refer [f32s->get-mat4]]))
+   [play-cljc.macros-js :refer-macros [gl]]
+   [engine.utils :refer [f32s->get-mat4]]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -34,7 +33,9 @@
       byteOffset   (:byteOffset buffer-view)
       ibm-uint8s   (.subarray result-bin byteOffset (+ byteLength byteOffset))
       ibm-f32s     (js/Float32Array. ibm-uint8s.buffer)]
-  [(.-length ibm-f32s)
+  [(-> gltf-json :skins first :joints count)
+   (.-length ibm-f32s)
    (aget ibm-f32s 0)
-   (f32s->get-mat4 ibm-f32s 0)])
+   (vec (f32s->get-mat4 ibm-f32s 0))])
+
 
