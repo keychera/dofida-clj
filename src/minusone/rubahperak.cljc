@@ -65,14 +65,17 @@ void main()
 (defn init-fn [world game]
   (-> world
       (esse ::pmx-shader #::shader{:program-data (shader/create-program game pmx-vert pmx-frag)})
-      (esse ::rubahperak
-            #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 3}
-            #::shader{:use ::pmx-shader})
-      (esse ::topaz
-            #::assimp{:model-to-load ["assets/models/TopazAndNumby/Topaz.pmx"] :tex-unit-offset 8}
-            #::shader{:use ::pmx-shader})
+      #_(esse ::rubahperak
+              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 3}
+              #::shader{:use ::pmx-shader})
+      #_(esse ::topaz
+              #::assimp{:model-to-load ["assets/models/TopazAndNumby/Topaz.pmx"] :tex-unit-offset 8}
+              #::shader{:use ::pmx-shader})
       (esse ::numby
             #::assimp{:model-to-load ["assets/models/TopazAndNumby/Numby.pmx"] :tex-unit-offset 13}
+            #::shader{:use ::pmx-shader})
+      (esse ::rubah
+            #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 18}
             #::shader{:use ::pmx-shader})))
 
 (defn after-load-fn [world _game]
@@ -82,6 +85,8 @@ void main()
       (esse ::topaz
             #::t3d{:position (v/vec3 5.5 0 0.0)})
       (esse ::numby
+            #::t3d{:position (v/vec3 0 0 0.0)})
+      (esse ::rubah
             #::t3d{:position (v/vec3 0 0 0.0)})))
 
 (def rules
@@ -118,8 +123,9 @@ void main()
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-json))
-          _             (when (= esse-id ::rubahperak) #_{:clj-kondo/ignore [:inline-def]}
-                                                       (def hmm transform-db))
+          _             (when (= esse-id ::rubah)
+                          #_{:clj-kondo/ignore [:inline-def]}
+                          (def hmm gltf-json))
           time          (:total-time game)
           factor        (Math/sin (/ time 128))
           transform-db  (if (= esse-id ::rubahperak)
@@ -172,17 +178,6 @@ void main()
    ::world/rules rules})
 
 (comment
-  (eduction
-   (map (fn [[idx bone]] (assoc bone :idx idx)))
-   hmm) 
-
-  [(->> hmm
-        (sp/select-one [191])
-        :global-transform
-        vec)
-   (->> hmm
-       (sp/transform [191 :global-transform]
-                     (fn [gt] (m/* (m-ext/translation-mat 1.0 0.0 0.0) gt)))
-       (sp/select-one [191])
-       :global-transform
-       vec)])
+  (-> :meshes hmm)
+  
+  :-)
