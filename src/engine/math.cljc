@@ -13,9 +13,17 @@
     0.0  0.0  sz,  0.0
     0.0  0.0  0.0  1.0)))
 
-(defn translation-mat [tx ty tz]
-  (mat/matrix44
-   1.0  0.0  0.0  0.0
-   0.0  1.0  0.0  0.0
-   0.0  0.0  1.0  0.0
-   tx,  ty,  tz,  1.0))
+(defn translation-mat
+  ([xyz]
+   (let [[^float tx ^float ty ^float tz] xyz]
+     (mat/matrix44
+      1.0  0.0  0.0  0.0
+      0.0  1.0  0.0  0.0
+      0.0  0.0  1.0  0.0
+      tx,  ty,  tz,  1.0)))
+  ([tx ty tz]
+   (mat/matrix44
+    1.0  0.0  0.0  0.0
+    0.0  1.0  0.0  0.0
+    0.0  0.0  1.0  0.0
+    tx,  ty,  tz,  1.0)))

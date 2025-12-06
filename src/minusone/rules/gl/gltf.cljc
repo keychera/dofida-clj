@@ -158,8 +158,8 @@
              nodes      (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-json))]
          [[model-id ::primitives primitives]
           [model-id ::transform-db (node->transform-db nodes)]
-          (when-let [inv-bind-mats (get-ibm-inv-mats gltf-json result-bin)]
-            [model-id ::inv-bind-mats inv-bind-mats])])}])))
+          (let [inv-bind-mats (get-ibm-inv-mats gltf-json result-bin)]
+            [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
 
 (defn create-joint-mats-arr ^floats [skin transform-db inv-bind-mats]
   (let [joints (:joints skin)

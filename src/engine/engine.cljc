@@ -51,7 +51,7 @@
 
     perspective-lines/system
 
-    rubahperak/system
+    #_rubahperak/system
     simple-gltf/system
     #_moon/system
     #_learnopengl/system]))
