@@ -94,7 +94,6 @@ void main() {
 
 (defn init-fn [world game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 2.0 12.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo
             #::gl-magic{:incantation
                         [{:buffer-data quad :buffer-type (gl game ARRAY_BUFFER)}
@@ -107,6 +106,7 @@ void main() {
 
 (defn after-load-fn [world game]
   (-> world
+      (firstperson/insert-player (v/vec3 0.0 18.0 24.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo-shader
             #::shader{:program-data (shader/create-program game vert frag)})))
 

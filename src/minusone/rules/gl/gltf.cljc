@@ -106,13 +106,13 @@
    (let [node             (nth gltf-nodes idx)
          local-transform  (or (some-> (:matrix node) mat/matrix44)
                               (cond->> (mat/matrix44)
-                                (:rotation node) 
+                                (:rotation node)
                                 (m/* (g/as-matrix
                                       (let [[x y z w] (:rotation node)]
                                         (q/quat x y z w))))
                                 (:translation node)
                                 (m/* (let [[x y z] (:translation node)]
-                                       (m-ext/translation-mat x y z))))) 
+                                       (m-ext/translation-mat x y z)))))
          parent-transform (or (get-in @transform-db* [parent-idx :global-transform]) (mat/matrix44))
          global-transform (m/* parent-transform local-transform)
          children         (:children node)
@@ -160,3 +160,16 @@
           [model-id ::transform-db (node->transform-db nodes)]
           (when-let [inv-bind-mats (get-ibm-inv-mats gltf-json result-bin)]
             [model-id ::inv-bind-mats inv-bind-mats])])}])))
+
+(defn create-joint-mats-arr ^floats [skin transform-db inv-bind-mats]
+  (let [joints (:joints skin)
+        f32s   (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))]
+    (doseq [[idx joint-id] (map-indexed vector joints)]
+      (let [inv-bind-mat   (nth inv-bind-mats idx)
+            joint          (get transform-db joint-id)
+            joint-global-t (:global-transform joint)
+            joint-mat      (m/* joint-global-t inv-bind-mat)
+            i              (* idx 16)]
+        (dotimes [j 16]
+          (aset f32s (+ i j) (nth joint-mat j)))))
+    f32s))

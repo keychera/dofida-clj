@@ -41,8 +41,7 @@
                                  (* WEIGHTS_0.y [u_joint_mats JOINTS_0.y])
                                  (* WEIGHTS_0.z [u_joint_mats JOINTS_0.z])
                                  (* WEIGHTS_0.w [u_joint_mats JOINTS_0.w])))
-                       (=vec4 world_pos (* skin_mat pos))
-                       (= world_pos (* u_model pos)) ;; ignore bones since it doesn't work
+                       (=vec4 world_pos (* u_model skin_mat pos))
                        (=vec4 cam_pos (* u_view world_pos))
                        (= gl_Position (* u_projection cam_pos))
                        (= Normal NORMAL)
@@ -100,19 +99,6 @@ void main()
      :then
      (println esse-id "all set!" (count inv-bind-mats))]}))
 
-(defn create-joint-mats-arr ^floats [skin transform-db inv-bind-mats]
-  (let [joints (:joints skin)
-        f32s   (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))]
-    (doseq [[idx joint-id] (map-indexed vector joints)]
-      (let [inv-bind-mat   (nth inv-bind-mats idx)
-            joint          (get transform-db joint-id)
-            joint-global-t (:global-transform joint)
-            joint-mat      (m/* joint-global-t inv-bind-mat)
-            i              (* idx 16)]
-        (dotimes [j 16]
-          (aset f32s (+ i j) (nth joint-mat j)))))
-    f32s))
-
 (defn render-fn [world game]
   (doseq [{:keys [primitives position transform-db inv-bind-mats] :as esse} (o/query-all world ::pmx-models)]
     (let [gltf-json     (:gltf-json esse)
@@ -130,7 +116,7 @@ void main()
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-json))
-          joint-mats    (create-joint-mats-arr skin transform-db inv-bind-mats)]
+          joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (gl game useProgram program)
       (gl game uniformMatrix4fv u_view false view)
       (gl game uniformMatrix4fv u_projection false project)
