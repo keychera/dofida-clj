@@ -25,7 +25,7 @@
    :signatures '{main ([] void)}
    :functions
    '{main ([]
-           (=vec4 pos (vec4 a_pos.x a_pos.y "0.0" "1.0")) 
+           (=vec4 pos (vec4 a_pos.x a_pos.y "0.0" "1.0"))
            (=vec4 view_dir (* u_inv_proj pos))
            (=vec4 world_dir (* u_inv_view (vec4 view_dir.xyz "0.0")))
            (= v_world_dir (normalize world_dir.xyz))
@@ -94,7 +94,7 @@ void main() {
 
 (defn init-fn [world game]
   (-> world
-
+      (firstperson/insert-player (v/vec3 0.0 2.0 12.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo
             #::gl-magic{:incantation
                         [{:buffer-data quad :buffer-type (gl game ARRAY_BUFFER)}
@@ -107,7 +107,6 @@ void main() {
 
 (defn after-load-fn [world game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 18.0 32.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo-shader
             #::shader{:program-data (shader/create-program game vert frag)})))
 

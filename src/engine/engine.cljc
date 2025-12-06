@@ -10,14 +10,15 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minusone.rubahperak :as rubahperak]
+   [minusone.rules.gizmo.perspective-grid :as perspective-lines]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
-   [minusone.rules.gizmo.perspective-grid :as perspective-lines]
    [minusone.rules.model.assimp :as assimp]
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
+   [minusone.simple-gltf :as simple-gltf]
    [odoyle.rules :as o]
    [rules.interface.input :as input]
    [rules.time :as time]
@@ -50,7 +51,8 @@
 
     perspective-lines/system
 
-    rubahperak/system
+    #_rubahperak/system
+    simple-gltf/system
     #_moon/system
     #_learnopengl/system]))
 

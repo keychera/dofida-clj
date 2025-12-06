@@ -11,7 +11,7 @@
 (defonce game {:context gl-context})
 
 (assimp-js/then-load-model
- ["assets/models/TopazAndNumby/Topaz.pmx"]
+ ["assets/simpleskin.gltf"]
  #_{:clj-kondo/ignore [:inline-def]}
  (fn [{:keys [gltf bins]}]
    (def gltf-json gltf)
@@ -21,10 +21,11 @@
     (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
 
 (:skins gltf-json)
-(count (:nodes gltf-json))
+(:nodes gltf-json)
 (take 6 (:accessors gltf-json))
 (:bufferViews gltf-json)
 (-> gltf-json :meshes first)
+(:buffers gltf-json)
 
 (let [accessors    (-> gltf-json :accessors)
       buffer-views (-> gltf-json :bufferViews)

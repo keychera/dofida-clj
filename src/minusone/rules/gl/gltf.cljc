@@ -2,8 +2,11 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
+   [engine.math :as m-ext]
    [engine.utils :refer [f32s->get-mat4]]
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
+   [thi.ng.geom.quaternion :as q]
    [thi.ng.math.core :as m]))
 
 (def gltf-type->size
@@ -33,11 +36,12 @@
    (fn [{:keys [material] :as primitive}]
      (let [material (get materials material)
            tex-idx  (some-> material :pbrMetallicRoughness :baseColorTexture :index)
-           texture  (get textures tex-idx)
-           image    (nth images (:source texture))]
-       (assoc primitive
-              :tex-name (:tex-name image)
-              :tex-unit (+ tex-unit-offset tex-idx))))))
+           texture  (some->> tex-idx (get textures))
+           image    (some->> texture :source (nth images))]
+       (cond-> primitive
+         image (assoc
+                :tex-name (:tex-name image)
+                :tex-unit (+ tex-unit-offset tex-idx)))))))
 
 (defn primitive-incantation [gltf-json result-bin use-shader]
   (let [accessors   (some-> gltf-json :accessors)
@@ -100,18 +104,25 @@
   ([gltf-nodes] (node->transform-db gltf-nodes 0 -1 (volatile! {})))
   ([gltf-nodes idx parent-idx transform-db*]
    (let [node             (nth gltf-nodes idx)
-         local-transform  (or (some-> (:matrix node) mat/matrix44) (mat/matrix44))
+         local-transform  (or (some-> (:matrix node) mat/matrix44)
+                              (cond->> (mat/matrix44)
+                                (:rotation node) 
+                                (m/* (g/as-matrix
+                                      (let [[x y z w] (:rotation node)]
+                                        (q/quat x y z w))))
+                                (:translation node)
+                                (m/* (let [[x y z] (:translation node)]
+                                       (m-ext/translation-mat x y z))))) 
          parent-transform (or (get-in @transform-db* [parent-idx :global-transform]) (mat/matrix44))
          global-transform (m/* parent-transform local-transform)
          children         (:children node)
-         bone-name        (:name node)] 
+         bone-name        (:name node)]
      (vswap! transform-db* assoc idx
              {:local-transform local-transform
               :global-transform global-transform
               :parent-idx parent-idx
               :children children
               :name bone-name})
-     (println idx (vec local-transform) (vec global-transform))
      (when children
        (doseq [c-idx children]
          (node->transform-db gltf-nodes c-idx idx transform-db*)))
@@ -148,5 +159,4 @@
          [[model-id ::primitives primitives]
           [model-id ::transform-db (node->transform-db nodes)]
           (when-let [inv-bind-mats (get-ibm-inv-mats gltf-json result-bin)]
-            (println "inv-bind-mats:" (count inv-bind-mats))
             [model-id ::inv-bind-mats inv-bind-mats])])}])))
