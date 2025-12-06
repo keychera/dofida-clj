@@ -5,6 +5,7 @@
    #?(:cljs [minusone.rules.model.assimp-js :refer [data-uri->ImageBitmap]])
    [assets.asset :as asset]
    [clojure.spec.alpha :as s]
+   [minusone.rules.gl.gl :refer [GL_COLOR_ATTACHMENT0 GL_TEXTURE0 GL_TEXTURE_2D GL_RGBA GL_UNSIGNED_BYTE GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER GL_NEAREST GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE]]
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]
    [engine.world :as world]
@@ -13,51 +14,51 @@
 
 (defn texture-incantation [game data width height tex-unit]
   (let [texture (gl game #?(:clj genTextures :cljs createTexture))]
-    (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-    (gl game bindTexture (gl game TEXTURE_2D) texture)
+    (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+    (gl game bindTexture GL_TEXTURE_2D texture)
     #?(:cljs (gl game pixelStorei (gl game UNPACK_FLIP_Y_WEBGL) false))
 
-    (gl game texImage2D (gl game TEXTURE_2D)
+    (gl game texImage2D GL_TEXTURE_2D
         #_:mip-level    0
-        #_:internal-fmt (gl game RGBA)
+        #_:internal-fmt GL_RGBA
         (int width)
         (int height)
         #_:border       0
-        #_:src-fmt      (gl game RGBA)
-        #_:src-type     (gl game UNSIGNED_BYTE)
+        #_:src-fmt      GL_RGBA
+        #_:src-type     GL_UNSIGNED_BYTE
         data)
 
-    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
-    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
+    (gl game texParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST)
+    (gl game texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
     (vars->map texture tex-unit)))
 
 (defn fbo-incantation [game width height tex-unit]
   (let [frame-buf (gl game #?(:clj genFramebuffers :cljs createFramebuffer))
-        _         (gl game bindFramebuffer (gl game FRAMEBUFFER) frame-buf)
+        _         (gl game bindFramebuffer GL_FRAMEBUFFER frame-buf)
         fbo-tex   (gl game #?(:clj genTextures :cljs createTexture))]
 
       ;; bind, do stuff, unbind, hmm hmm
-    (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-    (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
-    (gl game texImage2D (gl game TEXTURE_2D)
+    (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+    (gl game bindTexture GL_TEXTURE_2D fbo-tex)
+    (gl game texImage2D GL_TEXTURE_2D
         #_:mip-level    0
-        #_:internal-fmt (gl game RGBA)
+        #_:internal-fmt GL_RGBA
         (int width)
         (int height)
         #_:border       0
-        #_:src-fmt      (gl game RGBA)
-        #_:src-type     (gl game UNSIGNED_BYTE)
+        #_:src-fmt      GL_RGBA
+        #_:src-type     GL_UNSIGNED_BYTE
         #?(:clj 0 :cljs nil))
 
-    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MAG_FILTER) (gl game NEAREST))
-    (gl game texParameteri (gl game TEXTURE_2D) (gl game TEXTURE_MIN_FILTER) (gl game NEAREST))
-    (gl game bindTexture (gl game TEXTURE_2D) #?(:clj 0 :cljs nil))
+    (gl game texParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST)
+    (gl game texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
+    (gl game bindTexture GL_TEXTURE_2D #?(:clj 0 :cljs nil))
 
-    (gl game framebufferTexture2D (gl game FRAMEBUFFER) (gl game COLOR_ATTACHMENT0) (gl game TEXTURE_2D) fbo-tex 0)
+    (gl game framebufferTexture2D GL_FRAMEBUFFER GL_COLOR_ATTACHMENT0 GL_TEXTURE_2D fbo-tex 0)
 
-    (when (not= (gl game checkFramebufferStatus (gl game FRAMEBUFFER)) (gl game FRAMEBUFFER_COMPLETE))
+    (when (not= (gl game checkFramebufferStatus GL_FRAMEBUFFER) GL_FRAMEBUFFER_COMPLETE)
       (println "warning: framebuffer creation incomplete"))
-    (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
+    (gl game bindFramebuffer GL_FRAMEBUFFER #?(:clj 0 :cljs nil))
 
     (vars->map frame-buf fbo-tex tex-unit)))
 

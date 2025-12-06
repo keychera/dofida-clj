@@ -3,10 +3,11 @@
    #?(:clj [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [engine.math :as m-ext]
-   [engine.sugar :refer [f32-arr]] 
+   [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.gltf :as gltf] 
+   [minusone.rules.gl.gl :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
+   [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
@@ -108,7 +109,7 @@
                       :tex-unit-offset 2}
             #::shader{:use ::moon-shader})))
 
-(def rules 
+(def rules
   (o/ruleset
    {::the-moon
     [:what
@@ -131,7 +132,7 @@
         (let [gltf-json       (:gltf-json esse)
               program-data    (:program-data esse)
               accessors       (:accessors gltf-json)
-              indices         (get accessors (:indices prim)) 
+              indices         (get accessors (:indices prim))
               program         (:program program-data)
               uni-loc         (:uni-locs program-data)
               u_mvp           (get uni-loc 'u_mvp)
@@ -167,15 +168,11 @@
           (gl game uniform1f u_resolution (/ (* 2.0 Math/PI 1737.4) 1440)) ;; manual radius ldem-width    
 
           (let [{:keys [tex-unit texture]} tex]
-            (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-            (gl game bindTexture (gl game TEXTURE_2D) texture)
+            (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+            (gl game bindTexture GL_TEXTURE_2D texture)
             (gl game uniform1i u_mat tex-unit))
 
-          (gl game drawElements
-              (gl game TRIANGLES)
-              (:count indices)
-              (:componentType indices)
-              0))))))
+          (gl game drawElements GL_TRIANGLES (:count indices) (:componentType indices) 0))))))
 
 (def system
   {::world/init-fn init-fn

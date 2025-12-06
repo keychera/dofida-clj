@@ -5,7 +5,7 @@
    [engine.sugar :refer [f32-arr i32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rules.gl.gl :as gl]
+   [minusone.rules.gl.gl :as gl :refer [GL_DEPTH_TEST GL_UNSIGNED_INT GL_FLOAT GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER GL_TRIANGLES]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
@@ -97,12 +97,12 @@ void main() {
       (firstperson/insert-player (v/vec3 0.0 18.0 24.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo
             #::gl-magic{:incantation
-                        [{:buffer-data quad :buffer-type (gl game ARRAY_BUFFER)}
+                        [{:buffer-data quad :buffer-type GL_ARRAY_BUFFER}
                          {:bind-vao ::perspective-gizmo}
                          {:bind-current-buffer true}
                          {:point-attr 'a_pos :use-shader ::perspective-gizmo-shader
-                          :attr-size 2 :attr-type (gl game FLOAT)}
-                         {:buffer-data quad-indices :buffer-type (gl game ELEMENT_ARRAY_BUFFER)}
+                          :attr-size 2 :attr-type GL_FLOAT}
+                         {:buffer-data quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
                          {:unbind-vao true}]})))
 
 (defn after-load-fn [world game]
@@ -142,9 +142,9 @@ void main() {
       (gl game uniformMatrix4fv u_inv_proj false (f32-arr (vec inv-project)))
       (gl game uniform3fv u_cam_pos (f32-arr (into [] cam-pos)))
 
-      (gl game disable (gl game DEPTH_TEST))
-      (gl game drawElements (gl game TRIANGLES) 6 (gl game UNSIGNED_INT) 0)
-      (gl game enable (gl game DEPTH_TEST)))))
+      (gl game disable GL_DEPTH_TEST)
+      (gl game drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
+      (gl game enable GL_DEPTH_TEST))))
 
 (def system
   {::world/init-fn init-fn

@@ -7,7 +7,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.world :as world]
-   [minusone.rules.gl.gl :as gl] 
+   [minusone.rules.gl.gl :as gl :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]] 
    [minusone.rules.gl.gltf :as gltf :refer [gltf-magic]]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
@@ -42,7 +42,7 @@
                 buffer-type (:buffer-type entry)
                 buffer-data (:buffer-data entry)]
             (gl game bindBuffer buffer-type buffer)
-            (gl game bufferData buffer-type buffer-data (gl game STATIC_DRAW))
+            (gl game bufferData buffer-type buffer-data GL_STATIC_DRAW)
             (recur remaining summons (assoc state :current-buffer buffer :buffer-type buffer-type)))
           
           [{:bind-current-buffer _}]
@@ -54,8 +54,8 @@
           [{:point-attr _ :attr-size _ :attr-type _ :use-shader _}] ;; entry: attrib pointing 
           (if-let [attr-loc (get-in all-attr-locs [(:use-shader entry) (:point-attr entry)])]
             (let [{:keys [attr-size attr-type stride offset] :or {stride 0 offset 0}} entry]
-              (case attr-type 
-                5123 (gl game vertexAttribIPointer attr-loc attr-size attr-type stride offset)
+              (condp = attr-type 
+                GL_UNSIGNED_SHORT (gl game vertexAttribIPointer attr-loc attr-size attr-type stride offset)
                 (gl game vertexAttribPointer attr-loc attr-size attr-type false stride offset))
               (gl game enableVertexAttribArray attr-loc)
               (recur remaining summons state))

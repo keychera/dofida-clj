@@ -6,6 +6,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+   [minusone.rules.gl.gl :refer [GL_DEPTH_TEST GL_TEXTURE0 GL_TEXTURE_2D GL_ARRAY_BUFFER GL_FLOAT GL_TRIANGLES]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
@@ -134,7 +135,7 @@
            (= o_color (vec4 "1.0")))}})
 
 (defn init-fn [world game]
-  (gl game enable (gl game DEPTH_TEST)) ;; probably better to be called elsewhere
+  (gl game enable GL_DEPTH_TEST) ;; probably better to be called elsewhere
   (-> world
       (esse ::container-texture 
              #::texture{:uri-to-load "from_learnopengl/container.png" :tex-unit 0})
@@ -150,15 +151,15 @@
             #::vao{:use :light-cube-vao})
       (esse ::shader/global
             #::gl-magic{:incantation
-                        [{:buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
+                        [{:buffer-data cube-data :buffer-type GL_ARRAY_BUFFER}
                          {:bind-vao :cube-vao}
                          {:bind-current-buffer true}
-                         {:point-attr 'a_pos :use-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
-                         {:point-attr 'a_normal :use-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :offset 12 :stride 32}
-                         {:point-attr 'a_uv :use-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 24 :stride 32}
+                         {:point-attr 'a_pos :use-shader ::a-cube :attr-size 3 :attr-type GL_FLOAT :stride 32}
+                         {:point-attr 'a_normal :use-shader ::a-cube :attr-size 3 :attr-type GL_FLOAT :offset 12 :stride 32}
+                         {:point-attr 'a_uv :use-shader ::a-cube :attr-size 2 :attr-type GL_FLOAT :offset 24 :stride 32}
                          {:bind-vao :light-cube-vao}
                          {:bind-current-buffer true} ;; I think the previous one that cause the light cube to disapper is because we create new buffer every bind
-                         {:point-attr 'a_pos :use-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
+                         {:point-attr 'a_pos :use-shader ::light-cube :attr-size 3 :attr-type GL_FLOAT :stride 32}
                          {:unbind-vao true}]})))
 
 (defn after-load-fn [world _game]
@@ -225,7 +226,7 @@
       (gl game bindVertexArray vao)
       (gl game uniformMatrix4fv u_p_v false (f32-arr p*v))
       (gl game uniformMatrix4fv u_model false (f32-arr model))
-      (gl game drawArrays (gl game TRIANGLES) 0 36)))
+      (gl game drawArrays GL_TRIANGLES 0 36)))
 
   (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
     (let [{:keys [program-data vao-name cam-position light-pos]} esse
@@ -259,13 +260,13 @@
       (gl game bindVertexArray vao)
 
       (when-let [{:keys [tex-unit texture]} (get @texture/db* ::container-texture)]
-        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-        (gl game bindTexture (gl game TEXTURE_2D) texture)
+        (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+        (gl game bindTexture GL_TEXTURE_2D texture)
         (gl game uniform1i u_mat_diffuse tex-unit))
 
       (when-let [{:keys [tex-unit texture]} (get @texture/db* ::specular-map)]
-        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-        (gl game bindTexture (gl game TEXTURE_2D) texture)
+        (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+        (gl game bindTexture GL_TEXTURE_2D texture)
         (gl game uniform1i u_mat_specular tex-unit))
 
       (gl game uniform3fv u_view_pos (f32-arr (into [] cam-position))) ;; this is weird... (f32-arr (vec (v/vec3))) returns empty arr 
@@ -288,7 +289,7 @@
           (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
           (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
           (gl game uniformMatrix3fv u_normal_mat false (f32-arr (vec normal-mat)))
-          (gl game drawArrays (gl game TRIANGLES) 0 36))))))
+          (gl game drawArrays GL_TRIANGLES 0 36))))))
 
 (def system
   {::world/init-fn init-fn

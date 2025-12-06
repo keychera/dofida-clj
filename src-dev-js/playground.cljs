@@ -1,5 +1,6 @@
 (ns playground
   (:require
+   [minusone.rules.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp-js :as assimp-js]
    [play-cljc.macros-js :refer-macros [gl]]))
@@ -18,7 +19,7 @@
    (def result-bin (first bins))))
 
 (do (gl game clearColor 0.2 0.2 0.4 1.0)
-    (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT))))
+    (gl game clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)))
 
 (:skins gltf-json)
 (:nodes gltf-json)

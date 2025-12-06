@@ -6,6 +6,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+   [minusone.rules.gl.gl :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
@@ -160,15 +161,11 @@ void main()
               (gl game uniformMatrix4fv u_model false model)
 
               (let [{:keys [tex-unit texture]} tex]
-                (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-                (gl game bindTexture (gl game TEXTURE_2D) texture)
+                (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+                (gl game bindTexture GL_TEXTURE_2D texture)
                 (gl game uniform1i u_mat_diffuse tex-unit))
 
-              (gl game drawElements
-                  (gl game TRIANGLES)
-                  (:count indices)
-                  (:componentType indices)
-                  0)
+              (gl game drawElements GL_TRIANGLES (:count indices) (:componentType indices) 0)
               (gl game bindVertexArray #?(:clj 0 :cljs nil)))))))))
 
 (def system
@@ -179,5 +176,5 @@ void main()
 
 (comment
   (-> :meshes hmm)
-  
+
   :-)

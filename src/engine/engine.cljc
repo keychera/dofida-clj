@@ -11,6 +11,7 @@
    [engine.world :as world]
    [minusone.rubahperak :as rubahperak]
    [minusone.rules.gizmo.perspective-grid :as perspective-lines]
+   [minusone.rules.gl.gl :refer [GL_BLEND GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
@@ -58,7 +59,7 @@
 
 (defn init [game]
   (println "init game")
-  (gl game enable (gl game BLEND))
+  (gl game enable GL_BLEND)
 
   (let [all-rules  (distinct (apply concat (sp/select [sp/ALL ::world/rules] all-systems)))
         init-fns   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
@@ -99,9 +100,9 @@
                                             #(-> %
                                                  (time/insert total-time delta-time)
                                                  (o/fire-rules)))]
-            (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+            (gl game blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
             (gl game clearColor 0.02 0.02 0.12 1.0)
-            (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+            (gl game clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
             (gl game viewport 0 0 width height)
 
             (doseq [render-fn @(::render-fns* game)]

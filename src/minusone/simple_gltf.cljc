@@ -6,6 +6,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+     [minusone.rules.gl.gl :refer [GL_TRIANGLES]]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
@@ -132,11 +133,7 @@
               (gl game bindVertexArray vao)
               (gl game uniformMatrix4fv u_model false model)
 
-              (gl game drawElements
-                  (gl game TRIANGLES)
-                  (:count indices)
-                  (:componentType indices)
-                  0)
+              (gl game drawElements GL_TRIANGLES (:count indices) (:componentType indices) 0)
               (gl game bindVertexArray #?(:clj 0 :cljs nil)))))))))
 
 (def system
