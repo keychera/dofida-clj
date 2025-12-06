@@ -18,7 +18,10 @@
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [clojure.string :as str]
+   [com.rpl.specter :as sp]
+   [com.rpl.specter :as s]))
 
 (def pmx-vert
   {:precision  "mediump float"
@@ -101,7 +104,8 @@ void main()
 
 (defn render-fn [world game]
   (doseq [{:keys [primitives position transform-db inv-bind-mats] :as esse} (o/query-all world ::pmx-models)]
-    (let [gltf-json     (:gltf-json esse)
+    (let [esse-id       (:esse-id esse)
+          gltf-json     (:gltf-json esse)
           accessors     (:accessors gltf-json)
           program-data  (:program-data esse)
           program       (:program program-data)
@@ -116,6 +120,15 @@ void main()
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-json))
+          _             (when (= esse-id ::rubahperak) (def hmm transform-db))
+          time          (:total-time game)
+          factor        (Math/sin (/ time 128))
+          transform-db  (if (= esse-id ::rubahperak)
+                          (sp/transform [(s/multi-path 9 10 12) :global-transform]
+                                        (fn [gt] (->> gt
+                                                      (m/* (m-ext/translation-mat (* 0.1 factor) 0.0 0.0))))
+                                        transform-db)
+                          transform-db)
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (gl game useProgram program)
       (gl game uniformMatrix4fv u_view false view)
@@ -158,3 +171,19 @@ void main()
    ::world/after-load-fn after-load-fn
    ::world/render-fn render-fn
    ::world/rules rules})
+
+(comment
+  (eduction
+   (map (fn [[idx bone]] (assoc bone :idx idx)))
+   hmm) 
+
+  [(->> hmm
+        (sp/select-one [191])
+        :global-transform
+        vec)
+   (->> hmm
+       (sp/transform [191 :global-transform]
+                     (fn [gt] (m/* (m-ext/translation-mat 1.0 0.0 0.0) gt)))
+       (sp/select-one [191])
+       :global-transform
+       vec)])
