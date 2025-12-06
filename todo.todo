@@ -19,7 +19,7 @@ todo:
 
         ☐ sidestream: t2d, non-destructive
             ✔ t3d? @done(25-12-03 01:56)
-            ☐ scene tree
+            ☐ scene tree, let's use gltf scene structure
             ✔ blender control instead of first-person movement @done(25-11-20 00:03) poorman's arcball
             ✔ the alpha clipping + t3d + atlas/instancing @done(25-11-18 00:12)
         ☐ sidestream: anime, non destructive
@@ -41,16 +41,25 @@ todo:
             ✔ render the whole mesh.primitives @done(25-12-03 01:56)
             ✔ stress test and load other model as well @done(25-12-03 01:56) numby
             ✔ check the UV, are they correct? seems weird @done(25-12-03 01:56) it was flipped!
-            ☐ understand skinning, joint, weight, this is what we truly need
-                ☐ the bone hierarchy
+            ✔ understand skinning, joint, weight, this is what we truly need @done(25-12-06 14:41) HOLY MOLY YOOOO!
+                ☐ how to define the pose, the keyframe
+                    ☐ from blender, have it be available in gltf, the parse it?
+                    ☐ gltf animation section?
+                    ☐ gltf morph target section?
+                    ☐ from MMD? (low prio because we wont be using pmx much in our game)
+                ☐ the bone hierarchy and its parent-child transformation
                 ☐ does anime-clj integrate with this?? let's find out
+                    ☐ the keyframe/pose interpolation
+                    ☐ I also have a inkling of feelings that transducers will fit in all of this, I think, just a feeling
             ☐ understand scene and nodes
-            ☐ check our assumptions
-            ☐ the blender gizmo
+            ☐ check our assumptions about gltf parsing
+            ✔ the blender gizmo @done(25-12-06 14:42) we did the perspective grid
+                ☐ (luxury) the 3 axis arrow maybe
             ☐ arcball recreate
         
         ☐ skybox
         ☐ better first person control feel
+            ☐ THIRD PERSON MOVEMENT??
 
         ☐ make a SCENE 
             "do you even realize how lucky you are."

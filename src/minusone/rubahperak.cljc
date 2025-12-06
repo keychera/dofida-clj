@@ -19,9 +19,7 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [clojure.string :as str]
-   [com.rpl.specter :as sp]
-   [com.rpl.specter :as s]))
+   [com.rpl.specter :as sp]))
 
 (def pmx-vert
   {:precision  "mediump float"
@@ -120,11 +118,12 @@ void main()
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-json))
-          _             (when (= esse-id ::rubahperak) (def hmm transform-db))
+          _             (when (= esse-id ::rubahperak) #_{:clj-kondo/ignore [:inline-def]}
+                                                       (def hmm transform-db))
           time          (:total-time game)
           factor        (Math/sin (/ time 128))
           transform-db  (if (= esse-id ::rubahperak)
-                          (sp/transform [(s/multi-path 9 10 12) :global-transform]
+                          (sp/transform [(sp/multi-path 9 10 12) :global-transform]
                                         (fn [gt] (->> gt
                                                       (m/* (m-ext/translation-mat (* 0.1 factor) 0.0 0.0))))
                                         transform-db)
