@@ -25,27 +25,32 @@
    :inputs     '{POSITION   vec3
                  NORMAL     vec3
                  TEXCOORD_0 vec2
-                 JOINTS_0 vec4
-                 WEIGHTS_0 vec4}
-   :outputs    '{FragPos vec3
-                 Normal vec3
+                 WEIGHTS_0  vec4
+                 JOINTS_0   uvec4}
+   :outputs    '{Normal    vec3
                  TexCoords vec2}
-   :uniforms   '{u_model mat4
-                 u_view mat4
-                 u_projection mat4}
+   :uniforms   '{u_model      mat4
+                 u_view       mat4
+                 u_projection mat4
+                 u_joint_mats [mat4 500]}
    :signatures '{main ([] void)}
    :functions  '{main ([]
-                       (=vec4 dummy (- JOINTS_0.xyzw WEIGHTS_0.xyzw)) ;; to make it not trimmed by shader compiler
-                       (=vec4 dummy2 (- WEIGHTS_0.xyzw JOINTS_0.xyzw))
-                       (= gl_Position (* u_projection u_view u_model (+ (vec4 POSITION "1.0") dummy dummy2)))
-                       (= FragPos POSITION)
+                       (=vec4 pos (vec4 POSITION "1.0"))
+                       (=mat4 skin_mat
+                              (+ (* WEIGHTS_0.x [u_joint_mats JOINTS_0.x])
+                                 (* WEIGHTS_0.y [u_joint_mats JOINTS_0.y])
+                                 (* WEIGHTS_0.z [u_joint_mats JOINTS_0.z])
+                                 (* WEIGHTS_0.w [u_joint_mats JOINTS_0.w])))
+                       (=vec4 world_pos (* skin_mat pos))
+                       (= world_pos (* u_model pos)) ;; ignore bones since it doesn't work
+                       (=vec4 cam_pos (* u_view world_pos))
+                       (= gl_Position (* u_projection cam_pos))
                        (= Normal NORMAL)
                        (= TexCoords TEXCOORD_0))}})
 
 (def pmx-frag
   {:precision  "mediump float"
-   :inputs     '{FragPos vec3
-                 Normal vec3
+   :inputs     '{Normal vec3
                  TexCoords vec2}
    :outputs    '{o_color vec4}
    :uniforms   '{u_mat_diffuse sampler2D}
@@ -85,33 +90,51 @@ void main()
     [:what
      [esse-id ::assimp/gltf gltf-json {:then false}]
      [esse-id ::gltf/primitives primitives {:then false}]
+     [esse-id ::gltf/transform-db transform-db {:then false}]
+     [esse-id ::gltf/inv-bind-mats inv-bind-mats {:then false}]
      [esse-id ::t3d/position position]
      [::pmx-shader ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
      :then
-     (println esse-id "all set!")]}))
+     (println esse-id "all set!" (count inv-bind-mats))]}))
+
+(defn create-joint-mats-arr ^floats [skin transform-db inv-bind-mats]
+  (let [joints (:joints skin)
+        f32s   (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))]
+    (doseq [[idx joint-id] (map-indexed vector joints)]
+      (let [inv-bind-mat   (nth inv-bind-mats idx)
+            joint          (get transform-db joint-id)
+            joint-global-t (:global-transform joint)
+            joint-mat      (m/* joint-global-t inv-bind-mat)
+            i              (* idx 16)]
+        (dotimes [j 16]
+          (aset f32s (+ i j) (nth joint-mat j)))))
+    f32s))
 
 (defn render-fn [world game]
-  (doseq [{:keys [primitives position] :as esse} (o/query-all world ::pmx-models)]
+  (doseq [{:keys [primitives position transform-db inv-bind-mats] :as esse} (o/query-all world ::pmx-models)]
     (let [gltf-json     (:gltf-json esse)
           accessors     (:accessors gltf-json)
           program-data  (:program-data esse)
           program       (:program program-data)
+
           uni-loc       (:uni-locs program-data)
           u_model       (get uni-loc 'u_model)
           u_view        (get uni-loc 'u_view)
           u_projection  (get uni-loc 'u_projection)
           u_mat_diffuse (get uni-loc 'u_mat_diffuse)
-          view          (:look-at esse)
-          project       (:projection esse)
-          view          (f32-arr (vec view))
-          project       (f32-arr (vec project))]
-      (when (seq primitives)
-        (gl game useProgram program)
-        (gl game uniformMatrix4fv u_view false view)
-        (gl game uniformMatrix4fv u_projection false project))
+          u_joint_mats  (get uni-loc 'u_joint_mats)
+
+          view          (f32-arr (vec (:look-at esse)))
+          project       (f32-arr (vec (:projection esse)))
+          skin          (first (:skins gltf-json))
+          joint-mats    (create-joint-mats-arr skin transform-db inv-bind-mats)]
+      (gl game useProgram program)
+      (gl game uniformMatrix4fv u_view false view)
+      (gl game uniformMatrix4fv u_projection false project)
+      (gl game uniformMatrix4fv u_joint_mats false joint-mats)
       (doseq [prim primitives]
         (let [vao (get @vao/db* (:vao-name prim))
               tex (get @texture/db* (:tex-name prim))]

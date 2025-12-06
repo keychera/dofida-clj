@@ -158,7 +158,7 @@
   "Return a 4x4 matrix from a float-array / Float32Array `f32s`.
   `idx` is the start index (optional, defaults to 0)."
   [^floats f32s idx]
-  (let [i (or idx 0)]
+  (let [i (* (or idx 0) 16)]
     (mat/matrix44
       (aget f32s i)  (aget f32s (+ i 1))  (aget f32s (+ i 2))  (aget f32s (+ i 3))
       (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))

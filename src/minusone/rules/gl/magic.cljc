@@ -54,7 +54,9 @@
           [{:point-attr _ :attr-size _ :attr-type _ :use-shader _}] ;; entry: attrib pointing 
           (if-let [attr-loc (get-in all-attr-locs [(:use-shader entry) (:point-attr entry)])]
             (let [{:keys [attr-size attr-type stride offset] :or {stride 0 offset 0}} entry]
-              (gl game vertexAttribPointer attr-loc attr-size attr-type false stride offset)
+              (case attr-type 
+                5123 (gl game vertexAttribIPointer attr-loc attr-size attr-type false stride offset)
+                (gl game vertexAttribPointer attr-loc attr-size attr-type false stride offset))
               (gl game enableVertexAttribArray attr-loc)
               (recur remaining summons state))
             (recur remaining 

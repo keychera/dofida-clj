@@ -1,7 +1,10 @@
 (ns minusone.rules.gl.gltf
   (:require
+   [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [clojure.spec.alpha :as s]))
+   [engine.utils :refer [f32s->get-mat4]]
+   [thi.ng.geom.matrix :as mat]
+   [thi.ng.math.core :as m]))
 
 (def gltf-type->size
   {"SCALAR" 1
@@ -15,6 +18,8 @@
 (def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
 
 (s/def ::primitives sequential?)
+(s/def ::inv-bind-mats vector?)
+(s/def ::transform-db map?)
 
 (defn create-vao-names [prefix]
   (map-indexed
@@ -73,6 +78,45 @@
                       (update :uri (fn [f] (str gltf-dir "/" f))))]
        (assoc image :image-idx idx :tex-name tex-name)))))
 
+(defn get-ibm-inv-mats [gltf-json result-bin]
+  ;; assuming only one skin
+  (when-let [ibm (some-> gltf-json :skins first :inverseBindMatrices)]
+    (let [accessors     (some-> gltf-json :accessors)
+          buffer-views  (some-> gltf-json :bufferViews)
+          accessor      (get accessors ibm)
+          buffer-view   (get buffer-views (:bufferView accessor))
+          byteLength    (:byteLength buffer-view)
+          byteOffset    (:byteOffset buffer-view)
+          ^ints ibm-u8s (.subarray result-bin byteOffset (+ byteLength byteOffset))
+          ibm-f32s       #?(:clj  ibm-u8s ;; jvm TODO
+                            :cljs (js/Float32Array. ibm-u8s.buffer
+                                                    ibm-u8s.byteOffset
+                                                    (/ ibm-u8s.byteLength 4.0)))
+          inv-bind-mats (into [] (map (fn [i] (f32s->get-mat4 ibm-f32s i))) (range (:count accessor)))]
+      inv-bind-mats)))
+
+;; I don't like this somehow
+(defn node->transform-db
+  ([gltf-nodes] (node->transform-db gltf-nodes 0 -1 (volatile! {})))
+  ([gltf-nodes idx parent-idx transform-db*]
+   (let [node             (nth gltf-nodes idx)
+         local-transform  (or (some-> (:matrix node) mat/matrix44) (mat/matrix44))
+         parent-transform (or (get-in @transform-db* [parent-idx :global-transform]) (mat/matrix44))
+         global-transform (m/* parent-transform local-transform)
+         children         (:children node)
+         bone-name        (:name node)] 
+     (vswap! transform-db* assoc idx
+             {:local-transform local-transform
+              :global-transform global-transform
+              :parent-idx parent-idx
+              :children children
+              :name bone-name})
+     (println idx (vec local-transform) (vec global-transform))
+     (when children
+       (doseq [c-idx children]
+         (node->transform-db gltf-nodes c-idx idx transform-db*)))
+     @transform-db*)))
+
 (defn gltf-magic
   "magic to pass to gl-incantation"
   [gltf-json result-bin {:keys [model-id use-shader tex-unit-offset]}]
@@ -90,7 +134,7 @@
                     (some-> mesh :primitives))]
     ;; assume one glb/gltf = one binary for the time being
     (flatten
-     [{:buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)} 
+     [{:buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
       (eduction
        (map (fn [{:keys [image-idx tex-name] :as image}]
               {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
@@ -98,5 +142,11 @@
 
       (eduction (primitive-incantation gltf-json result-bin use-shader) primitives)
 
-      {:insert-facts [[model-id ::primitives 
-                       (mapv (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])) primitives)]]}])))
+      {:insert-facts
+       (let [primitives (mapv (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])) primitives)
+             nodes      (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-json))]
+         [[model-id ::primitives primitives]
+          [model-id ::transform-db (node->transform-db nodes)]
+          (when-let [inv-bind-mats (get-ibm-inv-mats gltf-json result-bin)]
+            (println "inv-bind-mats:" (count inv-bind-mats))
+            [model-id ::inv-bind-mats inv-bind-mats])])}])))

@@ -1,8 +1,8 @@
 (ns playground
   (:require
+   [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp-js :as assimp-js]
-   [play-cljc.macros-js :refer-macros [gl]]
-   [engine.utils :refer [f32s->get-mat4]]))
+   [play-cljc.macros-js :refer-macros [gl]]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -22,20 +22,24 @@
 
 (:skins gltf-json)
 (count (:nodes gltf-json))
-(take 3 (:accessors gltf-json))
+(take 6 (:accessors gltf-json))
+(:bufferViews gltf-json)
+(-> gltf-json :meshes first)
 
 (let [accessors    (-> gltf-json :accessors)
       buffer-views (-> gltf-json :bufferViews)
-      ibm          (-> gltf-json :skins first :inverseBindMatrices)
+      skins        (-> gltf-json :skins first)
+      ibm          (-> skins :inverseBindMatrices)
       accessor     (get accessors ibm)
       buffer-view  (get buffer-views (:bufferView accessor))
       byteLength   (:byteLength buffer-view)
       byteOffset   (:byteOffset buffer-view)
       ibm-uint8s   (.subarray result-bin byteOffset (+ byteLength byteOffset))
-      ibm-f32s     (js/Float32Array. ibm-uint8s.buffer)]
-  [(-> gltf-json :skins first :joints count)
-   (.-length ibm-f32s)
-   (aget ibm-f32s 0)
-   (vec (f32s->get-mat4 ibm-f32s 0))])
+      ibm-f32s     (js/Float32Array. ibm-uint8s.buffer
+                                     ibm-uint8s.byteOffset
+                                     (/ ibm-uint8s.byteLength 4.0))
+      nodes        (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-json))]
 
-
+  [(/ (.-length ibm-f32s) 16) :done
+   (nth nodes 0)
+   (gltf/node->transform-db nodes)])
