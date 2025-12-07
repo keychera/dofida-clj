@@ -61,7 +61,7 @@
     ::mouse-camera
     [:what
      [::time/now ::time/delta delta-time]
-     [::time/now ::time/step 1]
+     [::time/now ::time/slice 1]
      [::player ::view-dx view-dx]
      [::player ::view-dy view-dy]
      [::player ::yaw yaw {:then false}]

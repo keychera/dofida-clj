@@ -8,23 +8,24 @@
 (s/def ::now number?)
 (s/def ::delta number?)
 (s/def ::total number?)
-(s/def ::step int?)
+(s/def ::tick int?)
+(s/def ::slice int?)
 
 (def system
   {::world/rules
    (o/ruleset
-    {::step-per-tick
+    {::slice-per-tick
      [:what
       [::now ::delta _]
       :then
-      (insert! ::now ::step 0)]
+      (insert! ::now ::slice 0)]
 
-     ::stepping
+     ::slicing
      [:what
-      [::now ::step step]
+      [::now ::slice step]
       :when (< step 4)
       :then 
-      (insert! ::now ::step (inc step))]})})
+      (insert! ::now ::slice (inc step))]})})
 
 (defn insert [world total delta]
   (o/insert world ::now {::total total ::delta delta}))

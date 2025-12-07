@@ -6,7 +6,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-     [minusone.rules.gl.gl :refer [GL_TRIANGLES]]
+   [minusone.rules.gl.gl :refer [GL_TRIANGLES]]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
@@ -113,6 +113,9 @@
                                                                  (v/vec3 0.0 0.0 1.0)
                                                                  (m/radians 90.0)))))))
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
+      (when (= (:esse-id esse) ::simpleanime)
+        #_{:clj-kondo/ignore [:inline-def]}
+        (def hmm gltf-json))
       (gl game useProgram program)
       (gl game uniformMatrix4fv u_view false view)
       (gl game uniformMatrix4fv u_projection false project)
@@ -141,3 +144,9 @@
    ::world/after-load-fn after-load-fn
    ::world/render-fn render-fn
    ::world/rules rules})
+
+(comment
+  
+  hmm
+  
+  :-)
