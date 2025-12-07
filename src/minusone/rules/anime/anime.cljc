@@ -1,6 +1,7 @@
 (ns minusone.rules.anime.anime
   (:require
    [com.rpl.specter :as sp]
+   [minusone.rules.anime.keyframe :as keyframe]
    [minusone.rules.gl.gltf :as gltf]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]))
@@ -34,20 +35,42 @@
         accessors (:accessors gltf-json)
         resolver  (partial resolve-sampler gltf-json bin)
         anime     (eduction
-                   (map (fn [{:keys [channels samplers]}]
-                          (eduction
-                           (map (fn [{:keys [target sampler]}]
-                                  (-> (get samplers sampler)
-                                      (assoc :target target))))
-                           (map #(update % :input (fn [id] (get accessors id))))
-                           (filter #(not (= (get-in % [:input :max]) (get-in % [:input :min]))))
-                           (map #(update % :output (fn [id] (get accessors id))))
-                           (map #(update % :input resolver))
-                           (map #(update % :output resolver))
-                           (map (fn [{:keys [target] :as this}]
-                                  (sp/transform [:output sp/ALL] 
-                                                (fn [ele] (interpret-element ele (-> target :path)))
-                                                this)))
-                           channels)))
-                   (:animations gltf-json))]
-    anime))
+                   (map (fn [{:keys [channels samplers] :as anime}]
+                          (-> anime
+                              (dissoc :samplers)
+                              (assoc :channels
+                                     (eduction
+                                      (map (fn [{:keys [target sampler]}]
+                                             ;; flatten channel as a composite of sampler and target
+                                             (-> (get samplers sampler)
+                                                 (assoc :target target))))
+                                      (map #(update % :input (fn [id] (get accessors id))))
+                                      (map #(assoc % ;; assume time as always scalar
+                                                   :min-input (first (get-in % [:input :min]))
+                                                   :max-input (first (get-in % [:input :max]))))
+                                      (filter #(not (= (:max-input %) (:min-input %))))
+                                      (map #(update % :output (fn [id] (get accessors id))))
+                                      (map #(update % :input resolver))
+                                      (map #(update % :output resolver))
+                                      (map (fn [{:keys [target] :as this}]
+                                             (sp/transform [:output sp/ALL]
+                                                           (fn [ele] (interpret-element ele (-> target :path)))
+                                                           this)))
+                                      channels)))))
+                   (:animations gltf-json))
+        channels (eduction
+                  (map (fn [channel] {:max-input (:max-input channel)
+                                      :keyframes (map vector (:input channel) (:output channel))}))
+                  (map (fn [{:keys [max-input keyframes]}]
+                         (->> (take (inc (count keyframes)) (cycle keyframes))
+                              (partition 2 1)
+                              (map (fn [[start-kf next-kf]]
+                                     (let [[input output] start-kf
+                                           [next-input next-output] next-kf]
+                                       {::keyframe/inp input
+                                        ::keyframe/out output
+                                        ::keyframe/next-inp (if (= next-input max-input) 0 next-input)
+                                        ::keyframe/next-out next-output
+                                        ::keyframe/anime-fn identity}))))))
+                  (-> anime first :channels))]
+    channels))
