@@ -4,12 +4,13 @@
    [clojure.string :as str]
    [engine.math :as m-ext]
    [engine.utils :refer [f32s->get-mat4]]
+   [minusone.rules.gl.gl :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.math.core :as m]))
 
-(def gltf-type->size
+(def gltf-type->num-of-component
   {"SCALAR" 1
    "VEC2"   2
    "VEC3"   3
@@ -17,8 +18,6 @@
    "MAT2"   4
    "MAT3"   9
    "MAT4"   16})
-
-(def gl-array-type {:GL_ARRAY_BUFFER 34962 :GL_ELEMENT_ARRAY_BUFFER 34963})
 
 (s/def ::primitives sequential?)
 (s/def ::inv-bind-mats vector?)
@@ -58,7 +57,7 @@
                 (let [bufferView (get bufferViews bufferView)]
                   {:point-attr (symbol attr-name)
                    :use-shader use-shader
-                   :attr-size (gltf-type->size type)
+                   :attr-size (gltf-type->num-of-component type)
                    :attr-type componentType
                    :offset (+ (:byteOffset bufferView) byteOffset)})))
          attributes)
@@ -68,7 +67,7 @@
               id-byteOffset (:byteOffset id-bufferView)
               id-byteLength (:byteLength id-bufferView)]
           {:bind-buffer "IBO"
-           :buffer-type (gl-array-type :GL_ELEMENT_ARRAY_BUFFER)
+           :buffer-type GL_ELEMENT_ARRAY_BUFFER
            :buffer-data #?(:clj  [(count result-bin) id-byteOffset id-byteLength :jvm-not-handled]
                            :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
@@ -91,11 +90,12 @@
           buffer-view   (get buffer-views (:bufferView accessor))
           byteLength    (:byteLength buffer-view)
           byteOffset    (:byteOffset buffer-view)
-          ^ints ibm-u8s (.subarray result-bin byteOffset (+ byteLength byteOffset))
-          ibm-f32s       #?(:clj  ibm-u8s ;; jvm TODO
-                            :cljs (js/Float32Array. ibm-u8s.buffer
-                                                    ibm-u8s.byteOffset
-                                                    (/ ibm-u8s.byteLength 4.0)))
+          ^ints ibm-u8s #?(:clj  [result-bin byteLength byteOffset] ;; jvm TODO
+                           :cljs (.subarray result-bin byteOffset (+ byteLength byteOffset)))
+          ibm-f32s      #?(:clj  ibm-u8s ;; jvm TODO
+                           :cljs (js/Float32Array. ibm-u8s.buffer
+                                                   ibm-u8s.byteOffset
+                                                   (/ ibm-u8s.byteLength 4.0)))
           inv-bind-mats (into [] (map (fn [i] (f32s->get-mat4 ibm-f32s i))) (range (:count accessor)))]
       inv-bind-mats)))
 
@@ -128,6 +128,8 @@
          (node->transform-db gltf-nodes c-idx idx transform-db*)))
      @transform-db*)))
 
+(defonce debug-data* (atom {}))
+
 (defn gltf-magic
   "magic to pass to gl-incantation"
   [gltf-json result-bin {:keys [model-id use-shader tex-unit-offset]}]
@@ -143,9 +145,10 @@
                     (create-vao-names (str model-id "_" (:name mesh)))
                     (match-textures tex-unit-offset materials textures images)
                     (some-> mesh :primitives))]
+    (swap! debug-data* assoc model-id {:gltf-json gltf-json :bin result-bin})
     ;; assume one glb/gltf = one binary for the time being
     (flatten
-     [{:buffer-data result-bin :buffer-type (gl-array-type :GL_ARRAY_BUFFER)}
+     [{:buffer-data result-bin :buffer-type GL_ARRAY_BUFFER}
       (eduction
        (map (fn [{:keys [image-idx tex-name] :as image}]
               {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
