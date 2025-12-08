@@ -3,7 +3,7 @@
    [clojure.spec.alpha :as s]))
 
 (s/def ::inp number?)
-(s/def ::value some?)
+(s/def ::out some?)
 (s/def ::anime-fn fn?)
 
 ; intermediate

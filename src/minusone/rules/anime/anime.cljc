@@ -8,18 +8,20 @@
 
 (defn- resolve-sampler
   "this needs input with some related data connected (:input. :output -> bufferView, :target)"
-  [gltf-json bin gltf-input]
-  (let [bufferViews (:bufferViews gltf-json)
-        bufferView (get bufferViews (:bufferView gltf-input))
-        {:keys [byteLength byteOffset]} bufferView
-        u8s    #?(:clj [bin byteLength byteOffset] ;; jvm TODO
-                  :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
-        component-size 4.0 ;; assuming all float for now
-        component-per-element (gltf/gltf-type->num-of-component (:type gltf-input))
-        buffer #?(:clj [component-size u8s] ;; jvm TODO
-                  :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset (/ u8s.byteLength component-size))))]
-    (if (> component-per-element 1)
-      (partition component-per-element buffer)
+  [gltf-json bin input-accessor]
+  (println input-accessor)
+  (let [bufferViews        (:bufferViews gltf-json)
+        bufferView         (get bufferViews (:bufferView input-accessor))
+        byteLength         (:byteLength bufferView)
+        byteOffset         (:byteOffset bufferView)
+        u8s                #?(:clj [bin byteLength byteOffset] ;; jvm TODO
+                              :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
+        component-size     4.0 ;; assuming all float for now
+        component-per-elem (gltf/gltf-type->num-of-component (:type input-accessor))
+        buffer             #?(:clj [component-size u8s] ;; jvm TODO
+                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset (/ u8s.byteLength component-size))))]
+    (if (> component-per-elem 1)
+      (partition component-per-elem buffer)
       buffer)))
 
 (defn interpret-element [element path]
@@ -34,7 +36,7 @@
         gltf-json (:gltf-json data)
         accessors (:accessors gltf-json)
         resolver  (partial resolve-sampler gltf-json bin)
-        anime     (eduction
+        animes    (eduction
                    (map (fn [{:keys [channels samplers] :as anime}]
                           (-> anime
                               (dissoc :samplers)
@@ -56,21 +58,24 @@
                                              (sp/transform [:output sp/ALL]
                                                            (fn [ele] (interpret-element ele (-> target :path)))
                                                            this)))
+                                      (map (fn [channel]
+                                             (assoc channel
+                                                    :max-input (:max-input channel)
+                                                    :keyframes (map vector (:input channel) (:output channel)))))
+                                      (map (fn [{:keys [max-input keyframes] :as channel}]
+                                             (let [kfs (->> (take (inc (count keyframes)) (cycle keyframes))
+                                                            (partition 2 1)
+                                                            (map (fn [[start-kf next-kf]]
+                                                                   (let [[input output] start-kf
+                                                                         [next-input next-output] next-kf]
+                                                                     {::keyframe/inp input
+                                                                      ::keyframe/out output
+                                                                      ::keyframe/next-inp (if (= next-input max-input) 0 next-input)
+                                                                      ::keyframe/next-out next-output
+                                                                      ::keyframe/anime-fn identity}))))]
+                                               (-> channel
+                                                   (dissoc :input :output)
+                                                   (assoc :keyframes kfs)))))
                                       channels)))))
-                   (:animations gltf-json))
-        channels (eduction
-                  (map (fn [channel] {:max-input (:max-input channel)
-                                      :keyframes (map vector (:input channel) (:output channel))}))
-                  (map (fn [{:keys [max-input keyframes]}]
-                         (->> (take (inc (count keyframes)) (cycle keyframes))
-                              (partition 2 1)
-                              (map (fn [[start-kf next-kf]]
-                                     (let [[input output] start-kf
-                                           [next-input next-output] next-kf]
-                                       {::keyframe/inp input
-                                        ::keyframe/out output
-                                        ::keyframe/next-inp (if (= next-input max-input) 0 next-input)
-                                        ::keyframe/next-out next-output
-                                        ::keyframe/anime-fn identity}))))))
-                  (-> anime first :channels))]
-    channels))
+                   (:animations gltf-json))]
+    animes))
