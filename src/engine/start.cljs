@@ -108,12 +108,12 @@
                                   (fn pointer-pos [prev] (-> prev (assoc :x x) (assoc :y y))))))))
   (.addEventListener canvas "pointerdown"
                      (fn [event]
-                       (.setPointerCapture canvas (.-pointerId event))
+                       (when (not @locked?*) (.setPointerCapture canvas (.-pointerId event)))
                        (when-let [mouse (mousecode->keyword (.-button event))]
                          (swap! world-inputs update ::keydown (fn [s] (conj s mouse))))))
   (.addEventListener canvas "pointerup"
                      (fn [event]
-                       (.releasePointerCapture canvas (.-pointerId event))
+                       (when (not @locked?*) (.releasePointerCapture canvas (.-pointerId event)))
                        (when-let [mouse (mousecode->keyword (.-button event))]
                          (swap! world-inputs update ::keydown (fn [s] (disj s mouse)))))))
 
