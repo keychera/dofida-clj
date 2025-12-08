@@ -94,7 +94,7 @@ void main()
   (o/ruleset
    {::pmx-models
     [:what
-     [esse-id ::assimp/gltf gltf-json {:then false}]
+     [esse-id ::gltf/data gltf-data {:then false}]
      [esse-id ::gltf/primitives primitives {:then false}]
      [esse-id ::gltf/transform-db transform-db {:then false}]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats {:then false}]
@@ -109,8 +109,8 @@ void main()
 (defn render-fn [world game]
   (doseq [{:keys [primitives position transform-db inv-bind-mats] :as esse} (o/query-all world ::pmx-models)]
     (let [esse-id       (:esse-id esse)
-          gltf-json     (:gltf-json esse)
-          accessors     (:accessors gltf-json)
+          gltf-data     (:gltf-data esse)
+          accessors     (:accessors gltf-data)
           program-data  (:program-data esse)
           program       (:program program-data)
 
@@ -123,10 +123,10 @@ void main()
 
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
-          skin          (first (:skins gltf-json))
+          skin          (first (:skins gltf-data))
           _             (when (= esse-id ::rubah)
                           #_{:clj-kondo/ignore [:inline-def]}
-                          (def hmm gltf-json))
+                          (def hmm gltf-data))
           time          (:total-time game)
           factor        (Math/sin (/ time 128))
           transform-db  (if (= esse-id ::rubahperak)

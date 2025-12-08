@@ -4,13 +4,14 @@
    [minusone.rules.anime.keyframe :as keyframe]
    [minusone.rules.gl.gltf :as gltf]
    [thi.ng.geom.quaternion :as q]
-   [thi.ng.geom.vector :as v]))
+   [thi.ng.geom.vector :as v]
+   [odoyle.rules :as o]))
 
 (defn- resolve-sampler
   "this needs input with some related data connected (:input. :output -> bufferView, :target)"
-  [gltf-json bin input-accessor]
+  [gltf-data bin input-accessor]
   (println input-accessor)
-  (let [bufferViews        (:bufferViews gltf-json)
+  (let [bufferViews        (:bufferViews gltf-data)
         bufferView         (get bufferViews (:bufferView input-accessor))
         byteLength         (:byteLength bufferView)
         byteOffset         (:byteOffset bufferView)
@@ -30,12 +31,20 @@
     "rotation" (apply q/quat element)
     "scale" (apply v/vec3 element)))
 
+(defonce db* (atom {}))
+
+(def rules
+  (o/ruleset
+   {::process-gltf-anime
+    [:what
+     [esse-id ::gltf/bin bins]]}))
+
 (comment
   (let [data      (:minusone.simple-gltf/simpleanime @gltf/debug-data*)
         bin       (:bin data)
-        gltf-json (:gltf-json data)
-        accessors (:accessors gltf-json)
-        resolver  (partial resolve-sampler gltf-json bin)
+        gltf-data (:gltf-data data)
+        accessors (:accessors gltf-data)
+        resolver  (partial resolve-sampler gltf-data bin)
         animes    (eduction
                    (map (fn [{:keys [channels samplers] :as anime}]
                           (-> anime
@@ -77,5 +86,5 @@
                                                    (dissoc :input :output)
                                                    (assoc :keyframes kfs)))))
                                       channels)))))
-                   (:animations gltf-json))]
+                   (:animations gltf-data))]
     animes))

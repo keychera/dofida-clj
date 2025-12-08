@@ -76,7 +76,7 @@
   (o/ruleset
    {::model-w-joints
     [:what
-     [esse-id ::assimp/gltf gltf-json {:then false}]
+     [esse-id ::gltf/data gltf-data {:then false}]
      [esse-id ::gltf/primitives primitives {:then false}]
      [esse-id ::gltf/transform-db transform-db {:then false}]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats {:then false}]
@@ -91,8 +91,8 @@
 
 (defn render-fn [world game]
   (doseq [{:keys [primitives position transform-db inv-bind-mats] :as esse} (o/query-all world ::model-w-joints)]
-    (let [gltf-json     (:gltf-json esse)
-          accessors     (:accessors gltf-json)
+    (let [gltf-data     (:gltf-data esse)
+          accessors     (:accessors gltf-data)
           program-data  (:program-data esse)
           program       (:program program-data)
 
@@ -104,7 +104,7 @@
 
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
-          skin          (first (:skins gltf-json))
+          skin          (first (:skins gltf-data))
           transform-db  (update-in transform-db [3 :global-transform]
                                    (fn [bone]
                                      (some->> bone
@@ -115,7 +115,7 @@
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (when (= (:esse-id esse) ::simpleanime)
         #_{:clj-kondo/ignore [:inline-def]}
-        (def hmm gltf-json))
+        (def hmm gltf-data))
       (gl game useProgram program)
       (gl game uniformMatrix4fv u_view false view)
       (gl game uniformMatrix4fv u_projection false project)

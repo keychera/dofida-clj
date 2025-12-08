@@ -92,7 +92,7 @@ void main() {
 (def ^ints quad-indices
   (i32-arr [0 1 2 0 2 3]))
 
-(defn init-fn [world game]
+(defn init-fn [world _game]
   (-> world
       (firstperson/insert-player (v/vec3 0.0 18.0 24.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::perspective-gizmo

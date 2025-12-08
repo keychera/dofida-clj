@@ -19,6 +19,8 @@
    "MAT3"   9
    "MAT4"   16})
 
+(s/def ::data map?)
+(s/def ::bins vector?)
 (s/def ::primitives sequential?)
 (s/def ::inv-bind-mats vector?)
 (s/def ::transform-db map?)
@@ -42,9 +44,9 @@
                 :tex-name (:tex-name image)
                 :tex-unit (+ tex-unit-offset tex-idx)))))))
 
-(defn primitive-incantation [gltf-json result-bin use-shader]
-  (let [accessors   (some-> gltf-json :accessors)
-        bufferViews (some-> gltf-json :bufferViews)]
+(defn primitive-incantation [gltf-data result-bin use-shader]
+  (let [accessors   (some-> gltf-data :accessors)
+        bufferViews (some-> gltf-data :bufferViews)]
     (map
      (fn [{:keys [vao-name attributes indices]}]
        [{:bind-vao vao-name}
@@ -81,11 +83,11 @@
                       (update :uri (fn [f] (str gltf-dir "/" f))))]
        (assoc image :image-idx idx :tex-name tex-name)))))
 
-(defn get-ibm-inv-mats [gltf-json result-bin]
+(defn get-ibm-inv-mats [gltf-data result-bin]
   ;; assuming only one skin
-  (when-let [ibm (some-> gltf-json :skins first :inverseBindMatrices)]
-    (let [accessors     (some-> gltf-json :accessors)
-          buffer-views  (some-> gltf-json :bufferViews)
+  (when-let [ibm (some-> gltf-data :skins first :inverseBindMatrices)]
+    (let [accessors     (some-> gltf-data :accessors)
+          buffer-views  (some-> gltf-data :bufferViews)
           accessor      (get accessors ibm)
           buffer-view   (get buffer-views (:bufferView accessor))
           byteLength    (:byteLength buffer-view)
@@ -132,20 +134,20 @@
 
 (defn gltf-magic
   "magic to pass to gl-incantation"
-  [gltf-json result-bin {:keys [model-id use-shader tex-unit-offset]}]
-  (let [gltf-dir   (some-> gltf-json :asset :dir)
+  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset]}]
+  (let [gltf-dir   (some-> gltf-data :asset :dir)
         _          (assert gltf-dir "no parent dir data in [:asset :dir]")
-        mesh       (some-> gltf-json :meshes first) ;; only handle one mesh for now
-        materials  (some-> gltf-json :materials)
-        textures   (some-> gltf-json :textures)
+        mesh       (some-> gltf-data :meshes first) ;; only handle one mesh for now
+        materials  (some-> gltf-data :materials)
+        textures   (some-> gltf-data :textures)
         images     (eduction
                     (process-image model-id gltf-dir)
-                    (some-> gltf-json :images))
+                    (some-> gltf-data :images))
         primitives (eduction
                     (create-vao-names (str model-id "_" (:name mesh)))
                     (match-textures tex-unit-offset materials textures images)
                     (some-> mesh :primitives))]
-    (swap! debug-data* assoc model-id {:gltf-json gltf-json :bin result-bin})
+    (swap! debug-data* assoc model-id {:gltf-data gltf-data :bin result-bin})
     ;; assume one glb/gltf = one binary for the time being
     (flatten
      [{:buffer-data result-bin :buffer-type GL_ARRAY_BUFFER}
@@ -154,14 +156,14 @@
               {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
        images)
 
-      (eduction (primitive-incantation gltf-json result-bin use-shader) primitives)
+      (eduction (primitive-incantation gltf-data result-bin use-shader) primitives)
 
       {:insert-facts
        (let [primitives (mapv (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])) primitives)
-             nodes      (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-json))]
+             nodes      (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-data))]
          [[model-id ::primitives primitives]
           [model-id ::transform-db (node->transform-db nodes)]
-          (let [inv-bind-mats (get-ibm-inv-mats gltf-json result-bin)]
+          (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
 
 (defn create-joint-mats-arr ^floats [skin transform-db inv-bind-mats]

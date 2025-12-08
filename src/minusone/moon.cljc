@@ -113,7 +113,7 @@
   (o/ruleset
    {::the-moon
     [:what
-     [::moon ::assimp/gltf gltf-json]
+     [::moon ::gltf/data gltf-data]
      [::moon ::gltf/primitives primitives]
      [::moon-shader ::shader/program-data program-data]
      [::world/global ::projection/matrix projection]
@@ -129,9 +129,9 @@
           vao  (get @vao/db* (:vao-name prim))
           tex  (get @texture/db* (:tex-name prim))]
       (when (and vao tex)
-        (let [gltf-json       (:gltf-json esse)
+        (let [gltf-data       (:gltf-data esse)
               program-data    (:program-data esse)
-              accessors       (:accessors gltf-json)
+              accessors       (:accessors gltf-data)
               indices         (get accessors (:indices prim))
               program         (:program program-data)
               uni-loc         (:uni-locs program-data)

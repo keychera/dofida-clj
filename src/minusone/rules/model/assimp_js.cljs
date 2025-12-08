@@ -1,12 +1,13 @@
 (ns minusone.rules.model.assimp-js
   (:require
    ["assimpjs" :as assimpjs]
+   [clojure.string :as str]
    [engine.macros :refer [vars->map]]
    [engine.world :as world]
    [minusone.rules.gl.gl :as gl]
+   [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp :as assimp]
-   [odoyle.rules :as o]
-   [clojure.string :as str]))
+   [odoyle.rules :as o]))
 
 (defn data-uri->header+Uint8Array [data-uri]
   (let [[header base64-str] (.split data-uri ",")]
@@ -75,8 +76,8 @@
        (fn [{:keys [gltf bins]}]
          (println "[assimp-js] loaded" esse-id)
          (swap! world* o/insert esse-id
-                {::assimp/gltf gltf
-                 ::assimp/bins bins
+                {::gltf/data gltf
+                 ::gltf/bins bins
                  ::gl/loaded?  :pending}))))))
 
 (def system

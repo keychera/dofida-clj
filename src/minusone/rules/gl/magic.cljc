@@ -100,14 +100,14 @@
     
     ::I-cast-gltf-loading!
     [:what
-     [esse-id ::assimp/gltf gltf-json]
+     [esse-id ::gltf/data gltf-data]
      [esse-id ::shader/use shader]
-     [esse-id ::assimp/bins bins]
+     [esse-id ::gltf/bins bins]
      [esse-id ::assimp/tex-unit-offset tex-unit-offset]
      [esse-id ::gl/loaded? :pending]
      :then
      (println "[magic] gltf spell for" esse-id)
-     (let [gltf-spell (gltf-magic gltf-json (first bins)
+     (let [gltf-spell (gltf-magic gltf-data (first bins)
                                   {:model-id esse-id
                                    :use-shader shader
                                    :tex-unit-offset tex-unit-offset})]
