@@ -149,6 +149,11 @@
         gltf-data (:gltf-data data)
         animes    (gltf->animes gltf-data bin)]
     (s/conform ::animes (into [] (map #(assoc % :esse-id :me)) animes)))
+  
+  (tagged-literal 'flare/html {:title "game"
+                               :url (str "http://localhost:9333/" (rand))
+                               :reveal true
+                               :sidebar-panel? true})
 
   (::interpolated @db*)
   (::animes @db*)
