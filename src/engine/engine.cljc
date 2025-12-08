@@ -9,7 +9,7 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.rubahperak :as rubahperak]
+   [minusone.rules.anime.anime :as anime]
    [minusone.rules.gizmo.perspective-grid :as perspective-lines]
    [minusone.rules.gl.gl :refer [GL_BLEND GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
    [minusone.rules.gl.magic :as gl-magic]
@@ -54,6 +54,7 @@
 
     #_rubahperak/system
     simple-gltf/system
+    anime/system
     #_moon/system
     #_learnopengl/system]))
 
