@@ -77,10 +77,8 @@
                                     (fn [ele] (interpret-element ele (-> target :path)))
                                     this)))
                (map (fn [channel]
-                      (assoc channel
-                             :max-input (:max-input channel)
-                             :keyframes (map vector (:input channel) (:output channel)))))
-               (map (fn [{:keys [#_max-input keyframes target] :as channel}]
+                      (assoc channel :keyframes (map vector (:input channel) (:output channel)))))
+               (map (fn [{:keys [keyframes target] :as channel}]
                       (let [kfs (->> (take (inc (count keyframes)) (cycle keyframes))
                                      (partition 2 1)
                                      (map (fn [[start-kf next-kf]]
@@ -121,8 +119,9 @@
      [::time/now ::time/total tt]
      :then
      (let [db             @db*
-           duration       1200
-           progress       (/ (mod tt duration) duration)
+           max-progress   6.0
+           duration       1200.0
+           progress       (* max-progress (/ (mod tt duration) duration))
            running-animes (eduction
                            (filter (fn [anime] (and (>= progress (:min-input anime)) (< progress (:max-input anime)))))
                            (mapcat (fn [{:keys [keyframes esse-id target-node target-path]}]
@@ -152,5 +151,6 @@
     (s/conform ::animes (into [] (map #(assoc % :esse-id :me)) animes)))
 
   (::interpolated @db*)
+  (::animes @db*)
 
   :-)

@@ -108,11 +108,15 @@
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-data))
-          anime         (get (::anime/interpolated @anime/db*) esse-id) 
+          anime         (get (::anime/interpolated @anime/db*) esse-id)
           rot-quat      (some-> anime (get 3) (get "rotation"))
-          transform-db  (update-in transform-db [3 :global-transform]
-                                   (fn [bone]
-                                     (some->> bone (m/* (if rot-quat (g/as-matrix rot-quat) (mat/matrix44))))))
+          transform-db  (if rot-quat
+                          ;; it looks like all keyframes are animated now but next we need to decompose global transform
+                          ;; because rn it wiggles way to the side compared to the gif in https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_019_SimpleSkin.html
+                          (update-in transform-db [3 :global-transform]
+                                     (fn [bone]
+                                       (some->> bone (m/* (if rot-quat (g/as-matrix rot-quat) (mat/matrix44))))))
+                          transform-db)
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (when (= (:esse-id esse) ::simpleanime)
         #_{:clj-kondo/ignore [:inline-def]}
@@ -147,7 +151,7 @@
    ::world/rules rules})
 
 (comment
-  
+
   hmm
-  
+
   :-)
