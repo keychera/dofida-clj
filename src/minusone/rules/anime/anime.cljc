@@ -1,13 +1,16 @@
 (ns minusone.rules.anime.anime
   (:require
    [com.rpl.specter :as sp]
+   [engine.macros :refer [vars->map]]
    [engine.world :as world]
    [minusone.rules.anime.keyframe :as keyframe]
    [minusone.rules.gl.gltf :as gltf]
    [odoyle.rules :as o]
    [rules.time :as time]
+   [thi.ng.math.core :as m]
    [thi.ng.geom.quaternion :as q]
-   [thi.ng.geom.vector :as v]))
+   [thi.ng.geom.vector :as v]
+   [clojure.spec.alpha :as s]))
 
 (defn- resolve-sampler
   "this needs input with some related data connected (:input. :output -> bufferView, :target)"
@@ -32,68 +35,71 @@
     "rotation" (apply q/quat element)
     "scale" (apply v/vec3 element)))
 
-(defn gltf->animes [gltf-data bin]
-  (when-let [animes (:animations gltf-data)]
-    (let [;; assuming only one bin for now 
-          accessors (:accessors gltf-data)
-          resolver  (partial resolve-sampler gltf-data bin)]
-      (into []
-            (map (fn [{:keys [channels samplers] :as anime}]
-                   (-> anime
-                       (dissoc :samplers)
-                       (assoc :channels
-                              (eduction
-                               (map (fn [{:keys [target sampler]}]
-                                                     ;; flatten channel as a composite of sampler and target
-                                      (-> (get samplers sampler)
-                                          (assoc :target target))))
-                               (map #(update % :input (fn [id] (get accessors id))))
-                               (map #(assoc % ;; assume time as always scalar
-                                            :min-input (first (get-in % [:input :min]))
-                                            :max-input (first (get-in % [:input :max]))))
-                               (filter #(not (= (:max-input %) (:min-input %))))
-                               (map #(update % :output (fn [id] (get accessors id))))
-                               (map #(update % :input resolver))
-                               (map #(update % :output resolver))
-                               (map (fn [{:keys [target] :as this}]
-                                      (sp/transform [:output sp/ALL]
-                                                    (fn [ele] (interpret-element ele (-> target :path)))
-                                                    this)))
-                               (map (fn [channel]
-                                      (assoc channel
-                                             :max-input (:max-input channel)
-                                             :keyframes (map vector (:input channel) (:output channel)))))
-                               (map (fn [{:keys [max-input keyframes] :as channel}]
-                                      (let [kfs (->> (take (inc (count keyframes)) (cycle keyframes))
-                                                     (partition 2 1)
-                                                     (map (fn [[start-kf next-kf]]
-                                                            (let [[input output] start-kf
-                                                                  [next-input next-output] next-kf]
-                                                              {::keyframe/inp input
-                                                               ::keyframe/out output
-                                                               ::keyframe/next-inp (if (= next-input max-input) 0 next-input)
-                                                               ::keyframe/next-out next-output
-                                                                            ;; not yet parsing :interpolation
-                                                               ::keyframe/anime-fn identity}))))]
-                                        (-> channel
-                                            (dissoc :input :output)
-                                            (assoc :keyframes kfs)))))
-                               channels)))))
-            animes))))
+(s/def ::anime-name string?)
+(s/def ::interpolation string?)
+(s/def ::min-input float?)
+(s/def ::max-input float?)
+(s/def ::target-node int?)
+(s/def ::target-path #{"translation" "rotation" "scale"})
 
-(defn animes->map [animes]
-  ;; not sure about the perf characteristic
-  (into {}
-        (map (fn [{:keys [channels] :as anime}]
-               (let [anime-name (:name anime)]
-                 [anime-name
-                  (-> (group-by (comp :node :target) channels)
-                      (update-vals
-                       (fn [n-ch]
-                         (-> (group-by (comp :path :target) n-ch)
-                                  ;; assuming one-ity of :anime-name -> [:node :target] -> [:node :path] -> keyframes
-                             (update-vals (comp :keyframes first))))))])))
-        animes))
+(s/def ::anime
+  (s/keys :req-un [::anime-name
+                   ::interpolation
+                   ::keyframe/keyframes
+                   ::min-input
+                   ::max-input
+                   ::target-node
+                   ::target-path]))
+
+(s/def ::animes (s/coll-of ::anime))
+
+(defn gltf->animes [gltf-data bin] ;; assuming only one bin for now 
+  (when-let [animes (:animations gltf-data)]
+    (let [accessors (:accessors gltf-data)
+          resolver  (partial resolve-sampler gltf-data bin)]
+      (transduce
+       (map (fn [{:keys [channels samplers] :as anime}]
+              (eduction
+               (map (fn [{:keys [target sampler]}]
+                      ;; flatten channel as a composite of sampler and target
+                      (-> (get samplers sampler)
+                          (assoc :target target))))
+               (map #(update % :input (fn [id] (get accessors id))))
+               (map #(assoc % ;; assume time as always scalar
+                            :min-input (first (get-in % [:input :min]))
+                            :max-input (first (get-in % [:input :max]))))
+               (filter #(not (= (:max-input %) (:min-input %))))
+               (map #(update % :output (fn [id] (get accessors id))))
+               (map #(update % :input resolver))
+               (map #(update % :output resolver))
+               (map (fn [{:keys [target] :as this}]
+                      (sp/transform [:output sp/ALL]
+                                    (fn [ele] (interpret-element ele (-> target :path)))
+                                    this)))
+               (map (fn [channel]
+                      (assoc channel
+                             :max-input (:max-input channel)
+                             :keyframes (map vector (:input channel) (:output channel)))))
+               (map (fn [{:keys [#_max-input keyframes target] :as channel}]
+                      (let [kfs (->> (take (inc (count keyframes)) (cycle keyframes))
+                                     (partition 2 1)
+                                     (map (fn [[start-kf next-kf]]
+                                            (let [[input output] start-kf
+                                                  [next-input next-output] next-kf]
+                                              {::keyframe/inp input
+                                               ::keyframe/out output
+                                               ::keyframe/next-inp next-input
+                                               ::keyframe/next-out next-output
+                                               ;; not yet parsing :interpolation
+                                               ::keyframe/anime-fn identity}))))]
+                        (-> channel
+                            (dissoc :input :output :target)
+                            (assoc :keyframes kfs
+                                   :target-node (:node target)
+                                   :target-path (:path target)
+                                   :anime-name (:name anime))))))
+               channels)))
+       concat animes))))
 
 (defonce db* (atom {}))
 
@@ -106,23 +112,45 @@
      :then
      (let [animes (gltf->animes gltf-data (first bins))]
        (when (seq animes)
-         (let [anime-map (animes->map animes)]
-           (println "registering anime for" esse-id (keys anime-map))
-           (swap! db* assoc esse-id anime-map))))]
-    
+         (println "anime for" esse-id)
+         (swap! db* update ::animes concat
+                (into [] (map #(assoc % :esse-id esse-id)) animes))))]
+
     ::animation-update
     [:what
-     [::time/now ::time/total _]]}))
+     [::time/now ::time/total tt]
+     :then
+     (let [db             @db*
+           duration       1200
+           progress       (/ (mod tt duration) duration)
+           running-animes (eduction
+                           (filter (fn [anime] (and (>= progress (:min-input anime)) (< progress (:max-input anime)))))
+                           (mapcat (fn [{:keys [keyframes esse-id target-node target-path]}]
+                                     (into [] (map #(merge % (vars->map esse-id target-node target-path))) keyframes)))
+                           (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
+                           (map (fn [{:keys [esse-id target-node target-path]
+                                      ::keyframe/keys [inp out next-out]}]
+                                  (let [local-progress (- progress inp)]
+                                    [esse-id target-node target-path (m/mix out next-out local-progress)])))
+                           (::animes db))]
+       (swap! db* assoc ::interpolated
+              (reduce
+               (fn [m [esse-id target-node target-path v]] (assoc-in m [esse-id target-node target-path] v))
+               {} running-animes)))]}))
 
 (def system
-  {::world/rules rules})
+  {::world/after-load-fn (fn [world _game]
+                           (reset! db* {})
+                           world)
+   ::world/rules rules})
 
 (comment
   (let [data      (:minusone.simple-gltf/simpleanime @gltf/debug-data*)
         bin       (:bin data)
         gltf-data (:gltf-data data)
-        animes    (gltf->animes gltf-data bin)
-        anime-db  (animes->map animes)]
-    (sp/select [sp/MAP-VALS sp/MAP-VALS sp/MAP-VALS] anime-db))
+        animes    (gltf->animes gltf-data bin)]
+    (s/conform ::animes (into [] (map #(assoc % :esse-id :me)) animes)))
+
+  (::interpolated @db*)
 
   :-)

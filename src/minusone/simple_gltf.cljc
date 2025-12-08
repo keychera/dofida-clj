@@ -18,7 +18,9 @@
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minusone.rules.anime.anime :as anime]
+   [thi.ng.geom.matrix :as mat]))
 
 (def pos+weights+joints-vert
   {:precision  "mediump float"
@@ -90,7 +92,8 @@
      (println esse-id "all set!")]}))
 
 (defn render-fn [world game]
-  (doseq [{:keys [primitives position transform-db inv-bind-mats] :as esse} (o/query-all world ::model-w-joints)]
+  (doseq [{:keys [esse-id primitives position transform-db inv-bind-mats] :as esse}
+          (o/query-all world ::model-w-joints)]
     (let [gltf-data     (:gltf-data esse)
           accessors     (:accessors gltf-data)
           program-data  (:program-data esse)
@@ -105,13 +108,11 @@
           view          (f32-arr (vec (:look-at esse)))
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-data))
+          anime         (get (::anime/interpolated @anime/db*) esse-id) 
+          rot-quat      (some-> anime (get 3) (get "rotation"))
           transform-db  (update-in transform-db [3 :global-transform]
                                    (fn [bone]
-                                     (some->> bone
-                                              (m/* (m-ext/translation-mat 1.0 0.5 0.0))
-                                              (m/* (g/as-matrix (q/quat-from-axis-angle
-                                                                 (v/vec3 0.0 0.0 1.0)
-                                                                 (m/radians 90.0)))))))
+                                     (some->> bone (m/* (if rot-quat (g/as-matrix rot-quat) (mat/matrix44))))))
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (when (= (:esse-id esse) ::simpleanime)
         #_{:clj-kondo/ignore [:inline-def]}
