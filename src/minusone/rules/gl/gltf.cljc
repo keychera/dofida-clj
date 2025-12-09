@@ -118,16 +118,16 @@
          parent-transform (or (get-in @transform-db* [parent-idx :global-transform]) (mat/matrix44))
          global-transform (m/* parent-transform local-transform)
          decomposed       (m-ext/decompose-matrix44 global-transform)
-         translate        (:translate decomposed)
+         translation      (:translation decomposed)
+         rotation         (:rotation decomposed)
          scale            (:scale decomposed)
-         rotate           (:rotate decomposed)
          children         (:children node)
          bone-name        (:name node)]
      (vswap! transform-db* assoc idx
              {:local-transform  local-transform
               :global-transform global-transform
-              :translate        translate
-              :rotate           rotate
+              :translation      translation
+              :rotation         rotation
               :scale            scale
               :parent-idx       parent-idx
               :children         children

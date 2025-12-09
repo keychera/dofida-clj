@@ -19,8 +19,7 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [minusone.rules.anime.anime :as anime]
-   [thi.ng.geom.matrix :as mat]))
+   [minusone.rules.anime.anime :as anime]))
 
 (def pos+weights+joints-vert
   {:precision  "mediump float"
@@ -112,11 +111,12 @@
           rot-quat      (some-> anime (get 3) (get "rotation"))
           transform-db  (if rot-quat
                           (update transform-db 3
-                                  (fn [{:keys [translate rotate scale] :as transform}]
-                                    (let [rotate    (m/* (or rot-quat (q/quat)) rotate)
-                                          trans-mat (m-ext/translation-mat translate)
-                                          scale-mat (m-ext/scaling-mat (nth scale 0) (nth scale 1) (nth scale 2))
+                                  (fn [{:keys [translation rotation scale] :as transform}]
+                                    (println transform)
+                                    (let [trans-mat (m-ext/translation-mat translation)
+                                          rotate    (m/* (or rot-quat (q/quat)) rotation)
                                           rot-mat   (g/as-matrix rotate)
+                                          scale-mat (m-ext/scaling-mat (nth scale 0) (nth scale 1) (nth scale 2))
                                           global-t  (reduce m/* [trans-mat rot-mat scale-mat])]
                                       (assoc transform :global-transform global-t))))
                           transform-db)
