@@ -111,11 +111,14 @@
           anime         (get (::anime/interpolated @anime/db*) esse-id)
           rot-quat      (some-> anime (get 3) (get "rotation"))
           transform-db  (if rot-quat
-                          ;; it looks like all keyframes are animated now but next we need to decompose global transform
-                          ;; because rn it wiggles way to the side compared to the gif in https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_019_SimpleSkin.html
-                          (update-in transform-db [3 :global-transform]
-                                     (fn [bone]
-                                       (some->> bone (m/* (if rot-quat (g/as-matrix rot-quat) (mat/matrix44))))))
+                          (update transform-db 3
+                                  (fn [{:keys [translate rotate scale] :as transform}]
+                                    (let [rotate    (m/* (or rot-quat (q/quat)) rotate)
+                                          trans-mat (m-ext/translation-mat translate)
+                                          scale-mat (m-ext/scaling-mat (nth scale 0) (nth scale 1) (nth scale 2))
+                                          rot-mat   (g/as-matrix rotate)
+                                          global-t  (reduce m/* [trans-mat rot-mat scale-mat])]
+                                      (assoc transform :global-transform global-t))))
                           transform-db)
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (when (= (:esse-id esse) ::simpleanime)

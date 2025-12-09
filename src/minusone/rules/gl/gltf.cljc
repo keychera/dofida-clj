@@ -117,14 +117,21 @@
                                        (m-ext/translation-mat x y z)))))
          parent-transform (or (get-in @transform-db* [parent-idx :global-transform]) (mat/matrix44))
          global-transform (m/* parent-transform local-transform)
+         decomposed       (m-ext/decompose-matrix44 global-transform)
+         translate        (:translate decomposed)
+         scale            (:scale decomposed)
+         rotate           (:rotate decomposed)
          children         (:children node)
          bone-name        (:name node)]
      (vswap! transform-db* assoc idx
-             {:local-transform local-transform
+             {:local-transform  local-transform
               :global-transform global-transform
-              :parent-idx parent-idx
-              :children children
-              :name bone-name})
+              :translate        translate
+              :rotate           rotate
+              :scale            scale
+              :parent-idx       parent-idx
+              :children         children
+              :name             bone-name})
      (when children
        (doseq [c-idx children]
          (node->transform-db gltf-nodes c-idx idx transform-db*)))
