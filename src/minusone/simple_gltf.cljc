@@ -19,8 +19,7 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [minusone.rules.anime.anime :as anime]
-   [thi.ng.geom.matrix :as mat]))
+   [minusone.rules.anime.anime :as anime]))
 
 (def pos+weights+joints-vert
   {:precision  "mediump float"

@@ -89,8 +89,7 @@
                                                ::keyframe/next-inp next-input
                                                ::keyframe/next-out next-output
                                                ;; not yet parsing :interpolation
-                                               ::keyframe/anime-fn identity})))
-                                     butlast)]
+                                               ::keyframe/anime-fn identity}))))]
                         (-> channel
                             (dissoc :input :output :target)
                             (assoc :keyframes kfs
@@ -130,7 +129,7 @@
                            (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
                            (map (fn [{:keys [esse-id target-node target-path]
                                       ::keyframe/keys [inp next-inp out next-out]}]
-                                  (let [local-progress (/ (- progress inp) (- next-inp inp))] 
+                                  (let [local-progress (/ (- progress inp) (- next-inp inp))]
                                     [esse-id target-node target-path (m/mix out next-out local-progress)])))
                            (::animes db))]
        (swap! db* assoc ::interpolated
