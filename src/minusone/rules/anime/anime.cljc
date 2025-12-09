@@ -89,7 +89,8 @@
                                                ::keyframe/next-inp next-input
                                                ::keyframe/next-out next-output
                                                ;; not yet parsing :interpolation
-                                               ::keyframe/anime-fn identity}))))]
+                                               ::keyframe/anime-fn identity})))
+                                     butlast)]
                         (-> channel
                             (dissoc :input :output :target)
                             (assoc :keyframes kfs
@@ -119,7 +120,7 @@
      [::time/now ::time/total tt]
      :then
      (let [db             @db*
-           max-progress   1.0
+           max-progress   6.0
            duration       4800.0
            progress       (* max-progress (/ (mod tt duration) duration))
            running-animes (eduction
@@ -128,8 +129,8 @@
                                      (into [] (map #(merge % (vars->map esse-id target-node target-path))) keyframes)))
                            (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
                            (map (fn [{:keys [esse-id target-node target-path]
-                                      ::keyframe/keys [inp out next-out]}]
-                                  (let [local-progress (- progress inp)]
+                                      ::keyframe/keys [inp next-inp out next-out]}]
+                                  (let [local-progress (/ (- progress inp) (- next-inp inp))] 
                                     [esse-id target-node target-path (m/mix out next-out local-progress)])))
                            (::animes db))]
        (swap! db* assoc ::interpolated
@@ -149,7 +150,6 @@
         gltf-data (:gltf-data data)
         animes    (gltf->animes gltf-data bin)]
     (s/conform ::animes (into [] (map #(assoc % :esse-id :me)) animes)))
-  
   (tagged-literal 'flare/html {:title "game"
                                :url (str "http://localhost:9333/" (rand))
                                :reveal true
