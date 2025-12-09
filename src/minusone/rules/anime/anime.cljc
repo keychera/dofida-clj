@@ -119,8 +119,8 @@
      [::time/now ::time/total tt]
      :then
      (let [db             @db*
-           max-progress   6.0
-           duration       1200.0
+           max-progress   1.0
+           duration       4800.0
            progress       (* max-progress (/ (mod tt duration) duration))
            running-animes (eduction
                            (filter (fn [anime] (and (>= progress (:min-input anime)) (< progress (:max-input anime)))))
@@ -156,6 +156,8 @@
                                :sidebar-panel? true})
 
   (::interpolated @db*)
-  (::animes @db*)
+  (into []
+        (filter #(= (:esse-id %) :minusone.simple-gltf/simpleanime))
+        (::animes @db*))
 
   :-)

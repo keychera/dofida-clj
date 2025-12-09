@@ -19,7 +19,8 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [minusone.rules.anime.anime :as anime]))
+   [minusone.rules.anime.anime :as anime]
+   [thi.ng.geom.matrix :as mat]))
 
 (def pos+weights+joints-vert
   {:precision  "mediump float"
@@ -108,18 +109,22 @@
           project       (f32-arr (vec (:projection esse)))
           skin          (first (:skins gltf-data))
           anime         (get (::anime/interpolated @anime/db*) esse-id)
-          rot-quat      (some-> anime (get 3) (get "rotation"))
-          transform-db  (if rot-quat
-                          (update transform-db 3
-                                  (fn [{:keys [translation rotation scale] :as transform}]
-                                    (println transform)
-                                    (let [trans-mat (m-ext/translation-mat translation)
-                                          rotate    (m/* (or rot-quat (q/quat)) rotation)
-                                          rot-mat   (g/as-matrix rotate)
-                                          scale-mat (m-ext/scaling-mat (nth scale 0) (nth scale 1) (nth scale 2))
-                                          global-t  (reduce m/* [trans-mat rot-mat scale-mat])]
-                                      (assoc transform :global-transform global-t))))
-                          transform-db)
+          transform-db  (reduce
+                         (fn [t-db [target-node value]]
+                           (let [next-translation (get value "translation")
+                                 next-rotation    (get value "rotation")
+                                 next-scale       (get value "scale")]
+                             (if (or next-translation next-rotation next-scale)
+                               (update t-db target-node
+                                       (fn [{:keys [translation rotation scale] :as transform}]
+                                         (let [trans-mat (m-ext/translation-mat (m/+ translation next-translation))
+                                               rotate    (m/* (or next-rotation (q/quat)) rotation)
+                                               rot-mat   (g/as-matrix rotate)
+                                               scale-mat (m-ext/scaling-mat (nth scale 0) (nth scale 1) (nth scale 2))
+                                               global-t  (reduce m/* [trans-mat rot-mat scale-mat])]
+                                           (assoc transform :global-transform global-t))))
+                               t-db)))
+                         transform-db anime)
           joint-mats    (gltf/create-joint-mats-arr skin transform-db inv-bind-mats)]
       (when (= (:esse-id esse) ::simpleanime)
         #_{:clj-kondo/ignore [:inline-def]}
@@ -132,15 +137,16 @@
       (doseq [prim primitives]
         (let [vao (get @vao/db* (:vao-name prim))]
           (when vao
-            (let [indices   (get accessors (:indices prim))
-                  trans-mat (m-ext/translation-mat position)
-                  rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                          (v/vec3 1.0 0.0 0.0)
-                                          (m/radians 0.0)))
-                  scale-mat (m-ext/scaling-mat 8.0)
+            (let [indices      (get accessors (:indices prim))
+                  node-0-trans (:global-transform (get transform-db 0)) 
+                  trans-mat    (m-ext/translation-mat position)
+                  rot-mat      (g/as-matrix (q/quat-from-axis-angle
+                                             (v/vec3 1.0 0.0 0.0)
+                                             (m/radians 0.0)))
+                  scale-mat    (m-ext/scaling-mat 8.0)
 
-                  model     (reduce m/* [trans-mat rot-mat scale-mat])
-                  model     (f32-arr (vec model))]
+                  model        (reduce m/* [trans-mat rot-mat scale-mat node-0-trans])
+                  model        (f32-arr (vec model))]
               (gl game bindVertexArray vao)
               (gl game uniformMatrix4fv u_model false model)
 
