@@ -9,10 +9,19 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.learnopengl :as learnopengl]
+   [minusone.rules.anime.anime :as anime]
+   [minusone.rules.gizmo.perspective-grid :as perspective-lines]
+   [minusone.rules.gl.gl :refer [GL_BLEND GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
+   [minusone.rules.gl.magic :as gl-magic]
+   [minusone.rules.gl.shader :as shader]
+   [minusone.rules.gl.texture :as texture]
    [minusone.rules.model.assimp :as assimp]
-   [minusone.rules.model.moon :as moon]
+   [minusone.rules.projection :as projection]
+   [minusone.rules.transform3d :as t3d]
+   [minusone.rules.view.firstperson :as firstperson]
+   [minusone.simple-gltf :as simple-gltf]
    [odoyle.rules :as o]
+   [rules.interface.input :as input]
    [rules.time :as time]
    [rules.window :as window]))
 
@@ -32,13 +41,26 @@
     asset/system
     window/system
 
-    moon/system
+    texture/system
 
-    learnopengl/system]))
+    gl-magic/system
+    shader/system
+    projection/system
+    input/system
+    firstperson/system
+    t3d/system
+
+    perspective-lines/system
+
+    #_rubahperak/system
+    simple-gltf/system
+    anime/system
+    #_moon/system
+    #_learnopengl/system]))
 
 (defn init [game]
   (println "init game")
-  (gl game enable (gl game BLEND))
+  (gl game enable GL_BLEND)
 
   (let [all-rules  (distinct (apply concat (sp/select [sp/ALL ::world/rules] all-systems)))
         init-fns   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
@@ -67,11 +89,11 @@
       (let [#_"the loading zone"
             world*           (::world/atom* game)
             models-to-load   (o/query-all @world* ::assimp/load-with-assimp)
-            textures-to-load (o/query-all @world* ::assimp/gl-texture-to-load)]
-        (if (or (seq models-to-load) (seq textures-to-load))
-          #?(:clj nil
+            data-uri-to-load (o/query-all @world* ::texture/uri-to-load)]
+        (if (or (seq models-to-load) (seq data-uri-to-load))
+          #?(:clj (some-> data-uri-to-load (texture/load-texture->world* (::world/atom* game) game))
              :cljs (do (some-> models-to-load (assimp-js/load-models-from-world* (::world/atom* game)))
-                       (some-> textures-to-load (assimp-js/load-texture-to-world* (::world/atom* game) game))))
+                       (some-> data-uri-to-load (texture/load-texture->world* (::world/atom* game) game))))
           (let [{:keys [total-time
                         delta-time]} game
                 [width height]       (utils/get-size game)
@@ -79,9 +101,9 @@
                                             #(-> %
                                                  (time/insert total-time delta-time)
                                                  (o/fire-rules)))]
-            (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+            (gl game blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
             (gl game clearColor 0.02 0.02 0.12 1.0)
-            (gl game clear (bit-or (gl game COLOR_BUFFER_BIT) (gl game DEPTH_BUFFER_BIT)))
+            (gl game clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
             (gl game viewport 0 0 width height)
 
             (doseq [render-fn @(::render-fns* game)]

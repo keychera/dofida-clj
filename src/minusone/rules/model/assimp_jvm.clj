@@ -1,6 +1,7 @@
 (ns minusone.rules.model.assimp-jvm 
   (:require
    [engine.world :as world]
+   [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp :as assimp]
    [odoyle.rules :as o]))
 
@@ -11,7 +12,7 @@
     [:what [:any ::assimp/model-to-load any]]
 
     ::assimp/gl-texture-to-load
-    [:what [:any ::assimp/gltf any]]}))
+    [:what [:any ::gltf/data any]]}))
 
 (def system
   {::world/rules rules})

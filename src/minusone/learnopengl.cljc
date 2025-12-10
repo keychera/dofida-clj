@@ -2,11 +2,11 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [assets.asset :as asset :refer [asset]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+   [minusone.rules.gl.gl :refer [GL_DEPTH_TEST GL_TEXTURE0 GL_TEXTURE_2D GL_ARRAY_BUFFER GL_FLOAT GL_TRIANGLES]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.texture :as texture]
@@ -15,7 +15,6 @@
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
-   [rules.interface.input :as input]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
@@ -136,14 +135,12 @@
            (= o_color (vec4 "1.0")))}})
 
 (defn init-fn [world game]
-  (gl game enable (gl game DEPTH_TEST)) ;; probably better to be called elsewhere
+  (gl game enable GL_DEPTH_TEST) ;; probably better to be called elsewhere
   (-> world
-      (asset ::container-texture
-             #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/container.png"}
-             #::texture{:tex-unit 0})
-      (asset ::specular-map
-             #::asset{:type ::asset/texture-from-png :asset-to-load "from_learnopengl/specular_map.png"}
-             #::texture{:tex-unit 1})
+      (esse ::container-texture 
+             #::texture{:uri-to-load "from_learnopengl/container.png" :tex-unit 0})
+      (esse ::specular-map 
+             #::texture{:uri-to-load "from_learnopengl/specular_map.png" :tex-unit 1})
       (esse ::a-cube
             t3d/default
             #::shader{:program-data (shader/create-program game vertex-shader cube-fs)}
@@ -154,21 +151,21 @@
             #::vao{:use :light-cube-vao})
       (esse ::shader/global
             #::gl-magic{:incantation
-                        [{:bind-buffer "cube" :buffer-data cube-data :buffer-type (gl game ARRAY_BUFFER)}
+                        [{:buffer-data cube-data :buffer-type GL_ARRAY_BUFFER}
                          {:bind-vao :cube-vao}
-                         {:point-attr 'a_pos :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
-                         {:point-attr 'a_normal :from-shader ::a-cube :attr-size 3 :attr-type (gl game FLOAT) :offset 12 :stride 32}
-                         {:point-attr 'a_uv :from-shader ::a-cube :attr-size 2 :attr-type (gl game FLOAT) :offset 24 :stride 32}
+                         {:bind-current-buffer true}
+                         {:point-attr 'a_pos :use-shader ::a-cube :attr-size 3 :attr-type GL_FLOAT :stride 32}
+                         {:point-attr 'a_normal :use-shader ::a-cube :attr-size 3 :attr-type GL_FLOAT :offset 12 :stride 32}
+                         {:point-attr 'a_uv :use-shader ::a-cube :attr-size 2 :attr-type GL_FLOAT :offset 24 :stride 32}
                          {:bind-vao :light-cube-vao}
-                         ;; rebinding actually make the data disappear for light-cube-vao
-                         {:point-attr 'a_pos :from-shader ::light-cube :attr-size 3 :attr-type (gl game FLOAT) :stride 32}
-                         {:unbind-vao true}]})
-      (firstperson/insert-player (v/vec3 0.0 0.0 3.0) (v/vec3 0.0 0.0 -1.0))))
+                         {:bind-current-buffer true} ;; I think the previous one that cause the light cube to disapper is because we create new buffer every bind
+                         {:point-attr 'a_pos :use-shader ::light-cube :attr-size 3 :attr-type GL_FLOAT :stride 32}
+                         {:unbind-vao true}]})))
 
 (defn after-load-fn [world _game]
   (-> world
       (esse ::light-cube
-            #::t3d{:position (v/vec3 0.0 -1.0 2.0)
+            #::t3d{:position (v/vec3 0.0 0.0 0.0)
                    :scale (v/vec3 0.2)})))
 
 (def rules
@@ -176,12 +173,11 @@
    {::esses
     [:what
      [esse-id ::shader/program-data program-data]
-     [esse-id ::vao/use vao-id]
-     [vao-id ::vao/vao vao]
+     [esse-id ::vao/use vao-name]
      [esse-id ::t3d/local-transform transform]
      [::light-cube ::t3d/position light-pos]
-     [::container-texture ::texture/data tex-data]
-     [::specular-map ::texture/data spec-tex-data]
+     [::container-texture ::texture/loaded? true]
+     [::specular-map ::texture/loaded? true]
      [::world/global ::projection/matrix projection]
      [::firstperson/player ::firstperson/look-at look-at {:then false}]
      [::firstperson/player ::firstperson/position cam-position {:then false}]
@@ -216,7 +212,8 @@
   (def hmm {:world world})
   #_"light cube, deliberate code duplication because we haven't senses the common denominator yet"
   (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::light-cube))))]
-    (let [{:keys [program-data vao transform]} esse
+    (let [{:keys [program-data vao-name transform]} esse
+          vao       (get @vao/db* vao-name)
           cube-uni  (:uni-locs program-data)
           ^int u_p_v (get cube-uni 'u_p_v)
           ^int u_model (get cube-uni 'u_model)
@@ -229,10 +226,11 @@
       (gl game bindVertexArray vao)
       (gl game uniformMatrix4fv u_p_v false (f32-arr p*v))
       (gl game uniformMatrix4fv u_model false (f32-arr model))
-      (gl game drawArrays (gl game TRIANGLES) 0 36)))
+      (gl game drawArrays GL_TRIANGLES 0 36)))
 
   (when-let [esse (first (->> (o/query-all world ::esses) (filter #(= (:esse-id %) ::a-cube))))]
-    (let [{:keys [program-data vao cam-position light-pos]} esse
+    (let [{:keys [program-data vao-name cam-position light-pos]} esse
+          vao       (get @vao/db* vao-name)
           cube-uni  (:uni-locs program-data)
 
               ;; uniform for vertex shaders
@@ -261,14 +259,14 @@
       (gl game useProgram (:program program-data))
       (gl game bindVertexArray vao)
 
-      (let [{:keys [tex-unit texture]} (:tex-data esse)]
-        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-        (gl game bindTexture (gl game TEXTURE_2D) texture)
+      (when-let [{:keys [tex-unit texture]} (get @texture/db* ::container-texture)]
+        (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+        (gl game bindTexture GL_TEXTURE_2D texture)
         (gl game uniform1i u_mat_diffuse tex-unit))
 
-      (let [{:keys [tex-unit texture]} (:spec-tex-data esse)]
-        (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-        (gl game bindTexture (gl game TEXTURE_2D) texture)
+      (when-let [{:keys [tex-unit texture]} (get @texture/db* ::specular-map)]
+        (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+        (gl game bindTexture GL_TEXTURE_2D texture)
         (gl game uniform1i u_mat_specular tex-unit))
 
       (gl game uniform3fv u_view_pos (f32-arr (into [] cam-position))) ;; this is weird... (f32-arr (vec (v/vec3))) returns empty arr 
@@ -291,19 +289,13 @@
           (gl game uniformMatrix4fv u_p_v false (f32-arr (vec p*v)))
           (gl game uniformMatrix4fv u_model false (f32-arr (vec model)))
           (gl game uniformMatrix3fv u_normal_mat false (f32-arr (vec normal-mat)))
-          (gl game drawArrays (gl game TRIANGLES) 0 36))))))
+          (gl game drawArrays GL_TRIANGLES 0 36))))))
 
 (def system
-  [shader/system
-   gl-magic/system
-   projection/system
-   input/system
-   firstperson/system
-   t3d/system
-   {::world/init-fn init-fn
-    ::world/after-load-fn after-load-fn
-    ::world/rules rules
-    ::world/render-fn render-fn}])
+  {::world/init-fn init-fn
+   ::world/after-load-fn after-load-fn
+   ::world/rules rules
+   ::world/render-fn render-fn})
 
 (comment
   (o/query-all (:world hmm) ::esses)

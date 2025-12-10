@@ -4,7 +4,8 @@
              [clojure.string :as str]
              [cheshire.core :as json]])
    [clojure.edn :as edn]
-   [engine.macros :refer [vars->map]])
+   [engine.macros :refer [vars->map]]
+   [thi.ng.geom.matrix :as mat])
   #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
   #?(:clj (:import
            [java.nio ByteBuffer]
@@ -152,3 +153,14 @@
               (.then
                (.json resp)
                (fn [data] (callback (js->clj data :keywordize-keys true))))))))
+
+(defn f32s->get-mat4
+  "Return a 4x4 matrix from a float-array / Float32Array `f32s`.
+  `idx` is the start index (optional, defaults to 0)."
+  [^floats f32s idx]
+  (let [i (* (or idx 0) 16)]
+    (mat/matrix44
+      (aget f32s i)  (aget f32s (+ i 1))  (aget f32s (+ i 2))  (aget f32s (+ i 3))
+      (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))
+      (aget f32s (+ i 8))  (aget f32s (+ i 9))  (aget f32s (+ i 10)) (aget f32s (+ i 11))
+      (aget f32s (+ i 12)) (aget f32s (+ i 13)) (aget f32s (+ i 14)) (aget f32s (+ i 15)))))

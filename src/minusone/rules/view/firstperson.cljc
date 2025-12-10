@@ -46,7 +46,7 @@
      [::player ::front front {:then false}]
      [::player ::move-control control {:then false}]
      :then
-     (let [speed   0.01
+     (let [speed   0.05
            right   (m/normalize (m/cross front up))
            [x _ z] (case control
                     ::forward  (m/* front (* delta-time speed))
@@ -61,10 +61,9 @@
     ::mouse-camera
     [:what
      [::time/now ::time/delta delta-time]
-     [::time/now ::time/step 1]
+     [::time/now ::time/slice 1]
      [::player ::view-dx view-dx]
      [::player ::view-dy view-dy]
-     [::player ::position position {:then false}]
      [::player ::yaw yaw {:then false}]
      [::player ::pitch pitch {:then false}]
      :then

@@ -4,6 +4,7 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
    [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
+   [minusone.rules.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ZERO GL_ONE GL_FLOAT GL_ARRAY_BUFFER GL_FRAMEBUFFER GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minusone.rules.gl.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s-> vars->map]]
@@ -93,12 +94,12 @@
               (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-crop-loc the-texture-loc)))
 
      (let [alive-plane-vbo (gl-utils/create-buffer game)
-           _               (gl game bindBuffer (gl game ARRAY_BUFFER) alive-plane-vbo)
-           _               (gl game bufferData (gl game ARRAY_BUFFER) plane3d-vertices (gl game STATIC_DRAW))
+           _               (gl game bindBuffer GL_ARRAY_BUFFER alive-plane-vbo)
+           _               (gl game bufferData GL_ARRAY_BUFFER plane3d-vertices GL_STATIC_DRAW)
 
            alive-uv-buffer (gl-utils/create-buffer game)
-           _               (gl game bindBuffer (gl game ARRAY_BUFFER) alive-uv-buffer)
-           _               (gl game bufferData (gl game ARRAY_BUFFER) plane3d-uvs (gl game STATIC_DRAW))
+           _               (gl game bindBuffer GL_ARRAY_BUFFER alive-uv-buffer)
+           _               (gl game bufferData GL_ARRAY_BUFFER plane3d-uvs GL_STATIC_DRAW)
            vertex-count    6]
        (swap! db* assoc ::alive-plane
               (vars->map alive-plane-vbo alive-uv-buffer vertex-count)))
@@ -150,17 +151,17 @@
          (gl game useProgram the-program)
 
          (gl game enableVertexAttribArray the-attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) alive-plane-vbo)
-         (gl game vertexAttribPointer the-attr-loc 3 (gl game FLOAT) false 0 0)
+         (gl game bindBuffer GL_ARRAY_BUFFER alive-plane-vbo)
+         (gl game vertexAttribPointer the-attr-loc 3 GL_FLOAT false 0 0)
 
          (gl game enableVertexAttribArray the-uv-attr-loc)
-         (gl game bindBuffer (gl game ARRAY_BUFFER) alive-uv-buffer)
-         (gl game vertexAttribPointer the-uv-attr-loc 2 (gl game FLOAT) false 0 0)
+         (gl game bindBuffer GL_ARRAY_BUFFER alive-uv-buffer)
+         (gl game vertexAttribPointer the-uv-attr-loc 2 GL_FLOAT false 0 0)
 
          #_"render to our fbo"
-         (gl game bindFramebuffer (gl game FRAMEBUFFER) (:frame-buf eye-fbo))
+         (gl game bindFramebuffer GL_FRAMEBUFFER (:frame-buf eye-fbo))
          (gl game clearColor 0.0 0.0 0.0 0.0)
-         (gl game clear (gl game COLOR_BUFFER_BIT))
+         (gl game clear GL_COLOR_BUFFER_BIT)
 
          (let [atlas-metadata (get-in @db* [::eye-atlas ::metadata])
 
@@ -184,7 +185,7 @@
                                        v*p])
                sclera-mvp-r   (reduce m/multiply-matrices-3d
                                       [(m/translation-matrix-3d 1.8 0.0 0.0)
-                                       (m/translation-matrix-3d (/ pupil-x -5) (/ pupil-y 5) 0.0) 
+                                       (m/translation-matrix-3d (/ pupil-x -5) (/ pupil-y 5) 0.0)
                                        (m/y-rotation-matrix-3d (m/deg->rad 180))
                                        sclera-scale
                                        v*p])
@@ -219,12 +220,11 @@
            ;; dear god, https://stackoverflow.com/a/49665354/8812880
            ;; I think we encountered this solution several times, but we can only utilize this now
            ;; because our current understanding and our gl pipeline setup
-           (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ONE) (gl game ONE))
+           (gl game blendFuncSeparate GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ONE GL_ONE)
 
-           (gl game activeTexture (+ (gl game TEXTURE0) tex-unit))
-           (gl game bindTexture (gl game TEXTURE_2D) texture)
+           (gl game activeTexture (+ GL_TEXTURE0 tex-unit))
+           (gl game bindTexture GL_TEXTURE_2D texture)
            (gl game uniform1i the-texture-loc tex-unit)
-           
 
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array sclera-mvp)
@@ -232,13 +232,13 @@
            (gl game uniformMatrix3fv the-crop-loc false
                #?(:clj (float-array sclera-crop)
                   :cljs sclera-crop))
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+           (gl game drawArrays GL_TRIANGLES 0 vertex-count)
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array sclera-mvp-r)
-                  :cljs sclera-mvp-r)) 
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+                  :cljs sclera-mvp-r))
+           (gl game drawArrays GL_TRIANGLES 0 vertex-count)
 
-           (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ZERO) (gl game ONE))
+           (gl game blendFuncSeparate GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ZERO GL_ONE)
 
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array pupil-mvp)
@@ -246,13 +246,13 @@
            (gl game uniformMatrix3fv the-crop-loc false
                #?(:clj (float-array pupil-crop)
                   :cljs pupil-crop))
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+           (gl game drawArrays GL_TRIANGLES 0 vertex-count)
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array pupil-mvp-r)
-                  :cljs pupil-mvp-r)) 
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+                  :cljs pupil-mvp-r))
+           (gl game drawArrays GL_TRIANGLES 0 vertex-count)
 
-           (gl game blendFuncSeparate (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA) (gl game ONE) (gl game ONE))
+           (gl game blendFuncSeparate GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ONE GL_ONE)
 
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array lashes-mvp)
@@ -260,15 +260,15 @@
            (gl game uniformMatrix3fv the-crop-loc false
                #?(:clj (float-array lashes-crop)
                   :cljs lashes-crop))
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count)
+           (gl game drawArrays GL_TRIANGLES 0 vertex-count)
            (gl game uniformMatrix4fv the-mvp-loc false
                #?(:clj (float-array lashes-mvp-r)
-                  :cljs lashes-mvp-r)) 
-           (gl game drawArrays (gl game TRIANGLES) 0 vertex-count))
-         
+                  :cljs lashes-mvp-r))
+           (gl game drawArrays GL_TRIANGLES 0 vertex-count))
+
          #_"render to default fbo"
-         (gl game bindFramebuffer (gl game FRAMEBUFFER) #?(:clj 0 :cljs nil))
-         (gl game blendFunc (gl game SRC_ALPHA) (gl game ONE_MINUS_SRC_ALPHA))
+         (gl game bindFramebuffer GL_FRAMEBUFFER #?(:clj 0 :cljs nil))
+         (gl game blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
 
          (#_"plane to render from our offscreen texture"
           let [{:keys [off-vao]} (:off-plane esse-3d)
@@ -285,11 +285,11 @@
               #?(:clj (float-array (m/identity-matrix 3))
                  :cljs (m/identity-matrix 3)))
 
-          (gl game activeTexture (+ (gl game TEXTURE0) fbo-tex-unit))
-          (gl game bindTexture (gl game TEXTURE_2D) fbo-tex)
+          (gl game activeTexture (+ GL_TEXTURE0 fbo-tex-unit))
+          (gl game bindTexture GL_TEXTURE_2D fbo-tex)
           (gl game uniform1i the-texture-loc fbo-tex-unit)
 
-          (gl game drawArrays (gl game TRIANGLES) 0 6)))))})
+          (gl game drawArrays GL_TRIANGLES 0 6)))))})
 
 (defmethod asset/process-asset ::asset/alive
   [world* _game asset-id {::asset/keys [metadata-to-load]}]
