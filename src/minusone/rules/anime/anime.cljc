@@ -125,6 +125,7 @@
            duration       4800.0
            progress       (* max-progress (/ (mod tt duration) duration))
            running-animes (eduction
+                           (filter #(#{"anim" "Survey"} (:anime-name %)))
                            (mapcat (fn [{:keys [keyframes esse-id max-input target-node target-path]}]
                                      (let [progress (mod progress max-input)]
                                        (into [] (map #(merge % (vars->map esse-id progress target-node target-path))) keyframes))))

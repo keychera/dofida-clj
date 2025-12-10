@@ -101,13 +101,16 @@
           inv-bind-mats (into [] (map (fn [i] (f32s->get-mat4 ibm-f32s i))) (range (:count accessor)))]
       inv-bind-mats)))
 
-;; I don't like this somehow
+;; I don't like this somehow => because this is WRONG!
 (defn node->transform-db
   ([gltf-nodes] (node->transform-db gltf-nodes 0 -1 (volatile! {})))
   ([gltf-nodes idx parent-idx transform-db*]
    (let [node             (nth gltf-nodes idx)
          local-transform  (or (some-> (:matrix node) mat/matrix44)
                               (cond->> (mat/matrix44)
+                                (:scale node)
+                                (m/* (let [[x y z] (:scale node)]
+                                       (m-ext/scaling-mat x y z)))
                                 (:rotation node)
                                 (m/* (g/as-matrix
                                       (let [[x y z w] (:rotation node)]
