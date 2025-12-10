@@ -7,7 +7,13 @@ todo:
 
     re:minusone:
         ✔ learnopengl (basic) @done(25-11-24 20:33)
-        ☐ rewrite once again, now with t3d and more wishful thinking
+        ✔ rewrite once again, now with t3d and more wishful thinking @done(25-12-10 23:32)
+
+    re:minustwo?:
+        ☐ animation,
+        ☐ scene graph 
+        ☐ joints, 
+        ☐ blend shapes
 
     ☐ it begins
         ✔ reconstruct atlas asset with our current gl knowledge @done(25-11-08 15:07), not atlas yet but good enough
@@ -87,7 +93,7 @@ todo:
 
     ✔ cube @done(25-11-29 02:10)
     ✔ sphere @done(25-11-29 02:10)
-    ☐ transform3d
+    ✔ transform3d @done(25-12-10 23:31) kind done, but no scene-graph yet
 
     ☐ jvm reloaded
         ✘ tools.namespace @cancelled(25-10-11 19:47)
@@ -156,10 +162,10 @@ I don't think you realized how blessed you are:
     ☐ dialogues
     ☐ controls
     ☐ animated gif
-    ☐ animation
+    ✔ animation @done(25-12-10 23:30)
     ✔ the rules engine as ecs and thinking of loading and prep @done(25-07-16 22:36)
-        ☐ thinking of what to hot-reload
-        ☐ more efficient image loading, maybe decouple sprite and loaded image
+        ✔ thinking of what to hot-reload @done(25-12-10 23:30) after-load-fn tackle this
+        ✔ more efficient image loading, maybe decouple sprite and loaded image @done(25-12-10 23:30)
     ☐ redraw dofida
 
 startaker:
