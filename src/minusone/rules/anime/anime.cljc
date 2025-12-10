@@ -10,7 +10,8 @@
    [thi.ng.math.core :as m]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [clojure.spec.alpha :as s]))
+   [clojure.spec.alpha :as s]
+   [engine.math :as m-ext]))
 
 (defn- resolve-sampler
   "this needs input with some related data connected (:input. :output -> bufferView, :target)"
@@ -89,7 +90,8 @@
                                                ::keyframe/next-inp next-input
                                                ::keyframe/next-out next-output
                                                ;; not yet parsing :interpolation
-                                               ::keyframe/anime-fn identity}))))]
+                                               ::keyframe/anime-fn identity})))
+                                     butlast)]
                         (-> channel
                             (dissoc :input :output :target)
                             (assoc :keyframes kfs
@@ -129,8 +131,11 @@
                            (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
                            (map (fn [{:keys [esse-id target-node target-path]
                                       ::keyframe/keys [inp next-inp out next-out]}]
-                                  (let [local-progress (/ (- progress inp) (- next-inp inp))]
-                                    [esse-id target-node target-path (m/mix out next-out local-progress)])))
+                                  (let [t     (/ (- progress inp) (- next-inp inp))
+                                        mixed (condp instance? out
+                                                thi.ng.geom.quaternion.Quat4 (m-ext/quat-mix out next-out t) 
+                                                (m/mix out next-out t))]
+                                    [esse-id target-node target-path mixed])))
                            (::animes db))]
        (swap! db* assoc ::interpolated
               (reduce
@@ -156,7 +161,7 @@
 
   (::interpolated @db*)
   (into []
-        (filter #(= (:esse-id %) :minusone.simple-gltf/simpleanime))
+        (filter #(= (:esse-id %) :minusone.simple-gltf/simpleskin))
         (::animes @db*))
 
   :-)

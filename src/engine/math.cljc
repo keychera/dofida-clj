@@ -2,7 +2,9 @@
   (:require
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
-   [thi.ng.geom.vector :as v]))
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.core :as g]))
 
 ;; math sugar
 
@@ -69,3 +71,13 @@
     {:translation (v/vec3 tx ty tz)
      :rotation    (q/quat-from-matrix rot-m)
      :scale       (v/vec3 sx sy sz)}))
+
+;; https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_007_Animations.html#linear
+(defn quat-mix
+  [^thi.ng.geom.quaternion.Quat4 q1
+   ^thi.ng.geom.quaternion.Quat4 q2
+   ^double t]
+  (let [dot-p (m/dot q1 q2)
+        q2    (if (< dot-p 0.0) (g/scale q2 -1.0) q2)]
+    ;; not handling quats that are too close to each other yet
+    (m/mix q1 q2 t)))
