@@ -121,20 +121,20 @@
      [::time/now ::time/total tt]
      :then
      (let [db             @db*
-           max-progress   6.0
+           max-progress   11.0
            duration       4800.0
            progress       (* max-progress (/ (mod tt duration) duration))
            running-animes (eduction
-                           (filter (fn [anime] (and (>= progress (:min-input anime)) (< progress (:max-input anime)))))
-                           (mapcat (fn [{:keys [keyframes esse-id target-node target-path]}]
-                                     (into [] (map #(merge % (vars->map esse-id target-node target-path))) keyframes)))
-                           (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
-                           (map (fn [{:keys [esse-id target-node target-path]
+                           (mapcat (fn [{:keys [keyframes esse-id max-input target-node target-path]}]
+                                     (let [progress (mod progress max-input)]
+                                       (into [] (map #(merge % (vars->map esse-id progress target-node target-path))) keyframes))))
+                           (filter (fn [{:keys [progress] ::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
+                           (map (fn [{:keys [progress esse-id target-node target-path]
                                       ::keyframe/keys [inp next-inp out next-out]}]
-                                  (let [t     (/ (- progress inp) (- next-inp inp))
-                                        mixed (condp instance? out
-                                                thi.ng.geom.quaternion.Quat4 (m-ext/quat-mix out next-out t) 
-                                                (m/mix out next-out t))]
+                                  (let [t        (/ (- progress inp) (- next-inp inp))
+                                        mixed    (condp instance? out
+                                                   thi.ng.geom.quaternion.Quat4 (m-ext/quat-mix out next-out t)
+                                                   (m/mix out next-out t))]
                                     [esse-id target-node target-path mixed])))
                            (::animes db))]
        (swap! db* assoc ::interpolated
@@ -154,6 +154,7 @@
         gltf-data (:gltf-data data)
         animes    (gltf->animes gltf-data bin)]
     (s/conform ::animes (into [] (map #(assoc % :esse-id :me)) animes)))
+  
   (tagged-literal 'flare/html {:title "game"
                                :url (str "http://localhost:9333/" (rand))
                                :reveal true
