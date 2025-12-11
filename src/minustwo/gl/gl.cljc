@@ -52,35 +52,3 @@
 (def ^:const GL_MAX_TEXTURE_IMAGE_UNITS 34930)
 (def ^:const GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS 35660)
 (def ^:const GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS 35661)
-
-;; gl macros from play-cljc
-#?(:clj
-   (defmacro lwjgl
-     "Wraps org.lwjgl.opengl.GL33, calling a method if the provided symbol starts with a
-      lower-case letter, or a static field if it starts with an upper-case letter."
-     [aname & args]
-     (let [s (str aname)
-           ^Character l (nth s 0)
-           remaining-letters (subs s 1)]
-       (if (Character/isUpperCase l)
-         (symbol (str "org.lwjgl.opengl.GL33/GL_" s))
-         (cons (symbol (str "org.lwjgl.opengl.GL33/gl" (Character/toUpperCase l) remaining-letters))
-               args)))))
-
-#?(:cljs
-   (defmacro webgl
-     "Wraps the WebGL2RenderingContext object, calling a method if the provided symbol starts with a
-     lower-case letter, or a static field if it starts with an upper-case letter."
-     [context aname & args]
-     (let [s (str aname)
-           l (.charAt s 0)]
-       (if (= l (.toUpperCase l))
-         `(aget ~context ~s)
-         (concat [(symbol (str "." s)) ~context] args)))))
-
-#_{:clj-kondo/ignore [:unused-binding]}
-(defmacro gl
-  [context aname & args]
-  #?(:clj `(lwjgl ~aname ~@args)
-     :cljs `(webgl ~context ~aname ~@args)))
-

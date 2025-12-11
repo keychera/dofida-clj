@@ -1,14 +1,17 @@
 (ns playground
   (:require
-   [minustwo.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT gl]]
+   [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
+   [minustwo.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp-js :as assimp-js]))
 
 (defonce canvas (js/document.querySelector "canvas"))
-(defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
+(defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
 (defonce width (-> canvas .-clientWidth))
 (defonce height (-> canvas .-clientHeight))
-(defonce ctx {:context gl-context})
+
+(do (gl ctx clearColor 0.2 0.2 0.4 1.0)
+    (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)))
 
 (assimp-js/then-load-model
  ["assets/simpleskin.gltf"]
@@ -16,9 +19,6 @@
  (fn [{:keys [gltf bins]}]
    (def gltf-data gltf)
    (def result-bin (first bins))))
-
-(do (gl ctx clearColor 0.2 0.2 0.4 1.0)
-    (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)))
 
 (:skins gltf-data)
 (:nodes gltf-data)
