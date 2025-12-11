@@ -9,7 +9,6 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.rules.anime.anime :as anime]
    [minusone.rules.gizmo.perspective-grid :as perspective-lines]
    [minusone.rules.gl.gl :refer [GL_BLEND GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
    [minusone.rules.gl.magic :as gl-magic]
@@ -19,7 +18,7 @@
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
-   [minusone.simple-gltf :as simple-gltf]
+   [minustwo.minustwo :as minustwo]
    [odoyle.rules :as o]
    [rules.interface.input :as input]
    [rules.time :as time]
@@ -52,9 +51,10 @@
 
     perspective-lines/system
 
+    minustwo/system
     #_rubahperak/system
-    simple-gltf/system
-    anime/system
+   ;;  simple-gltf/system
+   ;;  anime/system
     #_moon/system
     #_learnopengl/system]))
 
