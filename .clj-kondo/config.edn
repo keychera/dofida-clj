@@ -5,8 +5,6 @@
            com.rpl.specter/defrichnav clojure.core/defn
            engine.macros/s-> clojure.core/->
            engine.world/system clojure.core/def}
- :config-in-call
- {odoyle.rules/ruleset {:ignore [:unresolved-symbol]}}
  :hooks
  {:analyze-call {play-cljc.macros-java/gl hooks/gl-hook
                  play-cljc.macros-js/gl hooks/gl-hook}}

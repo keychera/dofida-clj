@@ -1,4 +1,5 @@
 (ns engine.engine
+  #_{:clj-kondo/ignore [:unused-referred-var :unused-namespace]}
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
