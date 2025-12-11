@@ -6,6 +6,8 @@
            engine.macros/s-> clojure.core/->
            engine.world/system clojure.core/def}
  :config-in-call
- {play-cljc.macros-java/gl {:ignore [:unresolved-symbol]}
-  play-cljc.macros-js/gl {:ignore [:unresolved-symbol]}
-  odoyle.rules/ruleset {:ignore [:unresolved-symbol]}}}
+ {odoyle.rules/ruleset {:ignore [:unresolved-symbol]}}
+ :hooks
+ {:analyze-call {play-cljc.macros-java/gl hooks/gl-hook
+                 play-cljc.macros-js/gl hooks/gl-hook}}
+ :config-paths ["../resources/clj-kondo.exports/chera/dofida"]}

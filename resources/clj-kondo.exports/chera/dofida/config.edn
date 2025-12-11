@@ -1,0 +1,2 @@
+{:linters {:dofida/angry {:level :error}}
+ :hooks   {:analyze-call {minustwo.gl.gl/gl hooks/gl-hook}}}

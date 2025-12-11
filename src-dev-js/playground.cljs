@@ -1,15 +1,14 @@
 (ns playground
   (:require
-   [minusone.rules.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
+   [minustwo.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT gl]]
    [minusone.rules.gl.gltf :as gltf]
-   [minusone.rules.model.assimp-js :as assimp-js]
-   [play-cljc.macros-js :refer-macros [gl]]))
+   [minusone.rules.model.assimp-js :as assimp-js]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce gl-context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
 (defonce width (-> canvas .-clientWidth))
 (defonce height (-> canvas .-clientHeight))
-(defonce game {:context gl-context})
+(defonce ctx {:context gl-context})
 
 (assimp-js/then-load-model
  ["assets/simpleskin.gltf"]
@@ -18,8 +17,8 @@
    (def gltf-data gltf)
    (def result-bin (first bins))))
 
-(do (gl game clearColor 0.2 0.2 0.4 1.0)
-    (gl game clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)))
+(do (gl ctx clearColor 0.2 0.2 0.4 1.0)
+    (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)))
 
 (:skins gltf-data)
 (:nodes gltf-data)
