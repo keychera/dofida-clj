@@ -1,11 +1,17 @@
-(ns minustwo.gl.gl
-  (:require
-   [clojure.spec.alpha :as s]))
+(ns minustwo.gl.constants)
 
-(s/def ::loaded? #{:pending :loading true})
+;; https://javagl.github.io/GLConstantsTranslator/GLConstantsTranslator.html
 
 ;; Primitive types
+(def ^:const GL_TRUE 1)
 (def ^:const GL_TRIANGLES 4)
+
+;; Shader
+(def ^:const GL_FRAGMENT_SHADER 35632)
+(def ^:const GL_VERTEX_SHADER 35633)
+(def ^:const GL_COMPILE_STATUS 35713)
+(def ^:const GL_LINK_STATUS 35714)
+
 
 ;; Data types
 (def ^:const GL_UNSIGNED_BYTE 5121)
