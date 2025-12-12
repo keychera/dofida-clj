@@ -37,10 +37,12 @@
   (let [both-shader [iglu-vert-shader iglu-frag-shader]
         attr-locs   (->> (transduce (map :inputs) merge both-shader)
                          (into {} (map (fn [[attr-name attr-type]]
-                                         [attr-name [attr-type (gl ctx getAttribLocation program (str attr-name))]]))))
+                                         [attr-name {:type attr-type
+                                                     :loc  (gl ctx getAttribLocation program (str attr-name))}]))))
         uni-locs    (->> (transduce (map :uniforms) merge both-shader)
                          (into {} (map (fn [[uni-name uni-type]]
-                                         [uni-name [uni-type (gl ctx getUniformLocation program (str uni-name))]]))))]
+                                         [uni-name {:type uni-type
+                                                    :loc  (gl ctx getUniformLocation program (str uni-name))}]))))]
     (vars->map attr-locs uni-locs)))
 
 (defn create-program-info
@@ -52,12 +54,11 @@
      (merge {:program program} locs))))
 
 (defn set-uniform [ctx program-info loc-symbol value]
-  (println value (get (:uni-locs program-info) loc-symbol))
-  (if-let [[type loc] (get (:uni-locs program-info) loc-symbol)]
+  (if-let [{:keys [loc type]} (get (:uni-locs program-info) loc-symbol)]
     (condp = type
       'float (gl ctx uniform1f loc value)
       'vec2  (gl ctx uniform2fv loc value)
-      'vec3  (gl ctx uniform3fv loc value) 
+      'vec3  (gl ctx uniform3fv loc value)
       'vec4  (gl ctx uniform4fv loc value)
       'mat2  (gl ctx uniformMatrix2fv loc false value)
       'mat3  (gl ctx uniformMatrix3fv loc false value)
