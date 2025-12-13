@@ -2,8 +2,12 @@
   (:require
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
+   [engine.world :as world]
+   [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp-js :as assimp-js]
+   [minustwo.engine :as engine]
+   [minustwo.game :as game]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
@@ -11,12 +15,13 @@
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_STATIC_DRAW GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
+   [minustwo.systems :as systems]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [minusone.rules.gizmo.perspective-grid :as perspective-grid]))
+   [odoyle.rules :as o]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -94,8 +99,21 @@
    "MAT3"   9
    "MAT4"   16})
 
+(def adhoc-system
+  {::world/init-fn
+   (fn [world _game]
+     (println "adhoc system running!")
+     world)})
+
 (comment
-  gltf-data
+  (with-redefs
+   [systems/all (conj systems/all adhoc-system)]
+    (-> (game/->game {:webgl-context ctx
+                      :total-time 0
+                      :delta-time 0})
+        (engine/init)
+        (engine/tick)
+        ((comp o/query-all deref ::world/atom*))))
 
   (doto ctx
     (gl blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)

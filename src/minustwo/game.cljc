@@ -3,10 +3,12 @@
    [engine.world :as world]))
 
 (defn ->game
-  "gl-content is only used for WebGL abstraction at the moment.
-   In lwjgl, you can pass nil or empty map since it won't be used"
-  [gl-context]
+  "webgl-context for WebGL, glfw-window handle for lwjgl, value from glfwCreateWindow"
+  [{:keys [total-time delta-time glfw-window webgl-context]}]
   (merge
-   {::gl-context  gl-context
-    ::render-fns* (atom nil)}
+   (cond-> {::render-fns* (atom nil)
+            :total-time total-time
+            :delta-time delta-time}
+     glfw-window   (assoc :glfw-window glfw-window)
+     webgl-context (assoc :webgl-context webgl-context))
    (world/->init)))

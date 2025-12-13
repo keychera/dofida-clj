@@ -12,11 +12,12 @@
 
 (defn init [game]
   (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
-    (reset! (::render-fns* game) render-fns)
+    (some-> (::game/render-fns* game) (reset! render-fns))
     (swap! (::world/atom* game)
            (fn [world]
              (-> (world/init-world world game all-rules before-fns init-fns after-fns)
-                 (o/fire-rules))))))
+                 (o/fire-rules)))))
+  game)
 
 (defn tick [game]
   (try
@@ -37,10 +38,3 @@
 
 (defn error-zone [game err]
   (println game err))
-
-(comment
-  (-> (game/->game nil)
-      (init)
-      (tick))
-
-  :-)
