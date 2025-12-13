@@ -4,6 +4,7 @@
    [engine.macros :refer [insert!]]
    [engine.world :as world]
    [minustwo.gl.shader :as shader]
+   [minustwo.systems.window :as window]
    [odoyle.rules :as o]))
 
 (s/def ::context #?(:clj any? :cljs #(instance? js/WebGL2RenderingContext %)))
@@ -17,6 +18,7 @@
    {::data
     [:what
      [::world/global ::context ctx]
+     [::world/global ::window/dimension window]
      [::world/global ::shader/all all-shaders]]
 
     ::collect-shaders

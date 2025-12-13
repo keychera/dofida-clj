@@ -2,7 +2,8 @@
   (:require
    [clojure.set :refer [difference]]
    [clojure.string :as string]
-   [engine.engine :as engine]
+   [minustwo.engine :as engine]
+   [minustwo.game :as game]
    [engine.world :as world]
    [goog.events :as events]
    [rules.interface.input :as input]))
@@ -183,9 +184,9 @@
   ([config]
    (let [canvas (js/document.querySelector "canvas")
          context (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false}))
-         initial-game (assoc (engine/->game context)
-                             :delta-time 0
-                             :total-time (js/performance.now))]
+         initial-game (game/->game {:webgl-context context
+                                    :delta-time 0
+                                    :total-time (js/performance.now)})]
      (listen-for-pointer canvas)
      (listen-for-pointer-lock)
      (engine/init initial-game)
