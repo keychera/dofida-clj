@@ -18,6 +18,7 @@
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
+   [minustwo.gl.gltf :as gltf]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
    [minustwo.gl.shader :as shader]
    [minustwo.systems :as systems]
@@ -73,15 +74,6 @@
    :signatures '{main ([] void)}
    :functions  '{main ([] (= o_color (vec4 "0.2" "0.2" "0.2" "1.0")))}})
 
-(def gltf-type->num-of-component
-  {"SCALAR" 1
-   "VEC2"   2
-   "VEC3"   3
-   "VEC4"   4
-   "MAT2"   4
-   "MAT3"   9
-   "MAT4"   16})
-
 (def adhoc-system
   {::world/init-fn
    (fn [world _game]
@@ -92,17 +84,17 @@
                #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
                #::gl-magic{:spells [{:bind-vao ::grid}
                                     {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
-                                    {:point-attr 'a_pos :use-shader ::grid :count (gltf-type->num-of-component "VEC2") :componentType GL_FLOAT}
+                                    {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
                                     {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
                                     {:unbind-vao true}]})
          (esse ::simpleanime
                #::shader{:program-info (cljgl/create-program-info ctx vert frag)}
                    ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews
-               #::gl-magic{:spells [{:bind-vao ::simpleanime}
-                                    {:buffer-data result-bin :buffer-type GL_ARRAY_BUFFER}
-                                    {:point-attr 'POSITION :use-shader ::simpleanime :count (gltf-type->num-of-component "VEC3") :componentType GL_FLOAT}
-                                    {:buffer-data (.subarray result-bin 36 48) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
-                                    {:unbind-vao true}]})))
+               #::gl-magic{:spells (gltf/gltf-spell
+                                    gltf-data result-bin
+                                    {:model-id ::simpleanime
+                                     :use-shader ::simpleanime
+                                     :tex-unit-offset 0})})))
 
    ::world/rules
    (o/ruleset
@@ -112,6 +104,7 @@
       [::grid ::shader/program-info grid-prog]
       [::simpleanime ::gl-magic/casted? true]
       [::simpleanime ::shader/program-info gltf-prog]
+      [::simpleanime ::gltf/primitives gltf-primitives]
       [::world/global ::projection/matrix project]
       [::firstperson/player ::firstperson/look-at player-view]
       [::firstperson/player ::firstperson/position player-pos]]})
@@ -153,17 +146,22 @@
              (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
              (gl enable GL_DEPTH_TEST)))
 
-         (let [gltf-prog (:gltf-prog render-data)
-               gltf-vao  (get @vao/db* ::simpleanime)]
-           (doto ctx
-             (gl useProgram (:program gltf-prog))
-             (gl bindVertexArray gltf-vao)
+         (let [gltf-prog (:gltf-prog render-data)]
+           (doseq [prim (:gltf-primitives render-data)]
+             (let [{:keys [vao-name
+                           indices]} prim
+                   count             (:count indices)
+                   component-type    (:componentType indices)
+                   gltf-vao          (get @vao/db* vao-name)]
+               (doto ctx
+                 (gl useProgram (:program gltf-prog))
+                 (gl bindVertexArray gltf-vao)
 
-             (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
-             (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
-             (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
+                 (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
+                 (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
+                 (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
 
-             (gl drawElements GL_TRIANGLES 3 GL_UNSIGNED_INT 0))))))})
+                 (gl drawElements GL_TRIANGLES count component-type 0))))))))})
 
 (comment
   (with-redefs

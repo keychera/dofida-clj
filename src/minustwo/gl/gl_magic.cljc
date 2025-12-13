@@ -60,12 +60,12 @@
             (recur remaining summons state))
 
           ;; entry: attrib pointing, some keywords follows gltf accessor keys 
-          [{:point-attr _ :count _ :componentType _ :use-shader _}] 
+          [{:point-attr _ :count _ :component-type _ :use-shader _}] 
           (if-let [attr-loc (get-in all-attr-locs [(:use-shader spell) (:point-attr spell)])]
-            (let [{:keys [count componentType stride offset] :or {stride 0 offset 0}} spell]
-              (condp = componentType
-                GL_UNSIGNED_SHORT (gl ctx vertexAttribIPointer attr-loc count componentType stride offset)
-                (gl ctx vertexAttribPointer attr-loc count componentType false stride offset))
+            (let [{:keys [count component-type stride offset] :or {stride 0 offset 0}} spell]
+              (condp = component-type
+                GL_UNSIGNED_SHORT (gl ctx vertexAttribIPointer attr-loc count component-type stride offset)
+                (gl ctx vertexAttribPointer attr-loc count component-type false stride offset))
               (gl ctx enableVertexAttribArray attr-loc)
               (recur remaining summons state))
             (recur remaining
