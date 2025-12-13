@@ -5,12 +5,16 @@
    #?(:cljs [minusone.rules.model.assimp-js :refer [data-uri->ImageBitmap]])
    [assets.asset :as asset]
    [clojure.spec.alpha :as s]
-   [minusone.rules.gl.gl :refer [GL_COLOR_ATTACHMENT0 GL_TEXTURE0 GL_TEXTURE_2D GL_RGBA GL_UNSIGNED_BYTE GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER GL_NEAREST GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE]]
+   [clojure.string :as str]
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [odoyle.rules :as o]
-   [clojure.string :as str]))
+   [minusone.rules.gl.gl :refer [GL_COLOR_ATTACHMENT0 GL_FRAMEBUFFER
+                                 GL_FRAMEBUFFER_COMPLETE GL_NEAREST GL_RGBA
+                                 GL_TEXTURE0 GL_TEXTURE_2D
+                                 GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER
+                                 GL_UNSIGNED_BYTE]]
+   [odoyle.rules :as o]))
 
 (defn texture-incantation [game data width height tex-unit]
   (let [texture (gl game #?(:clj genTextures :cljs createTexture))]
