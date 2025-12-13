@@ -10,7 +10,7 @@
    [engine.refresh :refer [*refresh?]]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minusone.rules.gizmo.perspective-grid :as perspective-lines]
+   [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.gl :refer [GL_BLEND GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]
@@ -50,7 +50,7 @@
     firstperson/system
     t3d/system
 
-    perspective-lines/system
+    perspective-grid/system
 
     minustwo/system
     #_rubahperak/system

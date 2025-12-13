@@ -1,7 +1,7 @@
 (ns playground
   (:require
    [engine.math :as m-ext]
-   [engine.sugar :refer [f32-arr i32-arr]]
+   [engine.sugar :refer [f32-arr]]
    [minusone.rules.gl.gltf :as gltf]
    [minusone.rules.model.assimp-js :as assimp-js]
    [minustwo.gl.cljgl :as cljgl]
@@ -15,7 +15,8 @@
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minusone.rules.gizmo.perspective-grid :as perspective-grid]))
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -93,82 +94,6 @@
    "MAT3"   9
    "MAT4"   16})
 
-(def grid-vert
-  {:precision  "mediump float"
-   :inputs     '{a_pos vec2}
-   :outputs    '{v_world_dir vec3}
-   :uniforms   '{u_inv_proj mat4
-                 u_inv_view mat4}
-   :signatures '{main ([] void)}
-   :functions
-   '{main ([]
-           (=vec4 pos (vec4 a_pos.x a_pos.y "0.0" "1.0"))
-           (=vec4 view_dir (* u_inv_proj pos))
-           (=vec4 world_dir (* u_inv_view (vec4 view_dir.xyz "0.0")))
-           (= v_world_dir (normalize world_dir.xyz))
-           (= gl_Position pos))}})
-
-(def grid-frag
-  {:precision  "mediump float"
-   :inputs     '{v_world_dir vec3}
-   :outputs    '{o_color vec4}
-   :uniforms   '{u_cam_pos vec3}
-   :functions
-   ;; Pristine grid from The Best Darn Grid Shader (yet)
-   ;; https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
-   "// grid-shader
-const float N = 32.0;
-float pristineGrid( in vec2 uv, vec2 lineWidth) {
-    vec2 ddx = dFdx(uv);
-    vec2 ddy = dFdy(uv);
-    vec2 uvDeriv = vec2(length(vec2(ddx.x, ddy.x)), length(vec2(ddx.y, ddy.y)));
-    bvec2 invertLine = bvec2(lineWidth.x > 0.5, lineWidth.y > 0.5);
-    vec2 targetWidth = vec2(
-      invertLine.x ? 1.0 - lineWidth.x : lineWidth.x,
-      invertLine.y ? 1.0 - lineWidth.y : lineWidth.y
-      );
-    vec2 drawWidth = clamp(targetWidth, uvDeriv, vec2(0.5));
-    vec2 lineAA = uvDeriv * 1.5;
-    vec2 gridUV = abs(fract(uv) * 2.0 - 1.0);
-    gridUV.x = invertLine.x ? gridUV.x : 1.0 - gridUV.x;
-    gridUV.y = invertLine.y ? gridUV.y : 1.0 - gridUV.y;
-    vec2 grid2 = smoothstep(drawWidth + lineAA, drawWidth - lineAA, gridUV);
-
-    grid2 *= clamp(targetWidth / drawWidth, 0.0, 1.0);
-    grid2 = mix(grid2, targetWidth, clamp(uvDeriv * 2.0 - 1.0, 0.0, 1.0));
-    grid2.x = invertLine.x ? 1.0 - grid2.x : grid2.x;
-    grid2.y = invertLine.y ? 1.0 - grid2.y : grid2.y;
-    return mix(grid2.x, 1.0, grid2.y);
-}
-
-void main() {
-  vec3  ray = v_world_dir;
-  vec3  cam = u_cam_pos;  
-  if (ray.y >= 0.0 && cam.y > 0.0 || ray.y <= 0.0 && cam.y < 0.0) {
-     discard;
-  }
-
-  // if ray.y is almost zero, ray is nearly parallel to plane
-  float   t = -cam.y / ray.y;
-  vec3  hit = cam + ray * t;
-    
-  vec2   uv = hit.xz;
-  float   g = pristineGrid( uv * 0.25, vec2(1.0/N) );
-  o_color   = vec4(vec3(0.42), g * 0.3);
-}
-    
-    "})
-
-(def ^floats quad
-  (f32-arr
-   [-1.0 -1.0
-    1.0 -1.0
-    1.0  1.0
-    -1.0 1.0]))
-
-(def ^ints quad-indices
-  (i32-arr [0 1 2 0 2 3]))
-
 (comment
   gltf-data
 
@@ -195,15 +120,15 @@ void main() {
         inv-proj   (m/invert project)
         inv-view   (m/invert view)
 
-        grid-prog  (cljgl/create-program-info ctx grid-vert grid-frag)
+        grid-prog  (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)
         grid-vao   (gl ctx createVertexArray)
 
         gltf-prog  (cljgl/create-program-info ctx vert frag)
         gltf-vao   (gl ctx createVertexArray)]
 
     (let [vao           grid-vao
-          buffer        quad
-          indices       quad-indices
+          buffer        perspective-grid/quad
+          indices       perspective-grid/quad-indices
           vbo           (gl ctx createBuffer)
 
           attr-loc      (-> (:attr-locs grid-prog) (get 'a_pos) :loc)
