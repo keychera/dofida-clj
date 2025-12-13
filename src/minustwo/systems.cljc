@@ -1,6 +1,10 @@
-(ns minustwo.systems 
+(ns minustwo.systems
   (:require
-    [minustwo.systems.window :as window]))
+   [minustwo.systems.view.projection :as projection]
+   [minusone.rules.view.firstperson :as firstperson]
+   [minustwo.systems.window :as window]))
 
 (def all
-  [window/system])
+  [window/system
+   projection/system 
+   firstperson/system])

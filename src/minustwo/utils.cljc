@@ -2,7 +2,8 @@
   (:require
    #?@(:clj [[clojure.java.io :as io]
              [cheshire.core :as json]])
-   [thi.ng.geom.matrix :as mat])
+   [thi.ng.geom.matrix :as mat]
+   [odoyle.rules :as o])
   #?(:clj (:import
            [java.nio ByteBuffer]
            [org.lwjgl.glfw GLFW]
@@ -89,3 +90,7 @@
      (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))
      (aget f32s (+ i 8))  (aget f32s (+ i 9))  (aget f32s (+ i 10)) (aget f32s (+ i 11))
      (aget f32s (+ i 12)) (aget f32s (+ i 13)) (aget f32s (+ i 14)) (aget f32s (+ i 15)))))
+
+(defn query-one [world rule-name]
+  (first (o/query-all world rule-name)))
+

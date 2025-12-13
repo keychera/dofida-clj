@@ -36,5 +36,5 @@
   (loading-zone game)
   (render-zone game))
 
-(defn error-zone [game err]
-  (println game err))
+(defn error-zone [_game err]
+  (throw err))
