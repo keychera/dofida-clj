@@ -6,17 +6,13 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rubahperak :as rubahperak]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT
-                                  GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
-                                  GL_ELEMENT_ARRAY_BUFFER GL_FLOAT
-                                  GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                  GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
-                                  GL_UNSIGNED_INT]]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
+                                  GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
+                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.gltf :as gltf]
@@ -24,7 +20,6 @@
    [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems.view.projection :as projection]
-   [minustwo.systems.window :as window]
    [minustwo.utils :as utils]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
@@ -53,7 +48,6 @@
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (:webgl-context game)]
     (-> world
-        (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::grid
               #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)
                         :use ::grid}
@@ -67,9 +61,13 @@
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
                         :use ::simpleanime})
         #_#_(esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
-        (esse ::rubahperak
-              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 1}
-              #::shader{:use ::pmx-shader}))))
+          (esse ::rubahperak
+                #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 1}
+                #::shader{:use ::pmx-shader}))))
+
+(defn after-load-fn [world _game]
+  (-> world
+      (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))))
 
 (def rules
   (o/ruleset
@@ -90,7 +88,9 @@
      [esse-id ::gl-magic/casted? true]
      [esse-id ::shader/use shader-id]
      [shader-id ::shader/program-info gltf-prog]
-     [esse-id ::gltf/primitives gltf-primitives]]}))
+     [esse-id ::gltf/primitives gltf-primitives]
+     :when
+     (not= esse-id ::grid)]}))
 
 (defn render-fn [world game]
   (let [room-data (utils/query-one world ::room-data)
@@ -101,8 +101,8 @@
     (when-let [render-data (utils/query-one world ::grid-model)]
       (let [inv-proj   (m/invert project)
             inv-view   (m/invert view)
-            grid-prog (:grid-prog render-data)
-            grid-vao  (get @vao/db* ::grid)]
+            grid-prog  (:grid-prog render-data)
+            grid-vao   (get @vao/db* ::grid)]
         (doto ctx
           (gl useProgram (:program grid-prog))
           (gl bindVertexArray grid-vao)
@@ -118,7 +118,7 @@
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
         (let [time       (:total-time game)
-              trans-mat  (m-ext/translation-mat 0.0 -5.0 0.0)
+              trans-mat  (m-ext/translation-mat 0.0 0.0 0.0)
               rot-mat   (g/as-matrix (q/quat-from-axis-angle
                                       (v/vec3 0.0 1.0 0.0)
                                       (m/radians (* 0.18 time))))
@@ -150,5 +150,6 @@
 
 (def system
   {::world/init-fn init-fn
+   ::world/after-load-fn after-load-fn
    ::world/rules rules
    ::world/render-fn render-fn})
