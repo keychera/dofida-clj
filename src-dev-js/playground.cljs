@@ -7,7 +7,6 @@
    [minusone.esse :refer [esse]]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
-   [minusone.rules.model.assimp-js :as assimp-js]
    [minusone.rules.view.firstperson :as firstperson]
    [minustwo.engine :as engine]
    [minustwo.game :as game]
@@ -21,6 +20,7 @@
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
    [minustwo.gl.shader :as shader]
+   [minustwo.model.assimp :as assimp]
    [minustwo.systems :as systems]
    [minustwo.systems.view.projection :as projection]
    [minustwo.utils :as utils]
@@ -37,13 +37,6 @@
 (defonce width (-> canvas .-clientWidth))
 (defonce height (-> canvas .-clientHeight))
 
-(assimp-js/then-load-model
- ["assets/simpleanime.gltf"]
- #_{:clj-kondo/ignore [:inline-def]}
- (fn [{:keys [gltf bins]}]
-   (def gltf-data gltf)
-   (def result-bin (first bins))))
-
 (defn limited-game-loop
   ([loop-fn end-fn how-long]
    (limited-game-loop loop-fn end-fn {:total (js/performance.now) :delta 0} how-long))
@@ -59,7 +52,7 @@
 
 (def vert
   {:precision  "mediump float"
-   :inputs     '{POSITION   vec3}
+   :inputs     '{POSITION vec3}
    :uniforms   '{u_model      mat4
                  u_view       mat4
                  u_projection mat4}
@@ -82,19 +75,14 @@
          (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
          (esse ::grid
                #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
-               #::gl-magic{:spells [{:bind-vao ::grid}
+               #::gl-magic{:spell [{:bind-vao ::grid}
                                     {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
                                     {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
                                     {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
                                     {:unbind-vao true}]})
          (esse ::simpleanime
                #::shader{:program-info (cljgl/create-program-info ctx vert frag)}
-                   ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews
-               #::gl-magic{:spells (gltf/gltf-spell
-                                    gltf-data result-bin
-                                    {:model-id ::simpleanime
-                                     :use-shader ::simpleanime
-                                     :tex-unit-offset 0})})))
+               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0})))
 
    ::world/rules
    (o/ruleset
@@ -185,12 +173,5 @@
               (println "done!")
               (println (o/query-all @(::world/atom* game))))
             2000)))))
-
-  (:skins gltf-data)
-  (:nodes gltf-data)
-  (take 6 (:accessors gltf-data))
-  (:bufferViews gltf-data)
-  (-> gltf-data :meshes first)
-  (:buffers gltf-data)
 
   :-)

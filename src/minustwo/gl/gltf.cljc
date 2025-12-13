@@ -109,3 +109,4 @@
                                     (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
                               primitives)]
          [[model-id ::primitives primitives]])}])))
+
