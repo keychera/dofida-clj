@@ -4,7 +4,7 @@
       :cljs [minustwo.model.assimp-js :as assimp-js])
    [minusone.rules.view.firstperson :as firstperson]
    [minustwo.gl.gl-magic :as gl-magic]
-   [minustwo.gl.gl :as gl-system]
+   [minustwo.gl.gl-system :as gl-system]
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.window :as window]))
 

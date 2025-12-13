@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [iglu.core :as iglu]
-   [minustwo.gl.gl :as gl]
+   [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
                                   GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]
    [minustwo.gl.shader :as shader]))
@@ -25,7 +25,7 @@
       (throw (ex-info (gl ctx getShaderInfoLog shader) {})))))
 
 (s/fdef create-program
-  :args (s/cat :ctx ::gl/context
+  :args (s/cat :ctx ::gl-system/context
                :vs-source string?
                :fs-source string?)
   :ret ::shader/program)
@@ -44,7 +44,7 @@
       (throw (ex-info (gl ctx getProgramInfoLog program) {})))))
 
 (s/fdef gather-locs
-  :args (s/cat :ctx ::gl/context
+  :args (s/cat :ctx ::gl-system/context
                :program ::shader/program
                :iglu-vert-shader map?
                :iglu-frag-shader map?)
@@ -62,7 +62,7 @@
     (vars->map attr-locs uni-locs)))
 
 (s/fdef create-program-info
-  :args (s/cat :ctx ::gl/context
+  :args (s/cat :ctx ::gl-system/context
                :iglu-vert-shader map?
                :iglu-frag-shader map?)
   :ret ::shader/program-info)
@@ -75,7 +75,7 @@
      (merge {:program program} locs))))
 
 (s/fdef set-uniform
-  :args (s/cat :ctx ::gl/context
+  :args (s/cat :ctx ::gl-system/context
                :program-info ::shader/program-info
                :loc-symbol symbol?
                :value any?))

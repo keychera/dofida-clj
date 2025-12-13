@@ -1,4 +1,4 @@
-(ns minustwo.gl.gl
+(ns minustwo.gl.gl-system
   (:require
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert!]]

@@ -10,7 +10,7 @@
    [minusone.rules.gl.vao :as vao]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
-   [minustwo.gl.gl :as gl-system]
+   [minustwo.gl.gl-system :as gl-system]
    [minustwo.utils :as utils]
    [odoyle.rules :as o]))
 
