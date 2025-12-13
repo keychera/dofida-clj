@@ -1,10 +1,12 @@
 (ns playground
   (:require
    [clojure.spec.alpha :as s]
+   [clojure.spec.test.alpha :as st]
    [engine.macros :refer [vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
+   [minusone.esse :refer [esse]]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.model.assimp-js :as assimp-js]
    [minusone.rules.view.firstperson :as firstperson]
@@ -16,7 +18,9 @@
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_STATIC_DRAW GL_TRIANGLES GL_UNSIGNED_INT]]
+   [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
+   [minustwo.gl.shader :as shader]
    [minustwo.systems :as systems]
    [minustwo.systems.view.projection :as projection]
    [minustwo.utils :as utils]
@@ -24,7 +28,10 @@
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minusone.rules.gl.vao :as vao]))
+
+(st/instrument)
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -83,45 +90,16 @@
   {::world/init-fn
    (fn [world _game]
      (println "adhoc system running!")
-     (let [grid-prog  (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)
-           grid-vao   (gl ctx createVertexArray)
-
-           gltf-prog  (cljgl/create-program-info ctx vert frag)
+     (let [gltf-prog  (cljgl/create-program-info ctx vert frag)
            gltf-vao   (gl ctx createVertexArray)]
 
-       (let [vao           grid-vao
-             buffer        perspective-grid/quad
-             indices       perspective-grid/quad-indices
-             vbo           (gl ctx createBuffer)
-
-             attr-loc      (-> (:attr-locs grid-prog) (get 'a_pos) :loc)
-             count         (gltf-type->num-of-component "VEC2")
-             componentType GL_FLOAT
-             byteOffset    0
-
-             ibo           (gl ctx createBuffer)]
-         (doto ctx
-           (gl bindVertexArray vao)
-           (gl bindBuffer GL_ARRAY_BUFFER vbo)
-           (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW))
-
-         (doto ctx
-           (gl vertexAttribPointer attr-loc count componentType false 0 byteOffset)
-           (gl enableVertexAttribArray attr-loc))
-
-         (doto ctx
-           (gl bindBuffer GL_ELEMENT_ARRAY_BUFFER ibo)
-           (gl bufferData GL_ELEMENT_ARRAY_BUFFER indices GL_STATIC_DRAW))
-
-         (gl ctx bindVertexArray nil))
-
-           ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews 
+       ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews 
        (let [vao           gltf-vao
              buffer        result-bin
              indices       (.subarray result-bin 36 48)
              vbo           (gl ctx createBuffer)
 
-             attr-loc      (-> (:attr-locs grid-prog) (get 'POSITION) :loc)
+             attr-loc      (-> (:attr-locs gltf-prog) (get 'POSITION) :loc)
              count         (gltf-type->num-of-component "VEC3")
              componentType GL_FLOAT
              byteOffset    0
@@ -144,12 +122,21 @@
 
        (-> world
            (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
-           (o/insert ::world/global ::adhoc-data (vars->map grid-prog grid-vao gltf-prog gltf-vao)))))
+           (esse ::grid
+                 #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
+                 #::gl-magic{:spells [{:bind-vao ::grid}
+                                      {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
+                                      {:point-attr 'a_pos :use-shader ::grid :count (gltf-type->num-of-component "VEC2") :componentType GL_FLOAT}
+                                      {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+                                      {:unbind-vao true}]})
+           (o/insert ::world/global ::adhoc-data (vars->map gltf-prog gltf-vao)))))
 
    ::world/rules
    (o/ruleset
     {::render-data
      [:what
+      [::grid ::gl-magic/casted? true]
+      [::grid ::shader/program-info grid-prog]
       [::world/global ::adhoc-data adhoc-data]
       [::world/global ::projection/matrix project]
       [::firstperson/player ::firstperson/look-at player-view]
@@ -158,7 +145,7 @@
    ::world/render-fn
    (fn [world game]
      (when-let [render-data (utils/query-one world ::render-data)]
-       (let [{:keys [grid-prog grid-vao gltf-prog gltf-vao]} (:adhoc-data render-data)
+       (let [{:keys [gltf-prog gltf-vao]} (:adhoc-data render-data)
              project    (:project render-data)
              view       (:player-view render-data)
              view-pos   (:player-pos render-data)
@@ -179,17 +166,19 @@
            (gl clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
            (gl viewport 0 0 width height))
 
-         (doto ctx
-           (gl useProgram (:program grid-prog))
-           (gl bindVertexArray grid-vao)
+         (let [grid-prog (:grid-prog render-data)
+               grid-vao  (get @vao/db* ::grid)]
+           (doto ctx
+             (gl useProgram (:program grid-prog))
+             (gl bindVertexArray grid-vao)
 
-           (cljgl/set-uniform grid-prog 'u_inv_view (f32-arr (vec inv-view)))
-           (cljgl/set-uniform grid-prog 'u_inv_proj (f32-arr (vec inv-proj)))
-           (cljgl/set-uniform grid-prog 'u_cam_pos (f32-arr (into [] view-pos)))
+             (cljgl/set-uniform grid-prog 'u_inv_view (f32-arr (vec inv-view)))
+             (cljgl/set-uniform grid-prog 'u_inv_proj (f32-arr (vec inv-proj)))
+             (cljgl/set-uniform grid-prog 'u_cam_pos (f32-arr (into [] view-pos)))
 
-           (gl disable GL_DEPTH_TEST)
-           (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
-           (gl enable GL_DEPTH_TEST))
+             (gl disable GL_DEPTH_TEST)
+             (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
+             (gl enable GL_DEPTH_TEST)))
 
          (doto ctx
            (gl useProgram (:program gltf-prog))
