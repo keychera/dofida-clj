@@ -101,10 +101,9 @@
 
              ibo           (gl ctx createBuffer)]
          (doto ctx
-           (gl bindBuffer GL_ARRAY_BUFFER vbo)
-           (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW)
            (gl bindVertexArray vao)
-           (gl bindBuffer GL_ARRAY_BUFFER vbo))
+           (gl bindBuffer GL_ARRAY_BUFFER vbo)
+           (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW))
 
          (doto ctx
            (gl vertexAttribPointer attr-loc count componentType false 0 byteOffset)
@@ -129,10 +128,9 @@
 
              ibo           (gl ctx createBuffer)]
          (doto ctx
-           (gl bindBuffer GL_ARRAY_BUFFER vbo)
-           (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW)
            (gl bindVertexArray vao)
-           (gl bindBuffer GL_ARRAY_BUFFER vbo))
+           (gl bindBuffer GL_ARRAY_BUFFER vbo)
+           (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW))
 
          (doto ctx
            (gl vertexAttribPointer attr-loc count componentType false 0 byteOffset)
