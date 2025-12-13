@@ -1,13 +1,12 @@
 (ns playground
   (:require
-   [clojure.spec.alpha :as s]
    [clojure.spec.test.alpha :as st]
-   [engine.macros :refer [vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
+   [minusone.rules.gl.vao :as vao]
    [minusone.rules.model.assimp-js :as assimp-js]
    [minusone.rules.view.firstperson :as firstperson]
    [minustwo.engine :as engine]
@@ -17,7 +16,7 @@
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                  GL_STATIC_DRAW GL_TRIANGLES GL_UNSIGNED_INT]]
+                                  GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
    [minustwo.gl.shader :as shader]
@@ -28,8 +27,7 @@
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [minusone.rules.gl.vao :as vao]))
+   [thi.ng.math.core :as m]))
 
 (st/instrument)
 
@@ -46,17 +44,17 @@
    (def result-bin (first bins))))
 
 (defn limited-game-loop
-  ([loop-fn how-long]
-   (limited-game-loop loop-fn {:total (js/performance.now) :delta 0} how-long))
-  ([loop-fn time-data how-long]
+  ([loop-fn end-fn how-long]
+   (limited-game-loop loop-fn end-fn {:total (js/performance.now) :delta 0} how-long))
+  ([loop-fn end-fn time-data how-long]
    (if (> how-long 0)
      (js/requestAnimationFrame
       (fn [ts]
         (let [delta (- ts (:total time-data))
               time-data (assoc time-data :total ts :delta delta)]
           (loop-fn time-data)
-          (limited-game-loop loop-fn time-data (- how-long delta)))))
-     (println "done"))))
+          (limited-game-loop loop-fn end-fn time-data (- how-long delta)))))
+     (end-fn))))
 
 (def vert
   {:precision  "mediump float"
@@ -84,52 +82,27 @@
    "MAT3"   9
    "MAT4"   16})
 
-(s/def ::adhoc-data map?)
-
 (def adhoc-system
   {::world/init-fn
    (fn [world _game]
      (println "adhoc system running!")
-     (let [gltf-prog  (cljgl/create-program-info ctx vert frag)
-           gltf-vao   (gl ctx createVertexArray)]
-
-       ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews 
-       (let [vao           gltf-vao
-             buffer        result-bin
-             indices       (.subarray result-bin 36 48)
-             vbo           (gl ctx createBuffer)
-
-             attr-loc      (-> (:attr-locs gltf-prog) (get 'POSITION) :loc)
-             count         (gltf-type->num-of-component "VEC3")
-             componentType GL_FLOAT
-             byteOffset    0
-
-             ibo           (gl ctx createBuffer)]
-         (doto ctx
-           (gl bindVertexArray vao)
-           (gl bindBuffer GL_ARRAY_BUFFER vbo)
-           (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW))
-
-         (doto ctx
-           (gl vertexAttribPointer attr-loc count componentType false 0 byteOffset)
-           (gl enableVertexAttribArray attr-loc))
-
-         (doto ctx
-           (gl bindBuffer GL_ELEMENT_ARRAY_BUFFER ibo)
-           (gl bufferData GL_ELEMENT_ARRAY_BUFFER indices GL_STATIC_DRAW))
-
-         (gl ctx bindVertexArray nil))
-
-       (-> world
-           (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
-           (esse ::grid
-                 #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
-                 #::gl-magic{:spells [{:bind-vao ::grid}
-                                      {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
-                                      {:point-attr 'a_pos :use-shader ::grid :count (gltf-type->num-of-component "VEC2") :componentType GL_FLOAT}
-                                      {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
-                                      {:unbind-vao true}]})
-           (o/insert ::world/global ::adhoc-data (vars->map gltf-prog gltf-vao)))))
+     (-> world
+         (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
+         (esse ::grid
+               #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
+               #::gl-magic{:spells [{:bind-vao ::grid}
+                                    {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
+                                    {:point-attr 'a_pos :use-shader ::grid :count (gltf-type->num-of-component "VEC2") :componentType GL_FLOAT}
+                                    {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+                                    {:unbind-vao true}]})
+         (esse ::simpleanime
+               #::shader{:program-info (cljgl/create-program-info ctx vert frag)}
+                   ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews
+               #::gl-magic{:spells [{:bind-vao ::simpleanime}
+                                    {:buffer-data result-bin :buffer-type GL_ARRAY_BUFFER}
+                                    {:point-attr 'POSITION :use-shader ::simpleanime :count (gltf-type->num-of-component "VEC3") :componentType GL_FLOAT}
+                                    {:buffer-data (.subarray result-bin 36 48) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+                                    {:unbind-vao true}]})))
 
    ::world/rules
    (o/ruleset
@@ -137,7 +110,8 @@
      [:what
       [::grid ::gl-magic/casted? true]
       [::grid ::shader/program-info grid-prog]
-      [::world/global ::adhoc-data adhoc-data]
+      [::simpleanime ::gl-magic/casted? true]
+      [::simpleanime ::shader/program-info gltf-prog]
       [::world/global ::projection/matrix project]
       [::firstperson/player ::firstperson/look-at player-view]
       [::firstperson/player ::firstperson/position player-pos]]})
@@ -145,8 +119,7 @@
    ::world/render-fn
    (fn [world game]
      (when-let [render-data (utils/query-one world ::render-data)]
-       (let [{:keys [gltf-prog gltf-vao]} (:adhoc-data render-data)
-             project    (:project render-data)
+       (let [project    (:project render-data)
              view       (:player-view render-data)
              view-pos   (:player-pos render-data)
 
@@ -180,15 +153,17 @@
              (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
              (gl enable GL_DEPTH_TEST)))
 
-         (doto ctx
-           (gl useProgram (:program gltf-prog))
-           (gl bindVertexArray gltf-vao)
+         (let [gltf-prog (:gltf-prog render-data)
+               gltf-vao  (get @vao/db* ::simpleanime)]
+           (doto ctx
+             (gl useProgram (:program gltf-prog))
+             (gl bindVertexArray gltf-vao)
 
-           (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
-           (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
-           (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
+             (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
+             (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
+             (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
 
-           (gl drawElements GL_TRIANGLES 3 GL_UNSIGNED_INT 0)))))})
+             (gl drawElements GL_TRIANGLES 3 GL_UNSIGNED_INT 0))))))})
 
 (comment
   (with-redefs
@@ -208,10 +183,10 @@
               (engine/tick (assoc game
                                   :total-time total
                                   :delta-time delta)))
-            5000)
-           game))
-        ((comp deref ::world/atom*))
-        ((fn [world] (o/query-all world ::render-data)))))
+            (fn []
+              (println "done!")
+              (println (o/query-all @(::world/atom* game))))
+            2000)))))
 
   (:skins gltf-data)
   (:nodes gltf-data)
