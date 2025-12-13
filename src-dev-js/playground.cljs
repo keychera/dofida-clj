@@ -158,7 +158,7 @@
       [::firstperson/player ::firstperson/position player-pos]]})
 
    ::world/render-fn
-   (fn [world _game]
+   (fn [world game]
      (when-let [render-data (utils/query-one world ::render-data)]
        (let [{:keys [grid-prog grid-vao gltf-prog gltf-vao]} (:adhoc-data render-data)
              project    (:project render-data)
@@ -168,8 +168,11 @@
              inv-proj   (m/invert project)
              inv-view   (m/invert view)
 
+             time       (:total-time game)
              trans-mat  (m-ext/translation-mat 0.0 1.0 0.0)
-             rot-mat    (g/as-matrix (q/quat))
+             rot-mat    (g/as-matrix (q/quat-from-axis-angle
+                                      (v/vec3 0.0 0.0 1.0)
+                                      (m/radians (* time 0.1))))
              scale-mat  (m-ext/scaling-mat 5.0)
              model      (reduce m/* [trans-mat rot-mat scale-mat])]
          (doto ctx
@@ -212,7 +215,14 @@
                       :total-time 0
                       :delta-time 0})
         (engine/init)
-        (engine/tick)
+        ((fn [game]
+           (limited-game-loop
+            (fn [{:keys [total delta]}]
+              (engine/tick (assoc game
+                                  :total-time total
+                                  :delta-time delta)))
+            5000)
+           game))
         ((comp deref ::world/atom*))
         ((fn [world] (o/query-all world ::render-data)))))
 
