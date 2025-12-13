@@ -19,7 +19,6 @@
    [minusone.rules.projection :as projection]
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
-   [minustwo.minustwo :as minustwo]
    [odoyle.rules :as o]
    [rules.interface.input :as input]
    [rules.time :as time]
@@ -50,31 +49,19 @@
     firstperson/system
     t3d/system
 
-    perspective-grid/system
-
-    minustwo/system
-    #_rubahperak/system
-   ;;  simple-gltf/system
-   ;;  anime/system
-    #_moon/system
-    #_learnopengl/system]))
+    perspective-grid/system]))
 
 (defn init [game]
   (println "init game")
   (gl game enable GL_BLEND)
 
-  (let [all-rules  (distinct (apply concat (sp/select [sp/ALL ::world/rules] all-systems)))
-        init-fns   (sp/select [sp/ALL ::world/init-fn some?] all-systems)
-        before-fns (sp/select [sp/ALL ::world/before-load-fn some?] all-systems)
-        after-fns  (sp/select [sp/ALL ::world/after-load-fn some?] all-systems)
-        render-fns (sp/select [sp/ALL ::world/render-fn some?] all-systems)
-        [w h]      (utils/get-size game)]
-
+  (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems all-systems)
+        [width height]                                               (utils/get-size game)]
     (reset! (::render-fns* game) render-fns)
     (swap! (::world/atom* game)
            (fn [world]
              (-> (world/init-world world game all-rules before-fns init-fns after-fns)
-                 (window/set-window w h)
+                 (window/set-window width height)
                  (o/fire-rules))))
     (asset/load-asset (::world/atom* game) game)))
 
