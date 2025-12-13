@@ -183,64 +183,108 @@ void main() {
         project    (mat/perspective fov aspect 0.1 100)
 
         up         (v/vec3 0.0 1.0 0.0)
-        view-pos   (v/vec3 0.0 18.0 24.0)
+        view-pos   (v/vec3 0.0 2.0 24.0)
         front      (v/vec3 0.0 0.0 -1.0)
         view       (mat/look-at view-pos (m/+ view-pos front) up)
 
-        trans-mat  (m-ext/translation-mat 0.0 0.0 0.0)
+        trans-mat  (m-ext/translation-mat 0.0 1.0 0.0)
         rot-mat    (g/as-matrix (q/quat))
-        scale-mat  (m-ext/scaling-mat 0.1)
+        scale-mat  (m-ext/scaling-mat 5.0)
         model      (reduce m/* [trans-mat rot-mat scale-mat])
 
         inv-proj   (m/invert project)
         inv-view   (m/invert view)
 
-        p-info     (cljgl/create-program-info ctx grid-vert grid-frag)
-        program    (:program p-info)
-        vao        (gl ctx createVertexArray)]
+        grid-prog  (cljgl/create-program-info ctx grid-vert grid-frag)
+        grid-vao   (gl ctx createVertexArray)
 
-    (let [buffer   (gl ctx createBuffer)
-          buf-type GL_ARRAY_BUFFER]
-      (gl ctx bindBuffer buf-type buffer)
-      (gl ctx bufferData buf-type quad GL_STATIC_DRAW)
+        gltf-prog  (cljgl/create-program-info ctx vert frag)
+        gltf-vao   (gl ctx createVertexArray)]
 
-      (gl ctx bindVertexArray vao)
-      (gl ctx bindBuffer buf-type buffer))
+    (let [vao           grid-vao
+          buffer        quad
+          indices       quad-indices
+          vbo           (gl ctx createBuffer)
 
-    ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews
-    (let [attr-loc      (-> (:attr-locs p-info) (get 'a_pos) :loc)
+          attr-loc      (-> (:attr-locs grid-prog) (get 'a_pos) :loc)
           count         (gltf-type->num-of-component "VEC2")
           componentType GL_FLOAT
-          byteOffset    0]
-      (gl ctx vertexAttribPointer attr-loc count componentType false 0 byteOffset)
-      (gl ctx enableVertexAttribArray attr-loc))
+          byteOffset    0
 
-    (let [buffer   (gl ctx createBuffer)
-          buf-type GL_ELEMENT_ARRAY_BUFFER]
-      (gl ctx bindBuffer buf-type buffer)
-      (gl ctx bufferData buf-type quad-indices GL_STATIC_DRAW))
+          ibo           (gl ctx createBuffer)]
+      (doto ctx
+        (gl bindBuffer GL_ARRAY_BUFFER vbo)
+        (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW)
+        (gl bindVertexArray vao)
+        (gl bindBuffer GL_ARRAY_BUFFER vbo))
 
+      (doto ctx
+        (gl vertexAttribPointer attr-loc count componentType false 0 byteOffset)
+        (gl enableVertexAttribArray attr-loc))
 
+      (doto ctx
+        (gl bindBuffer GL_ELEMENT_ARRAY_BUFFER ibo)
+        (gl bufferData GL_ELEMENT_ARRAY_BUFFER indices GL_STATIC_DRAW))
 
-    ;; pretend this is render loop
-    
-    (gl ctx useProgram program)
+      (gl ctx bindVertexArray nil))
+
+    ;; manually see inside gltf, mesh -> primitives -> accessors -> bufferViews 
+    (let [vao           gltf-vao
+          buffer        result-bin
+          indices       (.subarray result-bin 36 48)
+          vbo           (gl ctx createBuffer)
+
+          attr-loc      (-> (:attr-locs grid-prog) (get 'POSITION) :loc)
+          count         (gltf-type->num-of-component "VEC3")
+          componentType GL_FLOAT
+          byteOffset    0
+
+          ibo           (gl ctx createBuffer)]
+      (doto ctx
+        (gl bindBuffer GL_ARRAY_BUFFER vbo)
+        (gl bufferData GL_ARRAY_BUFFER buffer GL_STATIC_DRAW)
+        (gl bindVertexArray vao)
+        (gl bindBuffer GL_ARRAY_BUFFER vbo))
+
+      (doto ctx
+        (gl vertexAttribPointer attr-loc count componentType false 0 byteOffset)
+        (gl enableVertexAttribArray attr-loc))
+
+      (doto ctx
+        (gl bindBuffer GL_ELEMENT_ARRAY_BUFFER ibo)
+        (gl bufferData GL_ELEMENT_ARRAY_BUFFER indices GL_STATIC_DRAW))
+
+      (gl ctx bindVertexArray nil))
 
     (limited-game-loop
-     (fn [{:keys [total]}] 
-       
+     (fn [_]
        (doto ctx
          (gl blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
          (gl clearColor 0.02 0.02 0.12 1.0)
          (gl clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
          (gl viewport 0 0 width height))
-       
-       (cljgl/set-uniform ctx p-info 'u_inv_view (f32-arr (vec inv-view)))
-       (cljgl/set-uniform ctx p-info 'u_inv_proj (f32-arr (vec inv-proj)))
-       (cljgl/set-uniform ctx p-info 'u_cam_pos (f32-arr (into [] view-pos))) 
 
-       (gl ctx disable GL_DEPTH_TEST)
-       (gl ctx drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0))
+       (doto ctx
+         (gl useProgram (:program grid-prog))
+         (gl bindVertexArray grid-vao)
+
+         (cljgl/set-uniform grid-prog 'u_inv_view (f32-arr (vec inv-view)))
+         (cljgl/set-uniform grid-prog 'u_inv_proj (f32-arr (vec inv-proj)))
+         (cljgl/set-uniform grid-prog 'u_cam_pos (f32-arr (into [] view-pos)))
+
+         (gl disable GL_DEPTH_TEST)
+         (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
+         (gl enable GL_DEPTH_TEST))
+
+       (doto ctx
+         (gl useProgram (:program gltf-prog))
+         (gl bindVertexArray gltf-vao)
+
+         (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
+         (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
+         (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
+
+         (gl drawElements GL_TRIANGLES 3 GL_UNSIGNED_INT 0)))
      5000))
 
   :-)
