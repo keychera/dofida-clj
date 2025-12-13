@@ -17,12 +17,14 @@
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
+   [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
    [minustwo.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems :as systems]
    [minustwo.systems.view.projection :as projection]
+   [minustwo.systems.window :as window]
    [minustwo.utils :as utils]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
@@ -31,11 +33,6 @@
    [thi.ng.math.core :as m]))
 
 (st/instrument)
-
-(defonce canvas (js/document.querySelector "canvas"))
-(defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
-(defonce width (-> canvas .-clientWidth))
-(defonce height (-> canvas .-clientHeight))
 
 (defn limited-game-loop
   ([loop-fn end-fn how-long]
@@ -69,58 +66,61 @@
 
 (def adhoc-system
   {::world/init-fn
-   (fn [world _game]
+   (fn [world game]
      (println "adhoc system running!")
-     (-> world
-         (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
-         (esse ::grid
-               #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
-               #::gl-magic{:spell [{:bind-vao ::grid}
-                                    {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
-                                    {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
-                                    {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
-                                    {:unbind-vao true}]})
-         (esse ::simpleanime
-               #::shader{:program-info (cljgl/create-program-info ctx vert frag)}
-               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0})))
+     (let [ctx (:webgl-context game)]
+       (-> world
+           (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
+           (esse ::grid
+                 #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
+                 #::gl-magic{:spell [{:bind-vao ::grid}
+                                     {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
+                                     {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
+                                     {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+                                     {:unbind-vao true}]})
+           (esse ::simpleanime
+                 #::shader{:program-info (cljgl/create-program-info ctx vert frag)}
+                 #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}))))
 
    ::world/rules
    (o/ruleset
-    {::render-data
+    {::room-data
      [:what
-      [::grid ::gl-magic/casted? true]
-      [::grid ::shader/program-info grid-prog]
-      [::simpleanime ::gl-magic/casted? true]
-      [::simpleanime ::shader/program-info gltf-prog]
-      [::simpleanime ::gltf/primitives gltf-primitives]
+      [::world/global ::window/dimension window]
+      [::world/global ::gl-system/context ctx]
       [::world/global ::projection/matrix project]
       [::firstperson/player ::firstperson/look-at player-view]
-      [::firstperson/player ::firstperson/position player-pos]]})
+      [::firstperson/player ::firstperson/position player-pos]]
+
+     ::grid-model
+     [:what
+      [::grid ::gl-magic/casted? true]
+      [::grid ::shader/program-info grid-prog]]
+
+     ::gltf-models
+     [:what
+      [esse-id ::gl-magic/casted? true]
+      [esse-id ::shader/program-info gltf-prog]
+      [esse-id ::gltf/primitives gltf-primitives]]})
 
    ::world/render-fn
    (fn [world game]
-     (when-let [render-data (utils/query-one world ::render-data)]
-       (let [project    (:project render-data)
-             view       (:player-view render-data)
-             view-pos   (:player-pos render-data)
-
-             inv-proj   (m/invert project)
-             inv-view   (m/invert view)
-
-             time       (:total-time game)
-             trans-mat  (m-ext/translation-mat 0.0 1.0 0.0)
-             rot-mat    (g/as-matrix (q/quat-from-axis-angle
-                                      (v/vec3 0.0 0.0 1.0)
-                                      (m/radians (* time 0.1))))
-             scale-mat  (m-ext/scaling-mat 5.0)
-             model      (reduce m/* [trans-mat rot-mat scale-mat])]
-         (doto ctx
-           (gl blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
-           (gl clearColor 0.02 0.02 0.12 1.0)
-           (gl clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-           (gl viewport 0 0 width height))
-
-         (let [grid-prog (:grid-prog render-data)
+     (let [room-data (utils/query-one world ::room-data)
+           ctx       (:ctx room-data)
+           project   (:project room-data)
+           view      (:player-view room-data)
+           view-pos  (:player-pos room-data)
+           width     (-> room-data :window :width)
+           height     (-> room-data :window :height)]
+       (doto ctx
+         (gl blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
+         (gl clearColor 0.02 0.02 0.12 1.0)
+         (gl clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+         (gl viewport 0 0 width height))
+       (when-let [render-data (utils/query-one world ::grid-model)]
+         (let [inv-proj   (m/invert project)
+               inv-view   (m/invert view)
+               grid-prog (:grid-prog render-data)
                grid-vao  (get @vao/db* ::grid)]
            (doto ctx
              (gl useProgram (:program grid-prog))
@@ -132,24 +132,37 @@
 
              (gl disable GL_DEPTH_TEST)
              (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
-             (gl enable GL_DEPTH_TEST)))
+             (gl enable GL_DEPTH_TEST))))
+       (when-let [gltf-models (o/query-all world ::gltf-models)]
+         (doseq [render-data gltf-models]
+           (let [time       (:total-time game)
+                 trans-mat  (m-ext/translation-mat 0.0 1.0 0.0)
+                 rot-mat    (g/as-matrix (q/quat-from-axis-angle
+                                          (v/vec3 0.0 0.0 1.0)
+                                          (m/radians (* time 0.1))))
+                 scale-mat  (m-ext/scaling-mat 5.0)
+                 model      (reduce m/* [trans-mat rot-mat scale-mat])
+                 gltf-prog (:gltf-prog render-data)]
+             (doseq [prim (:gltf-primitives render-data)]
+               (let [{:keys [vao-name
+                             indices]} prim
+                     count             (:count indices)
+                     component-type    (:componentType indices)
+                     gltf-vao          (get @vao/db* vao-name)]
+                 (doto ctx
+                   (gl useProgram (:program gltf-prog))
+                   (gl bindVertexArray gltf-vao)
 
-         (let [gltf-prog (:gltf-prog render-data)]
-           (doseq [prim (:gltf-primitives render-data)]
-             (let [{:keys [vao-name
-                           indices]} prim
-                   count             (:count indices)
-                   component-type    (:componentType indices)
-                   gltf-vao          (get @vao/db* vao-name)]
-               (doto ctx
-                 (gl useProgram (:program gltf-prog))
-                 (gl bindVertexArray gltf-vao)
+                   (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
+                   (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
+                   (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
 
-                 (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
-                 (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
-                 (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
+                   (gl drawElements GL_TRIANGLES count component-type 0)))))))))})
 
-                 (gl drawElements GL_TRIANGLES count component-type 0))))))))})
+(defonce canvas (js/document.querySelector "canvas"))
+(defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
+(defonce width (-> canvas .-clientWidth))
+(defonce height (-> canvas .-clientHeight))
 
 (comment
   (with-redefs
@@ -173,5 +186,7 @@
               (println "done!")
               (println (o/query-all @(::world/atom* game))))
             2000)))))
+
+  @gltf/debug-data*
 
   :-)
