@@ -2,8 +2,9 @@
   (:require
    #?@(:clj [[clojure.java.io :as io]
              [cheshire.core :as json]])
-   [thi.ng.geom.matrix :as mat]
-   [odoyle.rules :as o])
+   [engine.macros :refer [vars->map]]
+   [odoyle.rules :as o]
+   [thi.ng.geom.matrix :as mat])
   #?(:clj (:import
            [java.nio ByteBuffer]
            [org.lwjgl.glfw GLFW]
@@ -94,3 +95,24 @@
 (defn query-one [world rule-name]
   (first (o/query-all world rule-name)))
 
+#?(:cljs
+   (defn data-uri->header+Uint8Array [data-uri]
+     (let [[header base64-str] (.split data-uri ",")]
+       [header (js/Uint8Array.fromBase64 base64-str)])))
+
+;; following this on loading image to bindTexture with blob
+;; https://webglfundamentals.org/webgl/lessons/webgl-qna-how-to-load-images-in-the-background-with-no-jank.html
+#?(:cljs
+   (defn data-uri->ImageBitmap
+     "parse data-uri and pass the resulting bitmap to callback.
+      callback will receive {:keys [bitmap width height]}"
+     [data-uri callback]
+     (let [[header uint8-arr] (data-uri->header+Uint8Array data-uri)
+           data-type          (second (re-matches #"data:(.*);.*" header))
+           blob               (js/Blob. #js [uint8-arr] #js {:type data-type})]
+       (.then (js/createImageBitmap blob)
+              (fn [bitmap]
+                (let [width  (.-width bitmap)
+                      height (.-height bitmap)]
+                  (println "blob:" data-type "count" (.-length uint8-arr))
+                  (callback (vars->map bitmap width height))))))))

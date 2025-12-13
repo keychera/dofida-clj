@@ -1,10 +1,12 @@
 (ns playground
   (:require
    [clojure.spec.test.alpha :as st]
+   [clojure.walk :as walk]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+   [minusone.rubahperak :as rubahperak]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
@@ -15,12 +17,14 @@
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                  GL_TRIANGLES GL_UNSIGNED_INT]]
+                                  GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
+                                  GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.macros :refer [webgl] :rename {webgl gl}]
    [minustwo.gl.shader :as shader]
+   [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems :as systems]
    [minustwo.systems.view.projection :as projection]
@@ -70,17 +74,23 @@
      (println "adhoc system running!")
      (let [ctx (:webgl-context game)]
        (-> world
-           (firstperson/insert-player (v/vec3 0.0 2.0 24.0) (v/vec3 0.0 0.0 -1.0))
+           (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
            (esse ::grid
-                 #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)}
+                 #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)
+                           :use ::grid}
                  #::gl-magic{:spell [{:bind-vao ::grid}
                                      {:buffer-data perspective-grid/quad :buffer-type GL_ARRAY_BUFFER}
                                      {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
                                      {:buffer-data perspective-grid/quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
                                      {:unbind-vao true}]})
            (esse ::simpleanime
-                 #::shader{:program-info (cljgl/create-program-info ctx vert frag)}
-                 #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}))))
+                 #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
+                 #::shader{:program-info (cljgl/create-program-info ctx vert frag)
+                           :use ::simpleanime})
+           (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
+           (esse ::rubahperak
+                 #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 1}
+                 #::shader{:use ::pmx-shader}))))
 
    ::world/rules
    (o/ruleset
@@ -100,7 +110,8 @@
      ::gltf-models
      [:what
       [esse-id ::gl-magic/casted? true]
-      [esse-id ::shader/program-info gltf-prog]
+      [esse-id ::shader/use shader-id]
+      [shader-id ::shader/program-info gltf-prog]
       [esse-id ::gltf/primitives gltf-primitives]]})
 
    ::world/render-fn
@@ -133,31 +144,39 @@
              (gl disable GL_DEPTH_TEST)
              (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
              (gl enable GL_DEPTH_TEST))))
+
        (when-let [gltf-models (o/query-all world ::gltf-models)]
-         (doseq [render-data gltf-models]
+         (doseq [gltf-model gltf-models]
            (let [time       (:total-time game)
-                 trans-mat  (m-ext/translation-mat 0.0 1.0 0.0)
-                 rot-mat    (g/as-matrix (q/quat-from-axis-angle
-                                          (v/vec3 0.0 0.0 1.0)
-                                          (m/radians (* time 0.1))))
-                 scale-mat  (m-ext/scaling-mat 5.0)
+                 trans-mat  (m-ext/translation-mat 0.0 -5.0 0.0)
+                 rot-mat   (g/as-matrix (q/quat-from-axis-angle
+                                         (v/vec3 0.0 1.0 0.0)
+                                         (m/radians (* 0.18 time))))
+                 scale-mat (m-ext/scaling-mat 2.0)
                  model      (reduce m/* [trans-mat rot-mat scale-mat])
-                 gltf-prog (:gltf-prog render-data)]
-             (doseq [prim (:gltf-primitives render-data)]
-               (let [{:keys [vao-name
-                             indices]} prim
-                     count             (:count indices)
-                     component-type    (:componentType indices)
-                     gltf-vao          (get @vao/db* vao-name)]
-                 (doto ctx
-                   (gl useProgram (:program gltf-prog))
-                   (gl bindVertexArray gltf-vao)
+                 gltf-prog  (:gltf-prog gltf-model)]
+             (doto ctx
+               (gl useProgram (:program gltf-prog))
+               (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
+               (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
+               (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model))))
 
-                   (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
-                   (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
-                   (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model)))
+             (doseq [prim (:gltf-primitives gltf-model)]
+               (let [{:keys [vao-name tex-name indices]} prim
+                     count                               (:count indices)
+                     component-type                      (:componentType indices)
+                     vao                                 (get @vao/db* vao-name)
+                     tex                                 (get @texture/db* tex-name)]
+                 (when vao
+                   (gl ctx bindVertexArray vao)
 
-                   (gl drawElements GL_TRIANGLES count component-type 0)))))))))})
+                   (when-let [{:keys [tex-unit texture]} tex]
+                     (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+                     (gl ctx bindTexture GL_TEXTURE_2D texture)
+                     (cljgl/set-uniform ctx gltf-prog 'u_mat_diffuse tex-unit))
+
+                   (gl ctx drawElements GL_TRIANGLES count component-type 0)
+                   (gl ctx bindVertexArray nil)))))))))})
 
 (defonce canvas (js/document.querySelector "canvas"))
 (defonce ctx (.getContext canvas "webgl2" (clj->js {:premultipliedAlpha false})))
@@ -177,16 +196,24 @@
                       :delta-time 0})
         (engine/init)
         ((fn [game]
+           #_{:clj-kondo/ignore [:inline-def]}
+           (def hmm game)
            (limited-game-loop
             (fn [{:keys [total delta]}]
               (engine/tick (assoc game
                                   :total-time total
                                   :delta-time delta)))
             (fn []
-              (println "done!")
-              (println (o/query-all @(::world/atom* game))))
-            2000)))))
+              (println "done!"))
+            5000)))))
 
-  @gltf/debug-data*
+  (o/query-all @(::world/atom* hmm) ::texture/uri-to-load)
+
+  (let [{:keys [gltf-data bin]} (-> @gltf/debug-data* ::rubahperak)
+        gltf-spell (gltf/gltf-spell gltf-data bin {:model-id :hmm
+                                                   :use-shader :hmm
+                                                   :tex-unit-offset 0})]
+    (->> (walk/postwalk (fn [x] (if (instance? js/Uint8Array x) ['uint-arr (.-length x)] x)) gltf-spell)
+         (drop 310)))
 
   :-)

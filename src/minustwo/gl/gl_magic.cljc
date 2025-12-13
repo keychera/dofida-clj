@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! vars->map]]
    [engine.world :as world]
-   [minusone.rules.gl.texture :as texture]
+   [minustwo.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
@@ -69,7 +69,7 @@
               (gl ctx enableVertexAttribArray attr-loc)
               (recur remaining summons state))
             (recur remaining
-                   (conj summons [:err-fact ::err (str (:point-attr chant) " is not found in any shader program")])
+                   (conj summons [:err-fact ::err (str "[ for " esse-id " ] " (:point-attr chant) " is not found in any shader program")])
                    state))
 
           [{:bind-texture _ :image _ :tex-unit _}] ;; entry: texture binding

@@ -6,28 +6,9 @@
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
+   [minustwo.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
    [odoyle.rules :as o]))
-
-(defn data-uri->header+Uint8Array [data-uri]
-  (let [[header base64-str] (.split data-uri ",")]
-    [header (js/Uint8Array.fromBase64 base64-str)]))
-
-;; following this on loading image to bindTexture with blob
-;; https://webglfundamentals.org/webgl/lessons/webgl-qna-how-to-load-images-in-the-background-with-no-jank.html
-(defn data-uri->ImageBitmap
-  "parse data-uri and pass the resulting bitmap to callback.
-   callback will receive {:keys [bitmap width height]}"
-  [data-uri callback]
-  (let [[header uint8-arr] (data-uri->header+Uint8Array data-uri)
-        data-type          (second (re-matches #"data:(.*);.*" header))
-        blob               (js/Blob. #js [uint8-arr] #js {:type data-type})]
-    (.then (js/createImageBitmap blob)
-           (fn [bitmap]
-             (let [width  (.-width bitmap)
-                   height (.-height bitmap)]
-               (println "blob:" data-type "count" (.-length uint8-arr))
-               (callback (vars->map bitmap width height)))))))
 
 ;; https://shadow-cljs.github.io/docs/UsersGuide.html#infer-externs
 ;; drop core.async, error msg are not nice there
@@ -61,7 +42,8 @@
    {::assimp/model-to-load
     [:what
      [esse-id ::assimp/model-to-load model-files]
-     [esse-id ::assimp/tex-unit-offset texu-offset]]}))
+     [esse-id ::assimp/tex-unit-offset texu-offset]
+     [esse-id ::shader/use use-shader]]}))
 
 (defn load-models-from-world*
   "load models from world* and fire callback for each models loaded.
@@ -70,7 +52,8 @@
   (doseq [model-to-load models-to-load]
     (let [model-files (:model-files model-to-load)
           esse-id     (:esse-id model-to-load)
-          texu-offset (:texu-offset model-to-load)]
+          texu-offset (:texu-offset model-to-load)
+          use-shader  (:use-shader model-to-load)]
       (println "[assimp-js] loading model" esse-id)
       (swap! world* o/retract esse-id ::assimp/model-to-load)
       (then-load-model
@@ -80,8 +63,7 @@
          (let [gltf-spell
                (gltf/gltf-spell gltf (first bins)
                                 {:model-id esse-id
-                                 ;; I think this is decomplected, hmm...
-                                 :use-shader esse-id
+                                 :use-shader use-shader
                                  :tex-unit-offset texu-offset})]
            (swap! world* o/insert esse-id ::gl-magic/spell gltf-spell)))))))
 
