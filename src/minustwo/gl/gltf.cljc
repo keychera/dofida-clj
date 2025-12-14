@@ -10,7 +10,8 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.core :as g]
    [thi.ng.math.core :as m]
-   [com.rpl.specter :as sp]))
+   [com.rpl.specter :as sp]
+   [clojure.spec.test.alpha :as st]))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -193,7 +194,7 @@
 
       {:insert-facts
        ;; assuming one skin for now
-       (let [joints         (some-> gltf-data :skins first :joints)
+       (let [joints         (into [] (map-indexed vector) (some-> gltf-data :skins first :joints))
              primitives     (into []
                                   (comp (map (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])))
                                         (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
@@ -216,24 +217,27 @@
 (s/fdef global-transform-tree
   :args (s/cat :transform-tree ::transform-tree))
 (defn global-transform-tree [transform-tree]
-  (tree-seq :children
-            (fn [parent]
-              (into [] (comp
-                        (map (fn [cid] (calc-local-transform (nth transform-tree cid))))
-                        (map (fn [{:keys [local-transform] :as node}]
-                               (let [global-t (m/* (:global-transform parent) local-transform)]
-                                 (assoc node :global-transform global-t)))))
-                    (:children parent)))
-            (-> (calc-local-transform (first transform-tree))
-                ((fn [{:keys [local-transform] :as node}]
-                   (assoc node :global-transform local-transform))))))
+  (vec
+   (tree-seq :children
+             (fn [parent]
+               (into [] (comp
+                         (map (fn [cid] (calc-local-transform (nth transform-tree cid))))
+                         (map (fn [{:keys [local-transform] :as node}]
+                                (let [global-t (m/* (:global-transform parent) local-transform)]
+                                  (assoc node :global-transform global-t)))))
+                     (:children parent)))
+             (-> (calc-local-transform (first transform-tree))
+                 ((fn [{:keys [local-transform] :as node}]
+                    (assoc node :global-transform local-transform)))))))
 
 (defn create-joint-mats-arr [joints transform-tree inv-bind-mats]
   (let [f32s      (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))
         global-tt (global-transform-tree transform-tree)]
-    (doseq [[idx joint-id] (map-indexed vector joints)]
-      (let [global-t   (:global-transform (nth global-tt joint-id))
-            inv-bind-m (nth inv-bind-mats idx)
+    (doseq [joint joints]
+      (let [idx        (get joint 0)
+            joint-id   (get joint 1)
+            global-t   (:global-transform (get global-tt joint-id))
+            inv-bind-m (get inv-bind-mats idx)
             joint-mat  (m/* global-t inv-bind-m)
             i          (* idx 16)]
         (dotimes [j 16]
@@ -252,6 +256,7 @@
   (doc node-transform-tree)
 
   (st/instrument)
+  (st/unstrument)
   (let [gltf-data (some-> @debug-data* :minustwo.stage.hidup/rubahperak :gltf-data)
         accessor  (some-> gltf-data :accessors)
         nodes     (some-> gltf-data :nodes)
