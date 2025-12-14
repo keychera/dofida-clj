@@ -21,7 +21,7 @@
    ::init-cnt*   (atom 0)})
 
 (def fact-id-with-frequent-updates
-  #{:rules.time/now
+  #{:minustwo.systems.time/now
     :rules.firstperson/player
     :rules.window/window
     :minustwo.systems.input/mouse

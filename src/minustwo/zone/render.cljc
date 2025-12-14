@@ -8,7 +8,7 @@
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
    [minustwo.gl.gl-system :as gl-system]
    [odoyle.rules :as o]
-   [rules.time :as time]
+   [minustwo.systems.time :as time]
    [minustwo.utils :as utils]))
 
 (defn render-zone [game]

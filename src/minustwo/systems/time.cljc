@@ -1,4 +1,4 @@
-(ns rules.time
+(ns minustwo.systems.time
   (:require
    [engine.macros :refer [insert!]]
    [clojure.spec.alpha :as s]

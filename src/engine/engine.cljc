@@ -21,7 +21,7 @@
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
    [minustwo.systems.input :as input]
-   [rules.time :as time]
+   [minustwo.systems.time :as time]
    [rules.window :as window]))
 
 (defn ->game [context]

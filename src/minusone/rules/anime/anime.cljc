@@ -6,7 +6,7 @@
    [minusone.rules.anime.keyframe :as keyframe]
    [minusone.rules.gl.gltf :as gltf]
    [odoyle.rules :as o]
-   [rules.time :as time]
+   [minustwo.systems.time :as time]
    [thi.ng.math.core :as m]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]

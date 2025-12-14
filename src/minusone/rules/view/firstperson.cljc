@@ -5,7 +5,7 @@
    [engine.world :as world]
    [minusone.rules.types :as types]
    [odoyle.rules :as o]
-   [rules.time :as time]
+   [minustwo.systems.time :as time]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))

@@ -12,7 +12,7 @@
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.window :as window]
    [minustwo.systems.input :as input]
-   [rules.time :as time]))
+   [minustwo.systems.time :as time]))
 
 (def all
   [time/system

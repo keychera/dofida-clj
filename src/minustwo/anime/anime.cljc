@@ -8,7 +8,7 @@
    [minustwo.anime.keyframe :as keyframe]
    [minustwo.gl.gltf :as gltf]
    [odoyle.rules :as o]
-   [rules.time :as time]
+   [minustwo.systems.time :as time]
    [thi.ng.geom.quaternion]
    [thi.ng.math.core :as m]))
 
