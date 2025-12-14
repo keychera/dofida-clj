@@ -6,7 +6,6 @@
    [reagent.core :as r]
    [reagent.dom.client :as rdomc]))
 
-;; unstrumenting makes fps jumps back to 160 fps O_O !!
 ;; (st/instrument)
 
 (defonce fps-counter*
@@ -43,3 +42,11 @@
 (defonce dev-only
   (do (run-reagent)
       (start/-main {::start/callback-fn dev-loop})))
+
+(comment
+  
+  (st/instrument)
+  
+  (st/unstrument)
+  
+  :-)
