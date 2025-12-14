@@ -10,6 +10,7 @@
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
+   [minustwo.anime.anime :as anime]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
@@ -61,7 +62,8 @@
         (esse ::simpleanime
               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
-                        :use ::simpleanime})
+                        :use ::simpleanime}
+              t3d/default)
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
@@ -74,6 +76,9 @@
 
 (defn after-load-fn [world _game]
   (-> world
+      (esse ::simpleanime
+            #::t3d{:translation (v/vec3 15.0 0.0 0.0)
+                   :scale (v/vec3 8.0)})
       (esse ::rubahperak
             #::t3d{:translation (v/vec3 30.0 0.0 0.0)})
       (esse ::rubah
@@ -129,9 +134,21 @@
 
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
-        (let [{:keys [model program-info joints transform-tree inv-bind-mats]} gltf-model
+        (let [{:keys [esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
               time (:total-time game)
-              transform-tree (if (= (:esse-id gltf-model) ::rubahperak)
+              anime (get (::anime/interpolated @anime/db*) esse-id)
+              transform-tree (into []
+                                   (map (fn [{:keys [idx] :as node}]
+                                          (let [value            (get anime idx)
+                                                next-translation (get value :translation)
+                                                next-rotation    (get value :rotation)
+                                                next-scale       (get value :scale)]
+                                            (cond-> node
+                                              next-translation (assoc :translation next-translation)
+                                              next-rotation (assoc :rotation next-rotation)
+                                              next-scale (assoc :scale next-scale)))))
+                                   transform-tree)
+              transform-tree (if (= esse-id ::rubahperak)
                                (->> transform-tree
                                     (sp/transform [sp/ALL #(#{"左腕" "右腕"} (:name %)) :translation]
                                                   (fn [gt] (->> gt (m/+ (v/vec3 0.0 0.0 0.0)))))

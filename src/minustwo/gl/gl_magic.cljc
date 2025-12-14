@@ -10,8 +10,10 @@
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
    [minustwo.gl.gl-system :as gl-system]
+   [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
+   [minustwo.model.assimp :as assimp]
    [minustwo.utils :as utils]
    [odoyle.rules :as o]))
 
@@ -28,7 +30,22 @@
     ::to-cast
     [:what
      [esse-id ::spell spell]
-     [esse-id ::casted? :pending]]}))
+     [esse-id ::casted? :pending]]
+
+    ::I-cast-gltf-loading!
+    [:what
+     [esse-id ::gltf/data gltf-data]
+     [esse-id ::gltf/bins bins]
+     [esse-id ::shader/use use-shader]
+     [esse-id ::assimp/tex-unit-offset texu-offset]
+     :then
+     (println "[magic] gltf spell for" esse-id)
+     (let [gltf-spell
+           (gltf/gltf-spell gltf-data (first bins)
+                            {:model-id esse-id
+                             :use-shader use-shader
+                             :tex-unit-offset texu-offset})]
+       (insert! esse-id ::spell gltf-spell))]}))
 
 (def system
   {::world/rules rules})

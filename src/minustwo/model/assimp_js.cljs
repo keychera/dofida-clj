@@ -4,9 +4,7 @@
    [clojure.string :as str]
    [engine.macros :refer [vars->map]]
    [engine.world :as world]
-   [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
-   [minustwo.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
    [odoyle.rules :as o]))
 
@@ -41,9 +39,7 @@
   (o/ruleset
    {::assimp/model-to-load
     [:what
-     [esse-id ::assimp/model-to-load model-files]
-     [esse-id ::assimp/tex-unit-offset texu-offset]
-     [esse-id ::shader/use use-shader]]}))
+     [esse-id ::assimp/model-to-load model-files]]}))
 
 (defn load-models-from-world*
   "load models from world* and fire callback for each models loaded.
@@ -51,21 +47,14 @@
   [models-to-load world*]
   (doseq [model-to-load models-to-load]
     (let [model-files (:model-files model-to-load)
-          esse-id     (:esse-id model-to-load)
-          texu-offset (:texu-offset model-to-load)
-          use-shader  (:use-shader model-to-load)]
+          esse-id     (:esse-id model-to-load)]
       (println "[assimp-js] loading model" esse-id)
       (swap! world* o/retract esse-id ::assimp/model-to-load)
       (then-load-model
        model-files
        (fn [{:keys [gltf bins]}]
          (println "[assimp-js] loaded" esse-id)
-         (let [gltf-spell
-               (gltf/gltf-spell gltf (first bins)
-                                {:model-id esse-id
-                                 :use-shader use-shader
-                                 :tex-unit-offset texu-offset})]
-           (swap! world* o/insert esse-id ::gl-magic/spell gltf-spell)))))))
+         (swap! world* o/insert esse-id {::gltf/data gltf ::gltf/bins bins}))))))
 
 (def system
   {::world/rules rules})
