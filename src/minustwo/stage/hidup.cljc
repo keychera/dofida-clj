@@ -44,10 +44,45 @@
    :signatures '{main ([] void)}
    :functions  '{main ([] (= o_color (vec4 "0.2" "0.2" "0.2" "1.0")))}})
 
+(def dummy-pmx-vert
+  {:precision  "mediump float"
+   :inputs     '{POSITION   vec3
+                 NORMAL     vec3
+                 TEXCOORD_0 vec2
+                 JOINTS_0   uvec4
+                 WEIGHTS_0  vec4}
+   :outputs    '{Normal vec3
+                 TexCoords vec2}
+   :uniforms   '{u_model mat4
+                 u_view mat4
+                 u_projection mat4}
+   :signatures '{main ([] void)}
+   :functions  '{main ([]
+                       (=float dummy (- (float JOINTS_0.x) (float JOINTS_0.x))) ;; to make it not trimmed by shader compiler
+                       (=float dummy2 (- WEIGHTS_0.x WEIGHTS_0.x))
+                       (= gl_Position (* u_projection u_view u_model (vec4 POSITION (+ "1.0" dummy dummy2))))
+                       (= Normal NORMAL)
+                       (= TexCoords TEXCOORD_0))}})
+
+(def dummy-pmx-frag
+  {:precision  "mediump float"
+   :inputs     '{Normal vec3
+                 TexCoords vec2}
+   :outputs    '{o_color vec4}
+   :uniforms   '{u_mat_diffuse sampler2D}
+   :functions
+   "
+void main() 
+{
+    vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
+    o_color = vec4(result, 1.0);
+}"})
+
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (:webgl-context game)]
     (-> world
+        (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::grid
               #::shader{:program-info (cljgl/create-program-info ctx perspective-grid/vert perspective-grid/frag)
                         :use ::grid}
@@ -60,14 +95,13 @@
               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
                         :use ::simpleanime})
-        #_#_(esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
-          (esse ::rubahperak
-                #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 1}
-                #::shader{:use ::pmx-shader}))))
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx dummy-pmx-vert dummy-pmx-frag)})
+        (esse ::rubahperak
+              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
+              #::shader{:use ::pmx-shader}))))
 
 (defn after-load-fn [world _game]
-  (-> world
-      (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))))
+  (-> world))
 
 (def rules
   (o/ruleset
@@ -87,7 +121,7 @@
     [:what
      [esse-id ::gl-magic/casted? true]
      [esse-id ::shader/use shader-id]
-     [shader-id ::shader/program-info gltf-prog]
+     [shader-id ::shader/program-info program-info]
      [esse-id ::gltf/primitives gltf-primitives]
      :when
      (not= esse-id ::grid)]}))
@@ -118,28 +152,28 @@
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
         (let [time       (:total-time game)
+              ;; time       (if (= (:esse-id gltf-model) ::rubahperak) 0 time)
               trans-mat  (m-ext/translation-mat 0.0 0.0 0.0)
-              rot-mat   (g/as-matrix (q/quat-from-axis-angle
-                                      (v/vec3 0.0 1.0 0.0)
-                                      (m/radians (* 0.18 time))))
-              scale-mat (m-ext/scaling-mat 2.0)
+              rot-mat    (g/as-matrix (q/quat-from-axis-angle
+                                       (v/vec3 0.0 1.0 0.0)
+                                       (m/radians (* 0.018 time))))
+              scale-mat  (m-ext/scaling-mat 1.0)
               model      (reduce m/* [trans-mat rot-mat scale-mat])
-              gltf-prog  (:gltf-prog gltf-model)]
-          (doto ctx
-            (gl useProgram (:program gltf-prog))
-            (cljgl/set-uniform gltf-prog 'u_projection (f32-arr (vec project)))
-            (cljgl/set-uniform gltf-prog 'u_view (f32-arr (vec view)))
-            (cljgl/set-uniform gltf-prog 'u_model (f32-arr (vec model))))
+              gltf-prog  (:program-info gltf-model)]
+
+          (gl ctx useProgram (:program gltf-prog))
+          (cljgl/set-uniform ctx gltf-prog 'u_projection (f32-arr (vec project)))
+          (cljgl/set-uniform ctx gltf-prog 'u_view (f32-arr (vec view)))
+          (cljgl/set-uniform ctx gltf-prog 'u_model (f32-arr (vec model)))
 
           (doseq [prim (:gltf-primitives gltf-model)]
-            (let [{:keys [vao-name tex-name indices]} prim
-                  count                               (:count indices)
-                  component-type                      (:componentType indices)
-                  vao                                 (get @vao/db* vao-name)
-                  tex                                 (get @texture/db* tex-name)]
+            (let [indices        (:indices prim)
+                  count          (:count indices)
+                  component-type (:componentType indices)
+                  vao            (get @vao/db* (:vao-name prim))
+                  tex            (get @texture/db* (:tex-name prim))]
               (when vao
                 (gl ctx bindVertexArray vao)
-
                 (when-let [{:keys [tex-unit texture]} tex]
                   (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
                   (gl ctx bindTexture GL_TEXTURE_2D texture)

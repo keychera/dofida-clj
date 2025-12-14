@@ -34,7 +34,7 @@
                 :tex-name (:tex-name image)
                 :tex-unit (+ tex-unit-offset tex-idx)))))))
 
-(defn primitive-incantation [gltf-data result-bin use-shader]
+(defn primitive-spell [gltf-data result-bin use-shader]
   (let [accessors   (some-> gltf-data :accessors)
         bufferViews (some-> gltf-data :bufferViews)]
     (map
@@ -58,8 +58,7 @@
               id-bufferView (get bufferViews (:bufferView id-accessor))
               id-byteOffset (:byteOffset id-bufferView)
               id-byteLength (:byteLength id-bufferView)]
-          {:bind-buffer "IBO"
-           :buffer-type GL_ELEMENT_ARRAY_BUFFER
+          {:buffer-type GL_ELEMENT_ARRAY_BUFFER
            :buffer-data #?(:clj  [(count result-bin) id-byteOffset id-byteLength :jvm-not-handled]
                            :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
@@ -76,7 +75,7 @@
 (defonce debug-data* (atom {}))
 
 (defn gltf-spell
-  "magic to pass to gl-incantation"
+  "magic to pass to gl-magic/cast-spell"
   [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset]
                          :or {tex-unit-offset 0}}]
   (let [gltf-dir   (some-> gltf-data :asset :dir)
@@ -101,7 +100,7 @@
               {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
        images)
 
-      (eduction (primitive-incantation gltf-data result-bin use-shader) primitives)
+      (eduction (primitive-spell gltf-data result-bin use-shader) primitives)
 
       {:insert-facts
        (let [primitives (into []
