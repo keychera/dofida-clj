@@ -6,11 +6,12 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! vars->map]]
    [engine.world :as world]
-   [minustwo.gl.texture :as texture]
    [minusone.rules.gl.vao :as vao]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
    [minustwo.gl.gl-system :as gl-system]
+   [minustwo.gl.shader :as shader]
+   [minustwo.gl.texture :as texture]
    [minustwo.utils :as utils]
    [odoyle.rules :as o]))
 
@@ -61,7 +62,8 @@
 
           ;; entry: attrib pointing, some keywords follows gltf accessor keys 
           [{:point-attr _ :count _ :component-type _ :use-shader _}]
-          (if-let [attr-loc (get-in all-attr-locs [(:use-shader chant) (:point-attr chant) :attr-loc])]
+          (if-let [attr-loc (->> (get-in all-attr-locs [(:use-shader chant) (:point-attr chant) :attr-loc])
+                                 (s/conform ::shader/attr-loc))]
             (let [{:keys [count component-type stride offset] :or {stride 0 offset 0}} chant]
               (condp = component-type
                 GL_UNSIGNED_SHORT (gl ctx vertexAttribIPointer attr-loc count component-type stride offset)
