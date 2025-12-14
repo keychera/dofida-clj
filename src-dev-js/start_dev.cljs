@@ -7,7 +7,7 @@
    [reagent.dom.client :as rdomc]))
 
 ;; unstrumenting makes fps jumps back to 160 fps O_O !!
-(st/instrument)
+;; (st/instrument)
 
 (defonce fps-counter*
   (r/atom {:last-time (js/performance.now)

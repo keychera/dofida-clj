@@ -104,11 +104,12 @@
      [::world/global ::there-are-animes true {:then false}]
      :then
      (let [db             @db*
-           max-progress   11.0
+           max-progress   8.0
            duration       4800.0
            progress       (* max-progress (/ (mod tt duration) duration))
            running-animes (eduction
-                           (filter #(#{"anim" "Survey"} (:anime-name %)))
+                           ;; still hardcoded anime-name filtering, fox: Walk, Survey, Run
+                           (filter #(#{"anim" "Run"} (:anime-name %)))
                            (mapcat (fn [{:keys [keyframes esse-id max-input target-node target-path]}]
                                      (let [progress (mod progress max-input)]
                                        (into [] (map #(merge % (vars->map esse-id progress target-node target-path))) keyframes))))
@@ -129,3 +130,12 @@
 (def system
   {::world/after-load-fn (fn [world _game] (reset! db* {}) world)
    ::world/rules rules})
+
+(comment 
+  (distinct (sp/select [::animes sp/ALL :anime-name] @db*))
+  ["Survey" "Walk" "Run" "anim"]
+  
+  (tagged-literal 'flare/html {:title "game"
+                               :url (str "http://localhost:9333/" (rand))
+                               :reveal true
+                               :sidebar-panel? true}))

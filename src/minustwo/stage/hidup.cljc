@@ -10,6 +10,7 @@
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
+   [minusone.simple-gltf :as simple-gltf]
    [minustwo.anime.anime :as anime]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
@@ -72,17 +73,26 @@
         (esse ::rubah
               #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
               #::shader{:use ::pmx-shader}
+              t3d/default)
+        (esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  simple-gltf/pos+skins-vert simple-gltf/white-frag)})
+        (esse ::simpleskin
+              #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
+              #::shader{:use ::joints-shader}
               t3d/default))))
 
 (defn after-load-fn [world _game]
   (-> world
       (esse ::simpleanime
-            #::t3d{:translation (v/vec3 15.0 0.0 0.0)
+            #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                    :scale (v/vec3 8.0)})
+      (esse ::simpleskin
+            #::t3d{:translation (v/vec3 0.0 0.0 -16.0)
+                   :scale (v/vec3 24.0)})
       (esse ::rubahperak
             #::t3d{:translation (v/vec3 30.0 0.0 0.0)})
       (esse ::rubah
-            #::t3d{:scale (v/vec3 0.2)})))
+            #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
+                   :scale (v/vec3 0.2)})))
 
 (def rules
   (o/ruleset
@@ -135,7 +145,7 @@
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
         (let [{:keys [esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
-              time (:total-time game)
+              time  (:total-time game)
               anime (get (::anime/interpolated @anime/db*) esse-id)
               transform-tree (into []
                                    (map (fn [{:keys [idx] :as node}]
@@ -152,12 +162,17 @@
                                (->> transform-tree
                                     (sp/transform [sp/ALL #(#{"左腕" "右腕"} (:name %)) :translation]
                                                   (fn [gt] (->> gt (m/+ (v/vec3 0.0 0.0 0.0)))))
-                                    (sp/transform [sp/ALL #(#{"上半身"} (:name %)) :rotation]
+                                    (sp/transform [sp/ALL #(#{"上半身" "首"} (:name %)) :rotation]
                                                   (fn [_] (q/quat-from-axis-angle
                                                            (v/vec3 0.0 1.0 0.0)
                                                            (m/radians (* 10 (Math/sin (* 0.005 time))))))))
                                transform-tree)
-              joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)]
+              joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)
+              ;; duplicated calc here because gltf/create-joint-mats-arr also does this but it isn't returned
+              ;; will hammock node-0 more later because it clashes with our t3d/transform
+              node-0     (some-> (get transform-tree 0) (gltf/calc-local-transform) :local-transform)
+              model      (m/* node-0 model)]
+              
 
           (gl ctx useProgram (:program program-info))
           (cljgl/set-uniform ctx program-info 'u_projection (f32-arr (vec project)))
