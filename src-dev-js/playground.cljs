@@ -3,7 +3,7 @@
    [clojure.walk :as walk]
    [engine.world :as world]
    [engine.engine :as engine]
-   [minustwo.game :as game]
+   [engine.game :as game]
    [minustwo.gl.gltf :as gltf]
    [odoyle.rules :as o]
    [minustwo.systems :as systems]))

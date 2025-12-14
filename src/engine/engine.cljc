@@ -4,7 +4,7 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.refresh :refer [*refresh?]]
    [engine.world :as world]
-   [minustwo.game :as game]
+   [engine.game :as game]
    [minustwo.gl.constants :refer [GL_BLEND]]
    [minustwo.systems :as systems]
    [minustwo.zone.loading :refer [loading-zone]]

@@ -2,7 +2,7 @@
   (:require
    [engine.world :as world]
    [engine.engine :as engine]
-   [minustwo.game :as game]
+   [engine.game :as game]
    [minustwo.systems.input :as input])
   (:import
    [org.lwjgl.glfw

@@ -3,7 +3,7 @@
    [clojure.set :refer [difference]]
    [clojure.string :as string]
    [engine.engine :as engine]
-   [minustwo.game :as game]
+   [engine.game :as game]
    [engine.world :as world]
    [goog.events :as events]
    [minustwo.systems.input :as input]))
