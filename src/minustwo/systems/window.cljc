@@ -3,7 +3,7 @@
    [clojure.spec.alpha :as s]
    [odoyle.rules :as o]
    [engine.world :as world]
-   [minustwo.utils :as utils]))
+   [engine.utils :as utils]))
 
 (s/def ::dimension map?)
 

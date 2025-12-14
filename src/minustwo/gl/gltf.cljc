@@ -4,7 +4,7 @@
    [clojure.string :as str]
    [engine.math :as m-ext :refer [decompose-matrix44]]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
-   [minustwo.utils :as utils]
+   [engine.utils :as utils]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.vector :as v]
    [thi.ng.geom.quaternion :as q]

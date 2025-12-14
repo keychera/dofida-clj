@@ -20,7 +20,7 @@
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.projection :as projection]
-   [minustwo.utils :as utils]
+   [engine.utils :as utils]
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]

@@ -9,7 +9,7 @@
    [minustwo.gl.gl-system :as gl-system]
    [odoyle.rules :as o]
    [minustwo.systems.time :as time]
-   [minustwo.utils :as utils]))
+   [engine.utils :as utils]))
 
 (defn render-zone [game]
   (let [total-time             (:total-time game)

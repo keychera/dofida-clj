@@ -12,7 +12,7 @@
                                   GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER
                                   GL_UNSIGNED_BYTE]]
    [minustwo.gl.gl-system :as gl-system]
-   [minustwo.utils :as utils #?@(:cljs [:refer [data-uri->ImageBitmap]])]
+   [engine.utils :as utils #?@(:cljs [:refer [data-uri->ImageBitmap]])]
    [odoyle.rules :as o]))
 
 (defn texture-spell [ctx data width height tex-unit]

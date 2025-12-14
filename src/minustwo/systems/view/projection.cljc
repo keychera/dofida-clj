@@ -1,7 +1,7 @@
 (ns minustwo.systems.view.projection
   (:require
    [clojure.spec.alpha :as s]
-   [minustwo.utils :as utils]
+   [engine.utils :as utils]
    [engine.world :as world]
    [engine.types :as types]
    [odoyle.rules :as o]

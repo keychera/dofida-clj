@@ -5,6 +5,7 @@
              [cheshire.core :as json]])
    [clojure.edn :as edn]
    [engine.macros :refer [vars->map]]
+   [odoyle.rules :as o]
    [thi.ng.geom.matrix :as mat])
   #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
   #?(:clj (:import
@@ -45,14 +46,14 @@
 (defn get-size [game]
   #?(:clj  (let [*width (MemoryUtil/memAllocInt 1)
                  *height (MemoryUtil/memAllocInt 1)
-                 _ (GLFW/glfwGetFramebufferSize ^long (:context game) *width *height)
+                 _ (GLFW/glfwGetFramebufferSize ^long (:glfw-window game) *width *height)
                  w (.get *width)
                  h (.get *height)]
              (MemoryUtil/memFree *width)
              (MemoryUtil/memFree *height)
              [w h])
-     :cljs [(-> game :context .-canvas .-clientWidth)
-            (-> game :context .-canvas .-clientHeight)]))
+     :cljs [(-> game :webgl-context .-canvas .-clientWidth)
+            (-> game :webgl-context .-canvas .-clientHeight)]))
 
 #?(:cljs
    (defn make-limited-logger [limit]
@@ -160,7 +161,32 @@
   [^floats f32s idx]
   (let [i (* (or idx 0) 16)]
     (mat/matrix44
-      (aget f32s i)  (aget f32s (+ i 1))  (aget f32s (+ i 2))  (aget f32s (+ i 3))
-      (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))
-      (aget f32s (+ i 8))  (aget f32s (+ i 9))  (aget f32s (+ i 10)) (aget f32s (+ i 11))
-      (aget f32s (+ i 12)) (aget f32s (+ i 13)) (aget f32s (+ i 14)) (aget f32s (+ i 15)))))
+     (aget f32s i)  (aget f32s (+ i 1))  (aget f32s (+ i 2))  (aget f32s (+ i 3))
+     (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))
+     (aget f32s (+ i 8))  (aget f32s (+ i 9))  (aget f32s (+ i 10)) (aget f32s (+ i 11))
+     (aget f32s (+ i 12)) (aget f32s (+ i 13)) (aget f32s (+ i 14)) (aget f32s (+ i 15)))))
+
+(defn query-one [world rule-name]
+  (first (o/query-all world rule-name)))
+
+#?(:cljs
+   (defn data-uri->header+Uint8Array [data-uri]
+     (let [[header base64-str] (.split data-uri ",")]
+       [header (js/Uint8Array.fromBase64 base64-str)])))
+
+;; following this on loading image to bindTexture with blob
+;; https://webglfundamentals.org/webgl/lessons/webgl-qna-how-to-load-images-in-the-background-with-no-jank.html
+#?(:cljs
+   (defn data-uri->ImageBitmap
+     "parse data-uri and pass the resulting bitmap to callback.
+      callback will receive {:keys [bitmap width height]}"
+     [data-uri callback]
+     (let [[header uint8-arr] (data-uri->header+Uint8Array data-uri)
+           data-type          (second (re-matches #"data:(.*);.*" header))
+           blob               (js/Blob. #js [uint8-arr] #js {:type data-type})]
+       (.then (js/createImageBitmap blob)
+              (fn [bitmap]
+                (let [width  (.-width bitmap)
+                      height (.-height bitmap)]
+                  (println "blob:" data-type "count" (.-length uint8-arr))
+                  (callback (vars->map bitmap width height))))))))

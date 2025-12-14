@@ -14,7 +14,7 @@
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
-   [minustwo.utils :as utils]
+   [engine.utils :as utils]
    [odoyle.rules :as o]))
 
 (s/def ::spell sequential?)
