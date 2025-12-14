@@ -9,7 +9,8 @@
    [thi.ng.geom.vector :as v]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.core :as g]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [com.rpl.specter :as sp]))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -22,7 +23,7 @@
 
 (s/def ::primitives sequential?)
 (s/def ::joints vector?)
-(s/def ::transform-tree (s/coll-of ::node+transform))
+(s/def ::transform-tree (s/coll-of ::node+transform :kind vector))
 (s/def ::inv-bind-mats vector?)
 
 (defn create-vao-names [prefix]
@@ -201,7 +202,7 @@
              transform-tree (node-transform-tree nodes)]
          [[model-id ::primitives primitives]
           [model-id ::joints (or joints [])]
-          [model-id ::transform-tree transform-tree]
+          [model-id ::transform-tree (vec transform-tree)]
           (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
 
@@ -282,7 +283,13 @@
      (:joints skin)
      (count inv-bind-mats)
      (count (:nodes gltf-data))
-     (take 4 transform-tree)]
+     (take 4 transform-tree)
+     (->> (vec transform-tree)
+          (sp/transform [sp/ALL #(#{"腰"} (:name %)) :rotation]
+                        (fn [_] (q/quat-from-axis-angle
+                                 (v/vec3 1.0 0.0 0.0)
+                                 (m/radians 40)))))]
+
     #_(create-joint-mats-arr (:joints skin) transform-tree inv-bind-mats))
 
   :-)

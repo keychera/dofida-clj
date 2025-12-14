@@ -2,6 +2,7 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [com.rpl.specter :as sp]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
@@ -124,11 +125,19 @@
               trans-mat  (m-ext/translation-mat 0.0 0.0 0.0)
               rot-mat    (g/as-matrix (q/quat-from-axis-angle
                                        (v/vec3 0.0 1.0 0.0)
-                                       (m/radians (* 0.018 time))))
+                                       (m/radians 0.0)))
               scale-mat  (m-ext/scaling-mat 1.0)
               model      (reduce m/* [trans-mat rot-mat scale-mat])
               {:keys [program-info joints transform-tree inv-bind-mats]} gltf-model
-              transform-tree transform-tree
+              transform-tree (if (= (:esse-id gltf-model) ::rubahperak)
+                               (->> transform-tree
+                                    (sp/transform [sp/ALL #(#{"左腕" "右腕"} (:name %)) :translation]
+                                                  (fn [gt] (->> gt (m/+ (v/vec3 0.0 0.0 0.0)))))
+                                    (sp/transform [sp/ALL #(#{"上半身"} (:name %)) :rotation]
+                                                  (fn [_] (q/quat-from-axis-angle
+                                                           (v/vec3 0.0 1.0 0.0)
+                                                           (m/radians (* 10 (Math/sin (* 0.005 time))))))))
+                               transform-tree)
               joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)]
 
           (gl ctx useProgram (:program program-info))
