@@ -1,7 +1,8 @@
 (ns engine.start
   (:require
-   [engine.engine :as engine]
    [engine.world :as world]
+   [minustwo.engine :as engine]
+   [minustwo.game :as game]
    [minustwo.systems.input :as input])
   (:import
    [org.lwjgl.glfw
@@ -277,5 +278,5 @@
 
 (defn -main [& _args]
   (let [window (->window)]
-    (start (engine/->game (:handle window)) window)))
+    (start (game/->game (:handle window)) window)))
 
