@@ -25,7 +25,7 @@
   (println "running desktop game...")
   (let [cmd (b/java-command {:basis @basis
                              :main  'clojure.main
-                             :main-args ["-m" "engine.start"]})]
+                             :main-args ["-m" "platform.start"]})]
     (b/process cmd)))
 
 (defn repl [& _]

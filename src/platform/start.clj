@@ -1,4 +1,4 @@
-(ns engine.start
+(ns platform.start
   (:require
    [engine.world :as world]
    [engine.engine :as engine]
