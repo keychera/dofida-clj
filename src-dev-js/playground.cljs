@@ -1,6 +1,5 @@
 (ns playground
   (:require
-   [clojure.spec.test.alpha :as st]
    [clojure.walk :as walk]
    [engine.world :as world]
    [minustwo.engine :as engine]
@@ -8,8 +7,6 @@
    [minustwo.gl.gltf :as gltf]
    [odoyle.rules :as o]
    [minustwo.systems :as systems]))
-
-(st/instrument)
 
 (defn limited-game-loop
   ([loop-fn end-fn how-long]

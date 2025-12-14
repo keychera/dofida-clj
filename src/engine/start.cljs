@@ -55,16 +55,18 @@
 
 (defn game-loop
   ([game] (game-loop game nil))
-  ([game {::keys [callback-fn] :as config}]
-   (let [game (engine/tick game)]
+  ([game {::keys [callback-fn error-fn]
+          :or {error-fn #(throw %)}
+          :as config}]
+   (let [game (try (engine/tick game)
+                   (catch js/Error e (error-fn e)))]
      (js/requestAnimationFrame
       (fn [ts]
-        (let [ts ts]
-          (when callback-fn (callback-fn game))
-          (game-loop (assoc game
-                            :delta-time (- ts (:total-time game))
-                            :total-time ts)
-                     config)))))))
+        (when callback-fn (callback-fn game))
+        (game-loop (assoc game
+                          :delta-time (- ts (:total-time game))
+                          :total-time ts)
+                   config))))))
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
@@ -85,7 +87,7 @@
                            ;; https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/4
                            (.setTimeout js/window (fn reset-locked-back-to-true [] (reset! locked?* false)) 1200)
                            (reset! locked?* canvas-locked?))
-                          
+
                          (swap! world-inputs assoc ::flag ::lockchange)))))
 
 (defn listen-for-pointer [canvas]

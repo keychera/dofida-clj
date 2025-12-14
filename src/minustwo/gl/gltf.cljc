@@ -9,8 +9,7 @@
    [thi.ng.geom.vector :as v]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.core :as g]
-   [thi.ng.math.core :as m]
-   [com.rpl.specter :as sp]))
+   [thi.ng.math.core :as m]))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -109,18 +108,7 @@
 (s/def :geom/scale #(instance? thi.ng.geom.vector.Vec3 %))
 (s/def ::node+transform (s/keys :req-un [:geom/matrix :geom/translation :geom/rotation :geom/scale]))
 
-(s/def :array/matrix (s/coll-of number? :count 16))
-(s/def :array/translation (s/coll-of number? :count 3))
-(s/def :array/rotation (s/coll-of number? :count 4))
-(s/def :array/scale (s/coll-of number? :count 3))
-(s/def ::children (s/coll-of number?))
-(s/def ::incomplete-node ;; I think I have incomplete assumption, currently this doesn't check anything, all node will be processed
-  (s/or :only-matrix   (s/keys :req-un [:array/matrix])
-        :only-trs      (s/keys :req-un [(or :array/translation :array/rotation :array/scale)])
-        :only-children (s/keys :req-un [::children])))
-
 (s/fdef process-as-geom-transform
-  :args (s/cat :node ::incomplete-node)
   :ret ::node+transform)
 (defn process-as-geom-transform
   "if node have :matrix, decompose it and attach :translation, :rotation, :scale
@@ -148,7 +136,6 @@
                :scale (or scale (v/vec3 1.0 1.0 1.0)))))))
 
 (s/fdef node-transform-tree
-  :args (s/cat :node (s/coll-of ::incomplete-node))
   :ret ::transform-tree)
 (defn node-transform-tree [nodes]
   (let [tree (tree-seq :children
@@ -265,28 +252,10 @@
   (require '[clojure.spec.test.alpha :as st]
            '[clojure.repl :refer [doc]])
 
-  (let [node  {:children [21],
-               :matrix [1 0 0 0 0 1 0 0 0 0 1 0 -0.5633741021156311 1.596090316772461 1.2539173364639282 1],
-               :name "HairFB1_JNT"}]
-    (s/explain ::incomplete-node node))
-
   (doc node-transform-tree)
 
   (st/instrument)
   (st/unstrument)
-  (let [gltf-data (some-> @debug-data* :minustwo.stage.hidup/rubahperak :gltf-data)
-        accessor  (some-> gltf-data :accessors)
-        nodes     (some-> gltf-data :nodes)
-        skins     (some-> gltf-data :skins)
-        ibms      (some-> skins first :inverseBindMatrices)
-        tree      (node-transform-tree nodes)]
-    [(count tree)
-     (-> skins first :joints count)
-     (-> (get accessor ibms) :count)
-     (take 4 tree)]
-    ;; I was expecting the joints count = inverseBindMatrices count = (count (node-transform-tree nodes)) with filter ::incomplete-node
-    ;; but I got is 440 = 440 != 439
-    )
 
   (let [gltf-data (-> @debug-data* :minustwo.stage.hidup/rubahperak :gltf-data)
         nodes     (:nodes gltf-data)

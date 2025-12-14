@@ -1,4 +1,6 @@
 (ns minustwo.utils
+  #_{:clj-kondo/ignore [:unused-referred-var
+                        :unused-namespace]} ;; temporarily
   (:require
    #?@(:clj [[clojure.java.io :as io]
              [cheshire.core :as json]])
