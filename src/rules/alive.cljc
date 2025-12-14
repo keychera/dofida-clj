@@ -2,8 +2,8 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [assets.asset :as asset :refer [asset]]
-   [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
+   [rules.asset :as asset :refer [asset]]
+   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
    [minustwo.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ZERO GL_ONE GL_FLOAT GL_ARRAY_BUFFER GL_FRAMEBUFFER GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minustwo.gl.texture :as texture]
    [clojure.spec.alpha :as s]
@@ -292,7 +292,7 @@
           (gl game drawArrays GL_TRIANGLES 0 6)))))})
 
 (defmethod asset/process-asset ::asset/alive
-  [world* _game asset-id {::asset/keys [metadata-to-load]}]
+  [world* _game asset-id {::asset/keys [:rules.asset/metadata-to-load]}]
   (swap! world* #(-> % (o/insert asset-id ::metadata-loaded? false)))
   (utils/get-json
    metadata-to-load

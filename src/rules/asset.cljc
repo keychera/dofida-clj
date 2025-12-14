@@ -1,4 +1,4 @@
-(ns assets.asset
+(ns rules.asset
   (:require 
    [clojure.spec.alpha :as s]
    [engine.utils :as utils]

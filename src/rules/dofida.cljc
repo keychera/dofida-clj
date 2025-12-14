@@ -2,8 +2,8 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [assets.asset :as asset :refer [asset]]
-   [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
+   [rules.asset :as asset :refer [asset]]
+   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT GL_FLOAT GL_FRAMEBUFFER GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS GL_MAX_TEXTURE_IMAGE_UNITS GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS GL_ONE GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES GL_ZERO]]
    [minustwo.gl.texture :as texture]
    [clojure.spec.alpha :as s]

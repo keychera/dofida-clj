@@ -2,7 +2,6 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
-   [assets.asset :as asset]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [engine.macros :refer [vars->map]]
@@ -67,12 +66,6 @@
     (vars->map frame-buf fbo-tex tex-unit)))
 
 (s/def ::fbo map?)
-
-(defmethod asset/process-asset ::asset/fbo
-  [world* game asset-id {::keys [tex-unit]}]
-  (let [[width height] (utils/get-size game)
-        fbo            (fbo-spell game width height tex-unit)]
-    (swap! world* o/insert asset-id {::asset/loaded? true ::fbo fbo})))
 
 (s/def ::texture any?)
 (s/def ::tex-unit int?)

@@ -23,10 +23,8 @@
 
 (def fact-id-with-frequent-updates
   #{:minustwo.systems.time/now
-    :rules.firstperson/player
-    :rules.window/window
+    :minustwo.systems.window/window
     :minustwo.systems.input/mouse
-    :rules.camera.arcball/camera
     :minustwo.systems.input/mouse-delta
     :minustwo.systems.view.firstperson/player})
 
