@@ -10,10 +10,15 @@ todo:
         ✔ rewrite once again, now with t3d and more wishful thinking @done(25-12-10 23:32)
 
     re:minustwo?:
-        ☐ animation,
-        ☐ scene graph 
-        ☐ joints, 
+        ✔ animation, @done(25-12-15 00:29)
+        ✔ scene graph @done(25-12-15 00:29) the bone scene tree is what I mean
+        ✔ joints, @done(25-12-15 00:29)
+        
+    anime arc:
+        ☐ the pose interpolation
+        ☐ blender integration
         ☐ blend shapes
+        ☐ shaders, czmw_, tsoding, bmtol
 
     ☐ it begins
         ✔ reconstruct atlas asset with our current gl knowledge @done(25-11-08 15:07), not atlas yet but good enough
@@ -50,21 +55,23 @@ todo:
             ✔ understand skinning, joint, weight, this is what we truly need @done(25-12-06 14:41) HOLY MOLY YOOOO!
                 ☐ how to define the pose, the keyframe
                     ☐ from blender, have it be available in gltf, the parse it?
-                    ☐ gltf animation section?
+                    ✔ gltf animation section? @done(25-12-15 00:29)
                     ☐ gltf morph target section?
                     ☐ from MMD? (low prio because we wont be using pmx much in our game)
-                ☐ the bone hierarchy and its parent-child transformation
+                ✔ the bone hierarchy and its parent-child transformation @done(25-12-15 00:29)
                 ☐ does anime-clj integrate with this?? let's find out
-                    ☐ the keyframe/pose interpolation
-                    ☐ I also have a inkling of feelings that transducers will fit in all of this, I think, just a feeling
-            ☐ understand scene and nodes
-            ☐ check our assumptions about gltf parsing
+                    ✔ the keyframe/pose interpolation @done(25-12-15 00:30)
+                    ✔ I also have a inkling of feelings that transducers will fit in all of this, I think, just a feeling @done(25-12-15 00:30) ok tree-seq transducer is a big win
+                        ☐ learn the tree-seq transducer, meld with transducer, profile one, create one, become one
+            ✔ understand scene and nodes @done(25-12-15 00:31)
+            ✔ check our assumptions about gltf parsing @done(25-12-15 00:31) we spec our way
             ✔ the blender gizmo @done(25-12-06 14:42) we did the perspective grid
                 ☐ (luxury) the 3 axis arrow maybe
             ☐ arcball recreate
         
         ☐ skybox
         ☐ better first person control feel
+            ☐ I think zooming out makes the control feels better? will test more
             ☐ THIRD PERSON MOVEMENT??
 
         ☐ make a SCENE 
@@ -189,3 +196,4 @@ devx:
     ☐ sidestream twoway, text as interface
     ✔ the init still reload all assets @done(25-11-29 02:11)
         ☐ investigate the implication of reinserting all facts
+    ☐ st/instrument slows down our game
