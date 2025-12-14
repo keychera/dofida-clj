@@ -10,8 +10,7 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.core :as g]
    [thi.ng.math.core :as m]
-   [com.rpl.specter :as sp]
-   [clojure.spec.test.alpha :as st]))
+   [com.rpl.specter :as sp]))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -214,21 +213,39 @@
         local-trans  (reduce m/* [trans-mat rot-mat scale-mat])]
     (assoc node :local-transform local-trans)))
 
+;; tree-seq transducer hmmm, it makes the games back to around 100 fps
+;; however, if we (st/unstrument), the game goes back to 160 fps!
+;; https://gist.github.com/green-coder/3adf11660b7b0ca83648c5be69de2a3b
+;; https://gist.github.com/cgrand/b5bf4851b0e5e3aeb438eba2298dacb9
+(defn tree-cat [branch? children]
+  (fn [rf]
+    (letfn [(nested [acc x]
+              (let [acc (rf acc x)]
+                (cond
+                  (reduced? acc) (reduced acc)
+                  (branch? x) (let [acc (reduce nested acc (children x))]
+                                (cond-> acc (reduced? acc) reduced))
+                  :else acc)))]
+      (fn
+        ([] (rf))
+        ([acc] (rf acc))
+        ([acc x] (unreduced (nested acc x)))))))
+
 (s/fdef global-transform-tree
   :args (s/cat :transform-tree ::transform-tree))
 (defn global-transform-tree [transform-tree]
-  (vec
-   (tree-seq :children
-             (fn [parent]
-               (into [] (comp
-                         (map (fn [cid] (calc-local-transform (nth transform-tree cid))))
-                         (map (fn [{:keys [local-transform] :as node}]
-                                (let [global-t (m/* (:global-transform parent) local-transform)]
-                                  (assoc node :global-transform global-t)))))
-                     (:children parent)))
-             (-> (calc-local-transform (first transform-tree))
-                 ((fn [{:keys [local-transform] :as node}]
-                    (assoc node :global-transform local-transform)))))))
+  (into []
+        (tree-cat :children
+                  (fn [parent]
+                    (into [] (comp
+                              (map (fn [cid] (calc-local-transform (get transform-tree cid))))
+                              (map (fn [{:keys [local-transform] :as node}]
+                                     (let [global-t (m/* (:global-transform parent) local-transform)]
+                                       (assoc node :global-transform global-t)))))
+                          (:children parent))))
+        [(-> (calc-local-transform (first transform-tree))
+             ((fn [{:keys [local-transform] :as node}]
+                (assoc node :global-transform local-transform))))]))
 
 (defn create-joint-mats-arr [joints transform-tree inv-bind-mats]
   (let [f32s      (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))
@@ -278,22 +295,21 @@
     (node-transform-tree nodes))
 
   (let [gltf-data      (-> @debug-data* :minustwo.stage.hidup/rubahperak :gltf-data)
-        result-bin     (-> @debug-data* :minustwo.stage.hidup/rubahperak :bin)
         nodes          (:nodes gltf-data)
-        skin           (-> gltf-data :skins first)
         nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) nodes)
-        transform-tree (node-transform-tree nodes)
-        inv-bind-mats  (get-ibm-inv-mats gltf-data result-bin)]
-    [(reduce max (:joints skin))
-     (:joints skin)
-     (count inv-bind-mats)
-     (count (:nodes gltf-data))
-     (take 4 transform-tree)
-     (->> (vec transform-tree)
-          (sp/transform [sp/ALL #(#{"腰"} (:name %)) :rotation]
-                        (fn [_] (q/quat-from-axis-angle
-                                 (v/vec3 1.0 0.0 0.0)
-                                 (m/radians 40)))))]
+        transform-tree (vec (node-transform-tree nodes))]
+    (into []
+          (tree-cat :children
+                    (fn [parent]
+                      (into [] (comp
+                                (map (fn [cid] (calc-local-transform (get transform-tree cid))))
+                                (map (fn [{:keys [local-transform] :as node}]
+                                       (let [global-t (m/* (:global-transform parent) local-transform)]
+                                         (assoc node :global-transform global-t)))))
+                            (:children parent))))
+          [(-> (calc-local-transform (first transform-tree))
+               ((fn [{:keys [local-transform] :as node}]
+                  (assoc node :global-transform local-transform))))])
 
     #_(create-joint-mats-arr (:joints skin) transform-tree inv-bind-mats))
 
