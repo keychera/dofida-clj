@@ -4,7 +4,7 @@
    [engine.macros :refer [insert!]]
    [engine.math :as m-ext]
    [engine.world :as world]
-   [minusone.rules.types :as types]
+   [engine.types :as types]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]

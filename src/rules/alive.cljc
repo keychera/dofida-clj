@@ -4,8 +4,8 @@
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [assets.asset :as asset :refer [asset]]
    [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
-   [minusone.rules.gl.gl :refer [GL_COLOR_BUFFER_BIT GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ZERO GL_ONE GL_FLOAT GL_ARRAY_BUFFER GL_FRAMEBUFFER GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
-   [minusone.rules.gl.texture :as texture]
+   [minustwo.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ZERO GL_ONE GL_FLOAT GL_ARRAY_BUFFER GL_FRAMEBUFFER GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
+   [minustwo.gl.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s-> vars->map]]
    [engine.utils :as utils]

@@ -3,7 +3,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert!]]
    [engine.world :as world]
-   [minusone.rules.types :as types]
+   [engine.types :as types]
    [odoyle.rules :as o]
    [minustwo.systems.time :as time]
    [thi.ng.geom.matrix :as mat]

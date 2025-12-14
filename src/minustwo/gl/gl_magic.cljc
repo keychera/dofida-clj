@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! vars->map]]
    [engine.world :as world]
-   [minusone.rules.gl.vao :as vao]
+   [minustwo.gl.vao :as vao]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
    [minustwo.gl.gl-system :as gl-system]

@@ -1,4 +1,4 @@
-(ns minusone.rules.types
+(ns engine.types
   (:require
    [clojure.spec.alpha :as s]
    [thi.ng.geom.matrix #?@(:cljs [:refer [Matrix44]])]
