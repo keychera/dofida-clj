@@ -3,8 +3,7 @@
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
    [engine.sugar :refer [f32-arr i32-arr]]
-   [engine.world :as world]
-   [minusone.esse :refer [esse]]
+   [engine.world :as world :refer [esse]]
    [minusone.rules.gl.gl :as gl :refer [GL_DEPTH_TEST GL_UNSIGNED_INT GL_FLOAT GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER GL_TRIANGLES]]
    [minusone.rules.gl.magic :as gl-magic]
    [minusone.rules.gl.shader :as shader]

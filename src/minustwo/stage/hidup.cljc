@@ -4,8 +4,7 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [com.rpl.specter :as sp]
    [engine.sugar :refer [f32-arr]]
-   [engine.world :as world]
-   [minusone.esse :refer [esse]]
+   [engine.world :as world :refer [esse]]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
@@ -44,7 +43,6 @@
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions  '{main ([] (= o_color (vec4 "0.2" "0.2" "0.2" "1.0")))}})
-
 
 (def pmx-vert
   {:precision  "mediump float"
@@ -237,7 +235,6 @@ void main()
               ;; will hammock node-0 more later because it clashes with our t3d/transform
               node-0     (some-> (get transform-tree 0) (gltf/calc-local-transform) :local-transform)
               model      (m/* node-0 model)]
-              
 
           (gl ctx useProgram (:program program-info))
           (cljgl/set-uniform ctx program-info 'u_projection (f32-arr (vec project)))
