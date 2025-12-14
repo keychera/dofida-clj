@@ -7,7 +7,7 @@
    [engine.world :as world]
    [odoyle.rules :as o]
    [rules.camera.arcball :as arcball]
-   [minusone.rules.view.firstperson :as firstperson]))
+   [minustwo.systems.view.firstperson :as firstperson]))
 
 (s/def ::mode #{::arcball ::firstperson})
 (s/def ::x number?)

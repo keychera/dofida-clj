@@ -9,7 +9,7 @@
    [minusone.rules.gl.shader :as shader]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.projection :as projection]
-   [minusone.rules.view.firstperson :as firstperson]
+   [minustwo.systems.view.firstperson :as firstperson]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))

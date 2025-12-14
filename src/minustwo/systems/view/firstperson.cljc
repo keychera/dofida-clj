@@ -1,4 +1,4 @@
-(ns minusone.rules.view.firstperson
+(ns minustwo.systems.view.firstperson
   (:require
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert!]]

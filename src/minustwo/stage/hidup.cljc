@@ -7,7 +7,7 @@
    [engine.world :as world :refer [esse]]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
-   [minusone.rules.view.firstperson :as firstperson]
+   [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.anime.anime :as anime]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST

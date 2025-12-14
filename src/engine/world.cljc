@@ -28,7 +28,7 @@
     :minustwo.systems.input/mouse
     :rules.camera.arcball/camera
     :minustwo.systems.input/mouse-delta
-    :minusone.rules.view.firstperson/player})
+    :minustwo.systems.view.firstperson/player})
 
 (defn rules-debugger-wrap-fn [rule]
   (o/wrap-rule rule

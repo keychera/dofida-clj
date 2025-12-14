@@ -2,7 +2,7 @@
   (:require
    #?(:clj  [minustwo.model.assimp-lwjgl :as assimp-jvm]
       :cljs [minustwo.model.assimp-js :as assimp-js])
-   [minusone.rules.view.firstperson :as firstperson]
+   [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.anime.anime :as anime]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
