@@ -2,7 +2,7 @@
   (:require
    [clojure.walk :as walk]
    [engine.world :as world]
-   [minustwo.engine :as engine]
+   [engine.engine :as engine]
    [minustwo.game :as game]
    [minustwo.gl.gltf :as gltf]
    [odoyle.rules :as o]

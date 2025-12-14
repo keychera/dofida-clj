@@ -2,7 +2,7 @@
   (:require
    [clojure.set :refer [difference]]
    [clojure.string :as string]
-   [minustwo.engine :as engine]
+   [engine.engine :as engine]
    [minustwo.game :as game]
    [engine.world :as world]
    [goog.events :as events]

@@ -1,7 +1,7 @@
 (ns engine.start
   (:require
    [engine.world :as world]
-   [minustwo.engine :as engine]
+   [engine.engine :as engine]
    [minustwo.game :as game]
    [minustwo.systems.input :as input])
   (:import

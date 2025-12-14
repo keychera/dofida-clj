@@ -1,4 +1,4 @@
-(ns minustwo.engine
+(ns engine.engine
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
