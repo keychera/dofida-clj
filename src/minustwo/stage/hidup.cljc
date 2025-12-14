@@ -3,7 +3,6 @@
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [com.rpl.specter :as sp]
-   [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
@@ -21,10 +20,10 @@
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
+   [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.projection :as projection]
    [minustwo.utils :as utils]
    [odoyle.rules :as o]
-   [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
@@ -66,10 +65,19 @@
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
-              #::shader{:use ::pmx-shader}))))
+              #::shader{:use ::pmx-shader}
+              t3d/default)
+        (esse ::rubah
+              #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
+              #::shader{:use ::pmx-shader}
+              t3d/default))))
 
 (defn after-load-fn [world _game]
-  (-> world))
+  (-> world
+      (esse ::rubahperak
+            #::t3d{:translation (v/vec3 30.0 0.0 0.0)})
+      (esse ::rubah
+            #::t3d{:scale (v/vec3 0.2)})))
 
 (def rules
   (o/ruleset
@@ -88,6 +96,7 @@
     ::gltf-models
     [:what
      [esse-id ::gl-magic/casted? true]
+     [esse-id ::t3d/transform model]
      [esse-id ::shader/use shader-id]
      [shader-id ::shader/program-info program-info]
      [esse-id ::gltf/primitives gltf-primitives]
@@ -120,15 +129,8 @@
 
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
-        (let [time       (:total-time game)
-              ;; time       (if (= (:esse-id gltf-model) ::rubahperak) 0 time)
-              trans-mat  (m-ext/translation-mat 0.0 0.0 0.0)
-              rot-mat    (g/as-matrix (q/quat-from-axis-angle
-                                       (v/vec3 0.0 1.0 0.0)
-                                       (m/radians 0.0)))
-              scale-mat  (m-ext/scaling-mat 1.0)
-              model      (reduce m/* [trans-mat rot-mat scale-mat])
-              {:keys [program-info joints transform-tree inv-bind-mats]} gltf-model
+        (let [{:keys [model program-info joints transform-tree inv-bind-mats]} gltf-model
+              time (:total-time game)
               transform-tree (if (= (:esse-id gltf-model) ::rubahperak)
                                (->> transform-tree
                                     (sp/transform [sp/ALL #(#{"左腕" "右腕"} (:name %)) :translation]

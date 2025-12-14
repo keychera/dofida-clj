@@ -10,7 +10,8 @@
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.window :as window]
    [rules.interface.input :as input]
-   [rules.time :as time]))
+   [rules.time :as time]
+   [minustwo.systems.transform3d :as t3d]))
 
 (def all
   [time/system
@@ -27,4 +28,5 @@
    gl-system/system
    gl-magic/system
    
+   t3d/system
    hidup/system])
