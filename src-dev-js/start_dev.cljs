@@ -1,12 +1,12 @@
 (ns start-dev
   (:require
    [clojure.spec.test.alpha :as st]
-   [engine.start :as start]
    [leva.core :as leva]
+   [platform.start :as start]
    [reagent.core :as r]
    [reagent.dom.client :as rdomc]))
 
-(st/instrument)
+;; (st/instrument)
 
 (defonce fps-counter*
   (r/atom {:last-time (js/performance.now)
@@ -42,3 +42,11 @@
 (defonce dev-only
   (do (run-reagent)
       (start/-main {::start/callback-fn dev-loop})))
+
+(comment
+  
+  (st/instrument)
+
+  (st/unstrument)
+  
+  :-)

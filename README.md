@@ -1,6 +1,6 @@
 # dofida-clj
 
-> dofida, an entity made of stars and clojure data structures.
+> dofida, an esse made of stars, shaders, and clojure data structures.
 
 ## js
 

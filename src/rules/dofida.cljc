@@ -2,16 +2,10 @@
   (:require
    #?(:clj  [play-cljc.macros-java :refer [gl]]
       :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [assets.asset :as asset :refer [asset]]
-   [assets.primitives :refer [plane3d-uvs plane3d-vertices]]
-   [minusone.rules.gl.gl :refer [GL_COLOR_BUFFER_BIT
-                                 GL_ARRAY_BUFFER
-                                 GL_TEXTURE0
-                                 GL_TEXTURE_2D
-                                 GL_MAX_TEXTURE_IMAGE_UNITS
-                                 GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS
-                                 GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS]]
-   [minusone.rules.gl.texture :as texture]
+   [rules.asset :as asset :refer [asset]]
+   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT GL_FLOAT GL_FRAMEBUFFER GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS GL_MAX_TEXTURE_IMAGE_UNITS GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS GL_ONE GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES GL_ZERO]]
+   [minustwo.gl.texture :as texture]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]
@@ -22,7 +16,7 @@
    [play-cljc.math :as plcjc-m]
    [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
-   [rules.interface.input :as input]
+   [minustwo.systems.input :as input]
    [rules.window :as window]
    [thi.ng.geom.core :as g]))
 
@@ -302,7 +296,7 @@
        (let [esse-3d (:esse-3d dofida)
              texture (:texture dofida)
              fbo     (:fbo dofida)
-             dim     (:dimension (first (o/query-all world ::window/window)))
+             dim     (window/get-window world)
              mvp     (get-mvp world dim)
              {:keys [the-program
                      the-attr-loc

@@ -2,11 +2,11 @@
   (:require
    [cider.nrepl :refer [cider-nrepl-handler]]
    [clojure.spec.test.alpha :as st]
-   [engine.engine :as engine]
+   [engine.game :as game]
    [engine.refresh :as refresh]
-   [engine.start :as start]
    [gui.debug-ui :as debug-ui]
-   [nrepl.server :as nrepl-server])
+   [nrepl.server :as nrepl-server]
+   [platform.start :as start])
   (:import
    (imgui ImGui)
    (imgui.gl3 ImGuiImplGl3)
@@ -27,7 +27,7 @@
   (with-redefs
    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]
     (let [window (start/->window true)
-          game   (engine/->game (:handle window))
+          game   (game/->game (:glfw-window window))
           imguiGlfw (ImGuiImplGlfw.)
           imGuiGl3 (ImGuiImplGl3.)
           callback #::start{:init-fn (partial debug-ui/init imguiGlfw imGuiGl3)

@@ -17,6 +17,6 @@
 
    :dev     {:modules {:main {:entries [start-dev]}}}
 
-   :release {:modules {:main {:entries [engine.start]
-                              :init-fn engine.start/-main}}
+   :release {:modules {:main {:entries [platform.start]
+                              :init-fn platform.start/-main}}
              :compiler-options {:optimizations :advanced}}}}}

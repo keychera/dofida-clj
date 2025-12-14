@@ -32,6 +32,30 @@
     0.0  0.0  1.0  0.0
     tx,  ty,  tz,  1.0)))
 
+;; hmm this ns is inconsistent
+(defn vec3->scaling-mat
+  [[^float sx ^float sy ^float sz]]
+  (mat/matrix44
+   sx,  0.0  0.0  0.0
+   0.0  sy,  0.0  0.0
+   0.0  0.0  sz,  0.0
+   0.0  0.0  0.0  1.0))
+
+(defn vec3->trans-mat
+  [[^float tx ^float ty ^float tz]]
+  (mat/matrix44
+   1.0  0.0  0.0  0.0
+   0.0  1.0  0.0  0.0
+   0.0  0.0  1.0  0.0
+   tx,  ty,  tz,  1.0))
+
+(defn mat44-mul-reducer
+  ([] (mat/matrix44))
+  ([result] result)
+  ([^thi.ng.geom.matrix.Matrix44 a
+    ^thi.ng.geom.matrix.Matrix44 b]
+   (m/* a b)))
+
 (defn ^:vibe decompose-matrix44
   "Return {:translation (v/vec3) :rotation (q/quat) :scale (v/vec3)}"
   [^thi.ng.geom.matrix.Matrix44 m]

@@ -1,6 +1,9 @@
 (ns engine.world
   (:require
    [clojure.spec.alpha :as s]
+   [com.rpl.specter :as sp]
+   [engine.macros :refer [vars->map]]
+   [engine.utils :as utils]
    [odoyle.rules :as o]))
 
 (s/def ::atom* (partial instance? #?(:clj clojure.lang.Atom :cljs Atom)))
@@ -19,13 +22,11 @@
    ::init-cnt*   (atom 0)})
 
 (def fact-id-with-frequent-updates
-  #{:rules.time/now
-    :rules.firstperson/player
-    :rules.window/window
-    :rules.interface.input/mouse
-    :rules.camera.arcball/camera
-    :rules.interface.input/mouse-delta
-    :minusone.rules.view.firstperson/player})
+  #{:minustwo.systems.time/now
+    :minustwo.systems.window/window
+    :minustwo.systems.input/mouse
+    :minustwo.systems.input/mouse-delta
+    :minustwo.systems.view.firstperson/player})
 
 (defn rules-debugger-wrap-fn [rule]
   (o/wrap-rule rule
@@ -53,13 +54,21 @@
 (defn first-init? [game]
   (= 0 @(::init-cnt* game)))
 
-(defn init-world [world game all-rules before-load-fns init-fns after-load-fns]
+(defn build-systems [system-coll]
+  (let [all-rules  (distinct (apply concat (sp/select [sp/ALL ::rules] system-coll)))
+        init-fns   (sp/select [sp/ALL ::init-fn some?] system-coll)
+        before-fns (sp/select [sp/ALL ::before-load-fn some?] system-coll)
+        after-fns  (sp/select [sp/ALL ::after-load-fn some?] system-coll)
+        render-fns (sp/select [sp/ALL ::render-fn some?] system-coll)]
+    (vars->map all-rules before-fns init-fns after-fns render-fns)))
+
+(defn init-world [world game all-rules before-fns init-fns after-fns]
   (let [prev-rules*  (::prev-rules* game)
         first-init?  (first-init? game)
         before-world (if first-init?
                        (o/->session)
                        (let [world
-                             (reduce (fn [world before-fn] (before-fn world game)) world before-load-fns)]
+                             (reduce (fn [world before-fn] (before-fn world game)) world before-fns)]
                          (->> @prev-rules* ;; dev-only : refresh rules without resetting facts
                               (map :name)
                               (reduce o/remove-rule world))))
@@ -73,5 +82,8 @@
                                (reduce (fn [w' init-fn] (init-fn w' game)) world init-fns)
                                (reduce (fn [w' fact] (o/insert w' fact)) world all-facts)))))
         _            (swap! (::init-cnt* game) inc)
-        after-world  (reduce (fn [w' after-fn] (after-fn w' game)) init-world after-load-fns)]
+        after-world  (reduce (fn [w' after-fn] (after-fn w' game)) init-world after-fns)]
     after-world))
+
+(defn esse [world id & facts]
+  (o/insert world id (apply utils/deep-merge facts)))
