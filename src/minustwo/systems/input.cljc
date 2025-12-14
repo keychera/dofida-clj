@@ -1,4 +1,4 @@
-(ns rules.interface.input
+(ns minustwo.systems.input
   (:require
    #?(:clj  [clojure.core.match :refer [match]]
       :cljs [cljs.core.match :refer-macros [match]])

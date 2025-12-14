@@ -14,7 +14,7 @@
    [odoyle.rules :as o]
    [play-cljc.gl.utils :as gl-utils]
    [play-cljc.math :as m]
-   [rules.interface.input :as input]
+   [minustwo.systems.input :as input]
    [rules.window :as window]))
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))

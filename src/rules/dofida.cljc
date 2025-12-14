@@ -16,7 +16,7 @@
    [play-cljc.math :as plcjc-m]
    [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
-   [rules.interface.input :as input]
+   [minustwo.systems.input :as input]
    [rules.window :as window]
    [thi.ng.geom.core :as g]))
 

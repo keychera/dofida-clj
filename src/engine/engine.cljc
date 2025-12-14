@@ -20,7 +20,7 @@
    [minusone.rules.transform3d :as t3d]
    [minusone.rules.view.firstperson :as firstperson]
    [odoyle.rules :as o]
-   [rules.interface.input :as input]
+   [minustwo.systems.input :as input]
    [rules.time :as time]
    [rules.window :as window]))
 

@@ -6,7 +6,7 @@
    [minustwo.game :as game]
    [engine.world :as world]
    [goog.events :as events]
-   [rules.interface.input :as input]))
+   [minustwo.systems.input :as input]))
 
 ;; reason, it seems the rate of events is faster than the gameloop rate
 ;; previously, queue is used and num of input events > num of frames

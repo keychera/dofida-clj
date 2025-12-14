@@ -11,7 +11,7 @@
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.window :as window]
-   [rules.interface.input :as input]
+   [minustwo.systems.input :as input]
    [rules.time :as time]))
 
 (def all

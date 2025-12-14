@@ -2,7 +2,7 @@
   (:require
    [engine.engine :as engine]
    [engine.world :as world]
-   [rules.interface.input :as input])
+   [minustwo.systems.input :as input])
   (:import
    [org.lwjgl.glfw
     Callbacks

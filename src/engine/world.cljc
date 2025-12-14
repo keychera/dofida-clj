@@ -24,9 +24,9 @@
   #{:rules.time/now
     :rules.firstperson/player
     :rules.window/window
-    :rules.interface.input/mouse
+    :minustwo.systems.input/mouse
     :rules.camera.arcball/camera
-    :rules.interface.input/mouse-delta
+    :minustwo.systems.input/mouse-delta
     :minusone.rules.view.firstperson/player})
 
 (defn rules-debugger-wrap-fn [rule]
