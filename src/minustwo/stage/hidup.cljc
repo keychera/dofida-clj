@@ -6,6 +6,7 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
+   [minusone.rubahperak :as rubahperak]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
@@ -44,40 +45,6 @@
    :signatures '{main ([] void)}
    :functions  '{main ([] (= o_color (vec4 "0.2" "0.2" "0.2" "1.0")))}})
 
-(def dummy-pmx-vert
-  {:precision  "mediump float"
-   :inputs     '{POSITION   vec3
-                 NORMAL     vec3
-                 TEXCOORD_0 vec2
-                 JOINTS_0   uvec4
-                 WEIGHTS_0  vec4}
-   :outputs    '{Normal vec3
-                 TexCoords vec2}
-   :uniforms   '{u_model mat4
-                 u_view mat4
-                 u_projection mat4}
-   :signatures '{main ([] void)}
-   :functions  '{main ([]
-                       (=float dummy (- (float JOINTS_0.x) (float JOINTS_0.x))) ;; to make it not trimmed by shader compiler
-                       (=float dummy2 (- WEIGHTS_0.x WEIGHTS_0.x))
-                       (= gl_Position (* u_projection u_view u_model (vec4 POSITION (+ "1.0" dummy dummy2))))
-                       (= Normal NORMAL)
-                       (= TexCoords TEXCOORD_0))}})
-
-(def dummy-pmx-frag
-  {:precision  "mediump float"
-   :inputs     '{Normal vec3
-                 TexCoords vec2}
-   :outputs    '{o_color vec4}
-   :uniforms   '{u_mat_diffuse sampler2D}
-   :functions
-   "
-void main() 
-{
-    vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
-    o_color = vec4(result, 1.0);
-}"})
-
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (:webgl-context game)]
@@ -95,7 +62,7 @@ void main()
               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
                         :use ::simpleanime})
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx dummy-pmx-vert dummy-pmx-frag)})
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}))))
@@ -123,8 +90,9 @@ void main()
      [esse-id ::shader/use shader-id]
      [shader-id ::shader/program-info program-info]
      [esse-id ::gltf/primitives gltf-primitives]
-     :when
-     (not= esse-id ::grid)]}))
+     [esse-id ::gltf/joints joints]
+     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::gltf/inv-bind-mats inv-bind-mats]]}))
 
 (defn render-fn [world game]
   (let [room-data (utils/query-one world ::room-data)
@@ -159,12 +127,16 @@ void main()
                                        (m/radians (* 0.018 time))))
               scale-mat  (m-ext/scaling-mat 1.0)
               model      (reduce m/* [trans-mat rot-mat scale-mat])
-              gltf-prog  (:program-info gltf-model)]
+              {:keys [program-info joints transform-tree inv-bind-mats]} gltf-model
+              transform-tree transform-tree
+              joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)]
 
-          (gl ctx useProgram (:program gltf-prog))
-          (cljgl/set-uniform ctx gltf-prog 'u_projection (f32-arr (vec project)))
-          (cljgl/set-uniform ctx gltf-prog 'u_view (f32-arr (vec view)))
-          (cljgl/set-uniform ctx gltf-prog 'u_model (f32-arr (vec model)))
+          (gl ctx useProgram (:program program-info))
+          (cljgl/set-uniform ctx program-info 'u_projection (f32-arr (vec project)))
+          (cljgl/set-uniform ctx program-info 'u_view (f32-arr (vec view)))
+          (cljgl/set-uniform ctx program-info 'u_model (f32-arr (vec model)))
+          (when-let [{:keys [uni-loc]} (get (:uni-locs program-info) 'u_joint_mats)]
+            (gl ctx uniformMatrix4fv uni-loc false joint-mats))
 
           (doseq [prim (:gltf-primitives gltf-model)]
             (let [indices        (:indices prim)
@@ -177,7 +149,7 @@ void main()
                 (when-let [{:keys [tex-unit texture]} tex]
                   (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
                   (gl ctx bindTexture GL_TEXTURE_2D texture)
-                  (cljgl/set-uniform ctx gltf-prog 'u_mat_diffuse tex-unit))
+                  (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
 
                 (gl ctx drawElements GL_TRIANGLES count component-type 0)
                 (gl ctx bindVertexArray nil)))))))))
