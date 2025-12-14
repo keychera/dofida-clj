@@ -93,7 +93,7 @@
           [{:insert-facts _}]
           (let [facts (:insert-facts chant)]
             (println "will insert" (count facts) "fact(s)")
-            (recur remaining (concat summons facts) state))
+            (recur remaining (into summons facts) state))
 
           #_"no else handling. m/match will throw on faulty spell.")
         (vars->map esse-id summons)))))
