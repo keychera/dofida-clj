@@ -3,6 +3,7 @@
    [clojure.spec.alpha :as s]
    [com.rpl.specter :as sp]
    [engine.macros :refer [vars->map]]
+   [engine.utils :as utils]
    [odoyle.rules :as o]))
 
 (s/def ::atom* (partial instance? #?(:clj clojure.lang.Atom :cljs Atom)))
@@ -85,3 +86,6 @@
         _            (swap! (::init-cnt* game) inc)
         after-world  (reduce (fn [w' after-fn] (after-fn w' game)) init-world after-fns)]
     after-world))
+
+(defn esse [world id & facts]
+  (o/insert world id (apply utils/deep-merge facts)))

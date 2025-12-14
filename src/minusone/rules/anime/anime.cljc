@@ -148,22 +148,3 @@
                            (reset! db* {})
                            world)
    ::world/rules rules})
-
-(comment
-  (let [data      (:minusone.simple-gltf/simpleanime @gltf/debug-data*)
-        bin       (:bin data)
-        gltf-data (:gltf-data data)
-        animes    (gltf->animes gltf-data bin)]
-    (s/conform ::animes (into [] (map #(assoc % :esse-id :me)) animes)))
-  
-  (tagged-literal 'flare/html {:title "game"
-                               :url (str "http://localhost:9333/" (rand))
-                               :reveal true
-                               :sidebar-panel? true})
-
-  (::interpolated @db*)
-  (into []
-        (filter #(= (:esse-id %) :minusone.simple-gltf/simpleskin))
-        (::animes @db*))
-
-  :-)

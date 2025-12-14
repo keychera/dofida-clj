@@ -6,11 +6,9 @@
    [engine.sugar :refer [f32-arr]]
    [engine.world :as world]
    [minusone.esse :refer [esse]]
-   [minusone.rubahperak :as rubahperak]
    [minusone.rules.gizmo.perspective-grid :as perspective-grid]
    [minusone.rules.gl.vao :as vao]
    [minusone.rules.view.firstperson :as firstperson]
-   [minusone.simple-gltf :as simple-gltf]
    [minustwo.anime.anime :as anime]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
@@ -47,6 +45,73 @@
    :signatures '{main ([] void)}
    :functions  '{main ([] (= o_color (vec4 "0.2" "0.2" "0.2" "1.0")))}})
 
+
+(def pmx-vert
+  {:precision  "mediump float"
+   :inputs     '{POSITION   vec3
+                 NORMAL     vec3
+                 TEXCOORD_0 vec2
+                 WEIGHTS_0  vec4
+                 JOINTS_0   uvec4}
+   :outputs    '{Normal    vec3
+                 TexCoords vec2}
+   :uniforms   '{u_model      mat4
+                 u_view       mat4
+                 u_projection mat4
+                 u_joint_mats [mat4 500]}
+   :signatures '{main ([] void)}
+   :functions  '{main ([]
+                       (=vec4 pos (vec4 POSITION "1.0"))
+                       (=mat4 skin_mat
+                              (+ (* WEIGHTS_0.x [u_joint_mats JOINTS_0.x])
+                                 (* WEIGHTS_0.y [u_joint_mats JOINTS_0.y])
+                                 (* WEIGHTS_0.z [u_joint_mats JOINTS_0.z])
+                                 (* WEIGHTS_0.w [u_joint_mats JOINTS_0.w])))
+                       (=vec4 world_pos (* u_model skin_mat pos))
+                       (=vec4 cam_pos (* u_view world_pos))
+                       (= gl_Position (* u_projection cam_pos))
+                       (= Normal NORMAL)
+                       (= TexCoords TEXCOORD_0))}})
+
+(def pmx-frag
+  {:precision  "mediump float"
+   :inputs     '{Normal vec3
+                 TexCoords vec2}
+   :outputs    '{o_color vec4}
+   :uniforms   '{u_mat_diffuse sampler2D}
+   :functions
+   "
+void main() 
+{
+    vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
+    o_color = vec4(result, 1.0);
+}"})
+
+(def pos+skins-vert
+  {:precision  "mediump float"
+   :inputs     '{POSITION   vec3
+                 WEIGHTS_0  vec4
+                 JOINTS_0   uvec4}
+   :uniforms   '{u_model      mat4
+                 u_view       mat4
+                 u_projection mat4
+                 u_joint_mats [mat4 2]}
+   :signatures '{main ([] void)}
+   :functions  '{main ([]
+                       (=vec4 pos (vec4 POSITION "1.0"))
+                       (=mat4 skin_mat
+                              (+ (* WEIGHTS_0.x [u_joint_mats (.x JOINTS_0)])
+                                 (* WEIGHTS_0.y [u_joint_mats (.y JOINTS_0)])))
+                       (=vec4 world_pos (* u_model skin_mat pos))
+                       (=vec4 cam_pos (* u_view world_pos))
+                       (= gl_Position (* u_projection cam_pos)))}})
+
+(def white-frag
+  {:precision  "mediump float"
+   :outputs    '{o_color vec4}
+   :signatures '{main ([] void)}
+   :functions  '{main ([] (= o_color (vec4 "1.0")))}})
+
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (:webgl-context game)]
@@ -65,7 +130,7 @@
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
                         :use ::simpleanime}
               t3d/default)
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx rubahperak/pmx-vert rubahperak/pmx-frag)})
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx pmx-vert pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
@@ -74,7 +139,7 @@
               #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
               #::shader{:use ::pmx-shader}
               t3d/default)
-        (esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  simple-gltf/pos+skins-vert simple-gltf/white-frag)})
+        (esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
         (esse ::simpleskin
               #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
               #::shader{:use ::joints-shader}
