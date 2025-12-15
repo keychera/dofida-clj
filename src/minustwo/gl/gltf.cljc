@@ -250,30 +250,6 @@
           (aset f32s (+ i j) (nth joint-mat j)))))
     f32s))
 
-;; sampler/animation
-(defn resolve-sampler
-  "this needs input with some related data connected (:input. :output -> bufferView, :target)"
-  [gltf-data bin sampler-accessor]
-  (let [bufferViews        (:bufferViews gltf-data)
-        bufferView         (get bufferViews (:bufferView sampler-accessor))
-        byteLength         (:byteLength bufferView)
-        byteOffset         (:byteOffset bufferView)
-        u8s                #?(:clj [bin byteLength byteOffset] ;; jvm TODO
-                              :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
-        component-size     4.0 ;; assuming all float for now
-        component-per-elem (gltf-type->num-of-component (:type sampler-accessor))
-        buffer             #?(:clj [component-size u8s] ;; jvm TODO
-                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset (/ u8s.byteLength component-size))))]
-    (if (> component-per-elem 1)
-      (partition component-per-elem buffer)
-      buffer)))
-
-(defn interpret-animation-target [element path]
-  (case path
-    "translation" (apply v/vec3 element)
-    "rotation" (apply q/quat element)
-    "scale" (apply v/vec3 element)))
-
 (comment
   (require '[clojure.spec.test.alpha :as st]
            '[clojure.repl :refer [doc]])

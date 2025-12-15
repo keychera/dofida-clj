@@ -6,7 +6,7 @@
    [reagent.core :as r]
    [reagent.dom.client :as rdomc]))
 
-;; (st/instrument)
+(st/instrument 'odoyle.rules/insert)
 
 (defonce fps-counter*
   (r/atom {:last-time (js/performance.now)

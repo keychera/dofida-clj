@@ -7,9 +7,10 @@
    [engine.world :as world]
    [minustwo.anime.keyframe :as keyframe]
    [minustwo.gl.gltf :as gltf]
-   [odoyle.rules :as o]
    [minustwo.systems.time :as time]
-   [thi.ng.geom.quaternion]
+   [odoyle.rules :as o]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
 
 ;; currently anime is complected with gltf animations
@@ -32,12 +33,36 @@
 
 (s/def ::animes (s/coll-of ::anime))
 
+;; sampler/animation
+(defn resolve-sampler
+  "this needs input with some related data connected (:input. :output -> bufferView, :target)"
+  [gltf-data bin sampler-accessor]
+  (let [bufferViews        (:bufferViews gltf-data)
+        bufferView         (get bufferViews (:bufferView sampler-accessor))
+        byteLength         (:byteLength bufferView)
+        byteOffset         (:byteOffset bufferView)
+        u8s                #?(:clj [bin byteLength byteOffset] ;; jvm TODO
+                              :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
+        component-size     4.0 ;; assuming all float for now
+        component-per-elem (gltf/gltf-type->num-of-component (:type sampler-accessor))
+        buffer             #?(:clj [component-size u8s] ;; jvm TODO
+                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset (/ u8s.byteLength component-size))))]
+    (if (> component-per-elem 1)
+      (partition component-per-elem buffer)
+      buffer)))
+
+(defn interpret-animation-target [element path]
+  (case path
+    "translation" (apply v/vec3 element)
+    "rotation" (apply q/quat element)
+    "scale" (apply v/vec3 element)))
+
 (s/fdef gltf->animes
   :ret ::animes)
 (defn gltf->animes [gltf-data bin] ;; assuming only one bin for now 
   (when-let [animes (:animations gltf-data)]
     (let [accessors (:accessors gltf-data)
-          resolver  (partial gltf/resolve-sampler gltf-data bin)]
+          resolver  (partial resolve-sampler gltf-data bin)]
       (transduce
        (map (fn [{:keys [channels samplers] :as anime}]
               (eduction
@@ -55,7 +80,7 @@
                (map #(update % :output resolver))
                (map (fn [{:keys [target] :as this}]
                       (sp/transform [:output sp/ALL]
-                                    (fn [ele] (gltf/interpret-animation-target ele (-> target :path)))
+                                    (fn [ele] (interpret-animation-target ele (-> target :path)))
                                     this)))
                (map (fn [channel]
                       (assoc channel :keyframes (map vector (:input channel) (:output channel)))))
