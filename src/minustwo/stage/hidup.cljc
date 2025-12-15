@@ -68,24 +68,24 @@ void main()
     (-> world
         (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
         #_(esse ::simpleanime
-              #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
-              #::shader{:program-info (cljgl/create-program-info ctx vert frag)
-                        :use ::simpleanime}
-              t3d/default)
+                #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
+                #::shader{:program-info (cljgl/create-program-info ctx vert frag)
+                          :use ::simpleanime}
+                t3d/default)
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx pmx-vert pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
               t3d/default)
         #_(esse ::rubah
-              #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
-              #::shader{:use ::pmx-shader}
-              t3d/default)
+                #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
+                #::shader{:use ::pmx-shader}
+                t3d/default)
         #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
         #_(esse ::simpleskin
-              #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
-              #::shader{:use ::joints-shader}
-              t3d/default))))
+                #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
+                #::shader{:use ::joints-shader}
+                t3d/default))))
 
 (defn after-load-fn [world _game]
   (-> world
@@ -123,22 +123,24 @@ void main()
       (doseq [gltf-model gltf-models]
         (let [{:keys [esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
               anime (get (::anime/interpolated @anime/db*) esse-id)
-              transform-tree (into []
-                                   (map (fn [{:keys [idx] :as node}]
-                                          (let [value            (get anime idx)
-                                                next-translation (get value :translation)
-                                                next-rotation    (get value :rotation)
-                                                next-scale       (get value :scale)]
-                                            (cond-> node
-                                              next-translation (assoc :translation next-translation)
-                                              next-rotation (assoc :rotation next-rotation)
-                                              next-scale (assoc :scale next-scale)))))
-                                   transform-tree)
+              transform-tree (if anime
+                               (into []
+                                     (map (fn [{:keys [idx] :as node}]
+                                            (let [value            (get anime idx)
+                                                  next-translation (get value :translation)
+                                                  next-rotation    (get value :rotation)
+                                                  next-scale       (get value :scale)]
+                                              (cond-> node
+                                                next-translation (assoc :translation next-translation)
+                                                next-rotation (assoc :rotation next-rotation)
+                                                next-scale (assoc :scale next-scale)))))
+                                     transform-tree)
+                               transform-tree)
               joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)
               ;; duplicated calc here because gltf/create-joint-mats-arr also does this but it isn't returned
               ;; will hammock node-0 more later because it clashes with our t3d/transform
               node-0     (some-> (get transform-tree 0) (gltf/calc-local-transform) :local-transform)
-              model      (m/* node-0 model)]
+              model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))
           (cljgl/set-uniform ctx program-info 'u_projection (f32-arr (vec project)))
