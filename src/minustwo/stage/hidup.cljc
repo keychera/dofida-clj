@@ -3,24 +3,22 @@
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [com.rpl.specter :as sp]
-   [engine.sugar :refer [f32-arr i32-arr]]
+   [engine.sugar :refer [f32-arr]]
+   [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
-   [minustwo.gl.vao :as vao]
    [minustwo.anime.anime :as anime]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
-                                  GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
-                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNSIGNED_INT]]
+   [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
+   [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.projection :as projection]
-   [engine.utils :as utils]
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
@@ -109,97 +107,11 @@ void main()
    :signatures '{main ([] void)}
    :functions  '{main ([] (= o_color (vec4 "1.0")))}})
 
-
-;; https://gist.github.com/bgolus/3a561077c86b5bfead0d6cc521097bae
-(def perspective-vert
-  {:precision  "mediump float"
-   :inputs     '{a_pos vec2}
-   :outputs    '{v_world_dir vec3}
-   :uniforms   '{u_inv_proj mat4
-                 u_inv_view mat4}
-   :signatures '{main ([] void)}
-   :functions
-   '{main ([]
-           (=vec4 pos (vec4 a_pos.x a_pos.y "0.0" "1.0"))
-           (=vec4 view_dir (* u_inv_proj pos))
-           (=vec4 world_dir (* u_inv_view (vec4 view_dir.xyz "0.0")))
-           (= v_world_dir (normalize world_dir.xyz))
-           (= gl_Position pos))}})
-
-(def perspective-frag
-  {:precision  "mediump float"
-   :inputs     '{v_world_dir vec3}
-   :outputs    '{o_color vec4}
-   :uniforms   '{u_cam_pos vec3}
-   :functions
-   ;; Pristine grid from The Best Darn Grid Shader (yet)
-   ;; https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
-   "// grid-shader
-const float N = 32.0;
-float pristineGrid( in vec2 uv, vec2 lineWidth) {
-    vec2 ddx = dFdx(uv);
-    vec2 ddy = dFdy(uv);
-    vec2 uvDeriv = vec2(length(vec2(ddx.x, ddy.x)), length(vec2(ddx.y, ddy.y)));
-    bvec2 invertLine = bvec2(lineWidth.x > 0.5, lineWidth.y > 0.5);
-    vec2 targetWidth = vec2(
-      invertLine.x ? 1.0 - lineWidth.x : lineWidth.x,
-      invertLine.y ? 1.0 - lineWidth.y : lineWidth.y
-      );
-    vec2 drawWidth = clamp(targetWidth, uvDeriv, vec2(0.5));
-    vec2 lineAA = uvDeriv * 1.5;
-    vec2 gridUV = abs(fract(uv) * 2.0 - 1.0);
-    gridUV.x = invertLine.x ? gridUV.x : 1.0 - gridUV.x;
-    gridUV.y = invertLine.y ? gridUV.y : 1.0 - gridUV.y;
-    vec2 grid2 = smoothstep(drawWidth + lineAA, drawWidth - lineAA, gridUV);
-
-    grid2 *= clamp(targetWidth / drawWidth, 0.0, 1.0);
-    grid2 = mix(grid2, targetWidth, clamp(uvDeriv * 2.0 - 1.0, 0.0, 1.0));
-    grid2.x = invertLine.x ? 1.0 - grid2.x : grid2.x;
-    grid2.y = invertLine.y ? 1.0 - grid2.y : grid2.y;
-    return mix(grid2.x, 1.0, grid2.y);
-}
-
-void main() {
-  vec3  ray = v_world_dir;
-  vec3  cam = u_cam_pos;  
-  if (ray.y >= 0.0 && cam.y > 0.0 || ray.y <= 0.0 && cam.y < 0.0) {
-     discard;
-  }
-
-  // if ray.y is almost zero, ray is nearly parallel to plane
-  float   t = -cam.y / ray.y;
-  vec3  hit = cam + ray * t;
-    
-  vec2   uv = hit.xz;
-  float   g = pristineGrid( uv * 0.25, vec2(1.0/N) );
-  o_color   = vec4(vec3(1.0), g * 0.3);
-}
-    
-    "})
-
-(def ^floats quad
-  (f32-arr
-   [-1.0 -1.0
-    1.0 -1.0
-    1.0  1.0
-    -1.0 1.0]))
-
-(def ^ints quad-indices
-  (i32-arr [0 1 2 0 2 3]))
-
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (:webgl-context game)]
     (-> world
         (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
-        (esse ::grid
-              #::shader{:program-info (cljgl/create-program-info ctx perspective-vert perspective-frag)
-                        :use ::grid}
-              #::gl-magic{:spell [{:bind-vao ::grid}
-                                  {:buffer-data quad :buffer-type GL_ARRAY_BUFFER}
-                                  {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
-                                  {:buffer-data quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}
-                                  {:unbind-vao true}]})
         (esse ::simpleanime
               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
@@ -242,12 +154,7 @@ void main() {
      [::world/global ::projection/matrix project]
      [::firstperson/player ::firstperson/look-at player-view]
      [::firstperson/player ::firstperson/position player-pos]]
-
-    ::grid-model
-    [:what
-     [::grid ::gl-magic/casted? true]
-     [::grid ::shader/program-info grid-prog]]
-
+    
     ::gltf-models
     [:what
      [esse-id ::gl-magic/casted? true]
@@ -263,25 +170,7 @@ void main() {
   (let [room-data (utils/query-one world ::room-data)
         ctx       (:ctx room-data)
         project   (:project room-data)
-        view      (:player-view room-data)
-        view-pos  (:player-pos room-data)]
-    (when-let [render-data (utils/query-one world ::grid-model)]
-      (let [inv-proj   (m/invert project)
-            inv-view   (m/invert view)
-            grid-prog  (:grid-prog render-data)
-            grid-vao   (get @vao/db* ::grid)]
-        (doto ctx
-          (gl useProgram (:program grid-prog))
-          (gl bindVertexArray grid-vao)
-
-          (cljgl/set-uniform grid-prog 'u_inv_view (f32-arr (vec inv-view)))
-          (cljgl/set-uniform grid-prog 'u_inv_proj (f32-arr (vec inv-proj)))
-          (cljgl/set-uniform grid-prog 'u_cam_pos (f32-arr (into [] view-pos)))
-
-          (gl disable GL_DEPTH_TEST)
-          (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)
-          (gl enable GL_DEPTH_TEST))))
-
+        view      (:player-view room-data)] 
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
         (let [{:keys [esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
