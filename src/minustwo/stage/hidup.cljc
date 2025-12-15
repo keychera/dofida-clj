@@ -2,7 +2,6 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
-   [com.rpl.specter :as sp]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -19,26 +18,8 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
-
-(def vert
-  {:precision  "mediump float"
-   :inputs     '{POSITION vec3}
-   :uniforms   '{u_model      mat4
-                 u_view       mat4
-                 u_projection mat4}
-   :signatures '{main ([] void)}
-   :functions  '{main ([]
-                       (=vec4 pos (vec4 POSITION "1.0"))
-                       (= gl_Position (* u_projection u_view u_model pos)))}})
-
-(def frag
-  {:precision  "mediump float"
-   :outputs    '{o_color vec4}
-   :signatures '{main ([] void)}
-   :functions  '{main ([] (= o_color (vec4 "0.2" "0.2" "0.2" "1.0")))}})
 
 (def pmx-vert
   {:precision  "mediump float"
@@ -81,37 +62,12 @@ void main()
     o_color = vec4(result, 1.0);
 }"})
 
-(def pos+skins-vert
-  {:precision  "mediump float"
-   :inputs     '{POSITION   vec3
-                 WEIGHTS_0  vec4
-                 JOINTS_0   uvec4}
-   :uniforms   '{u_model      mat4
-                 u_view       mat4
-                 u_projection mat4
-                 u_joint_mats [mat4 2]}
-   :signatures '{main ([] void)}
-   :functions  '{main ([]
-                       (=vec4 pos (vec4 POSITION "1.0"))
-                       (=mat4 skin_mat
-                              (+ (* WEIGHTS_0.x [u_joint_mats (.x JOINTS_0)])
-                                 (* WEIGHTS_0.y [u_joint_mats (.y JOINTS_0)])))
-                       (=vec4 world_pos (* u_model skin_mat pos))
-                       (=vec4 cam_pos (* u_view world_pos))
-                       (= gl_Position (* u_projection cam_pos)))}})
-
-(def white-frag
-  {:precision  "mediump float"
-   :outputs    '{o_color vec4}
-   :signatures '{main ([] void)}
-   :functions  '{main ([] (= o_color (vec4 "1.0")))}})
-
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (:webgl-context game)]
     (-> world
         (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
-        (esse ::simpleanime
+        #_(esse ::simpleanime
               #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
               #::shader{:program-info (cljgl/create-program-info ctx vert frag)
                         :use ::simpleanime}
@@ -121,12 +77,12 @@ void main()
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
               t3d/default)
-        (esse ::rubah
+        #_(esse ::rubah
               #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
               #::shader{:use ::pmx-shader}
               t3d/default)
-        (esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
-        (esse ::simpleskin
+        #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
+        #_(esse ::simpleskin
               #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
               #::shader{:use ::joints-shader}
               t3d/default))))
@@ -140,7 +96,7 @@ void main()
             #::t3d{:translation (v/vec3 0.0 0.0 -16.0)
                    :scale (v/vec3 24.0)})
       (esse ::rubahperak
-            #::t3d{:translation (v/vec3 30.0 0.0 0.0)})
+            #::t3d{:translation (v/vec3 -15.0 0.0 0.0)})
       (esse ::rubah
             #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
                    :scale (v/vec3 0.2)})))
@@ -158,15 +114,14 @@ void main()
      [esse-id ::gltf/transform-tree transform-tree]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]]}))
 
-(defn render-fn [world game]
+(defn render-fn [world _game]
   (let [room-data (utils/query-one world ::room/data)
         ctx       (:ctx room-data)
         project   (:project room-data)
-        view      (:player-view room-data)] 
+        view      (:player-view room-data)]
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
         (let [{:keys [esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
-              time  (:total-time game)
               anime (get (::anime/interpolated @anime/db*) esse-id)
               transform-tree (into []
                                    (map (fn [{:keys [idx] :as node}]
@@ -179,15 +134,6 @@ void main()
                                               next-rotation (assoc :rotation next-rotation)
                                               next-scale (assoc :scale next-scale)))))
                                    transform-tree)
-              transform-tree (if (= esse-id ::rubahperak)
-                               (->> transform-tree
-                                    (sp/transform [sp/ALL #(#{"左腕" "右腕"} (:name %)) :translation]
-                                                  (fn [gt] (->> gt (m/+ (v/vec3 0.0 0.0 0.0)))))
-                                    (sp/transform [sp/ALL #(#{"上半身" "首"} (:name %)) :rotation]
-                                                  (fn [_] (q/quat-from-axis-angle
-                                                           (v/vec3 0.0 1.0 0.0)
-                                                           (m/radians (* 10 (Math/sin (* 0.005 time))))))))
-                               transform-tree)
               joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)
               ;; duplicated calc here because gltf/create-joint-mats-arr also does this but it isn't returned
               ;; will hammock node-0 more later because it clashes with our t3d/transform
