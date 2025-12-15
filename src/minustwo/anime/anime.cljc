@@ -129,9 +129,7 @@
      [::world/global ::there-are-animes true {:then false}]
      :then
      (let [db             @db*
-           max-progress   8.0
-           duration       4800.0
-           progress       (* max-progress (/ (mod tt duration) duration))
+           progress       (/ tt 500)
            running-animes (eduction
                            ;; still hardcoded anime-name filtering, fox: Walk, Survey, Run
                            (filter #(#{"anim" "Run"} (:anime-name %)))
@@ -156,11 +154,15 @@
   {::world/after-load-fn (fn [world _game] (reset! db* {}) world)
    ::world/rules rules})
 
-(comment 
-  (distinct (sp/select [::animes sp/ALL :anime-name] @db*))
+(comment
+  (distinct (sp/select [::animes sp/ALL :max-input] @db*))
   ["Survey" "Walk" "Run" "anim"]
-  
+
+  (-> @gltf/debug-data* :minustwo.stage.hidup/simpleskin :gltf-data)
+
   (tagged-literal 'flare/html {:title "game"
                                :url (str "http://localhost:9333/" (rand))
                                :reveal true
-                               :sidebar-panel? true}))
+                               :sidebar-panel? true})
+  
+  :-)
