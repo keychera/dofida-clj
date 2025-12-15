@@ -13,7 +13,7 @@
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.vao :as vao]
-   [minustwo.stage.hidup :as hidup]
+   [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.math.core :as m]))
 
@@ -112,7 +112,7 @@ void main() {
      [::grid ::shader/program-info grid-prog]]}))
 
 (defn render-fn [world _game]
-  (let [room-data (utils/query-one world ::hidup/room-data)
+  (let [room-data (utils/query-one world ::room/data)
         ctx       (:ctx room-data)
         project   (:project room-data)
         view      (:player-view room-data)

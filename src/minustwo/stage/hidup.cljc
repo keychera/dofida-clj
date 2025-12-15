@@ -10,7 +10,6 @@
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minustwo.gl.gl-magic :as gl-magic]
-   [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
@@ -18,7 +17,7 @@
    [minustwo.model.assimp :as assimp]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
-   [minustwo.systems.view.projection :as projection]
+   [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
@@ -148,14 +147,7 @@ void main()
 
 (def rules
   (o/ruleset
-   {::room-data
-    [:what
-     [::world/global ::gl-system/context ctx]
-     [::world/global ::projection/matrix project]
-     [::firstperson/player ::firstperson/look-at player-view]
-     [::firstperson/player ::firstperson/position player-pos]]
-    
-    ::gltf-models
+   {::gltf-models
     [:what
      [esse-id ::gl-magic/casted? true]
      [esse-id ::t3d/transform model]
@@ -167,7 +159,7 @@ void main()
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]]}))
 
 (defn render-fn [world game]
-  (let [room-data (utils/query-one world ::room-data)
+  (let [room-data (utils/query-one world ::room/data)
         ctx       (:ctx room-data)
         project   (:project room-data)
         view      (:player-view room-data)] 

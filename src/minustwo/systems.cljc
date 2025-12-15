@@ -13,7 +13,8 @@
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.projection :as projection]
-   [minustwo.systems.window :as window]))
+   [minustwo.systems.window :as window]
+   [minustwo.systems.view.room :as room]))
 
 (def all
   [time/system
@@ -31,6 +32,7 @@
    gl-magic/system
    anime/system
 
+   room/system
    perspective-grid/system
 
    t3d/system
