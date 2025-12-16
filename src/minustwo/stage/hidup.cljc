@@ -2,6 +2,7 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
@@ -89,6 +90,11 @@ void main()
    :functions
    '{main ([] (= o_color (vec4 0.6 0.9 0.9 0.7)))}})
 
+(s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
+                              :draw-fn fn?))
+
+(def normal-draw {::custom-draw-fn :normal-draw})
+
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (gl-ctx game)]
@@ -103,6 +109,7 @@ void main()
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
+              normal-draw
               t3d/default)
         (esse ::simpleshader
               #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
@@ -132,10 +139,7 @@ void main()
             #::t3d{:translation (v/vec3 -15.0 0.0 0.0)})
       (esse ::rubah
             #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
-                   :scale (v/vec3 0.2)})
-      (esse ::wirecube
-            #::t3d{:translation (v/vec3 15.0 0.0 0.0)
-                   :scale (v/vec3 1.0 1.0 5.0)})))
+                   :scale (v/vec3 0.2)})))
 
 (def rules
   (o/ruleset
@@ -148,7 +152,8 @@ void main()
      [esse-id ::gltf/primitives gltf-primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/transform-tree transform-tree]
-     [esse-id ::gltf/inv-bind-mats inv-bind-mats]]}))
+     [esse-id ::gltf/inv-bind-mats inv-bind-mats]
+     [esse-id ::custom-draw-fn draw-fn {:then false}]]}))
 
 (defn render-fn [world _game]
   (let [room-data (utils/query-one world ::room/data)
@@ -157,7 +162,7 @@ void main()
         view      (:player-view room-data)]
     (when-let [gltf-models (o/query-all world ::gltf-models)]
       (doseq [gltf-model gltf-models]
-        (let [{:keys [esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
+        (let [{:keys [draw-fn esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
               anime (get (::anime/interpolated @anime/db*) esse-id)
               transform-tree (if anime
                                (into []
@@ -198,7 +203,12 @@ void main()
                   (gl ctx bindTexture GL_TEXTURE_2D texture)
                   (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
 
-                (gl ctx drawElements GL_TRIANGLES count component-type 0)
+                (condp = draw-fn
+                  :normal-draw
+                  (gl ctx drawElements GL_TRIANGLES count component-type 0)
+                  
+                  (draw-fn ctx gltf-model prim))
+
                 (gl ctx bindVertexArray nil)))))))))
 
 (def system
