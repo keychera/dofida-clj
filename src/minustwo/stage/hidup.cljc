@@ -94,7 +94,6 @@ void main()
 
 (s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
                               :draw-fn fn?))
-(s/def ::global-tt some?)
 
 (def normal-draw {::custom-draw-fn :normal-draw})
 
@@ -156,7 +155,7 @@ void main()
      [esse-id ::gltf/primitives gltf-primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
-     [esse-id ::global-tt global-tt]
+     [esse-id ::gltf/transform-tree transform-tree]
      [esse-id ::custom-draw-fn draw-fn {:then false}]]
 
     ::update-anime
@@ -179,7 +178,7 @@ void main()
                                   transform-tree)
                             transform-tree)
            global-tt (gltf/global-transform-tree transform-tree)]
-       (insert! esse-id ::global-tt global-tt))]}))
+       (insert! esse-id ::gltf/transform-tree global-tt))]}))
 
 (defn render-fn [world _game]
   (let [room-data (utils/query-one world ::room/data)
@@ -188,9 +187,9 @@ void main()
         view      (:player-view room-data)]
     (when-let [gltf-models (seq (o/query-all world ::gltf-models))]
       (doseq [gltf-model gltf-models]
-        (let [{:keys [draw-fn model program-info joints global-tt inv-bind-mats]} gltf-model
-              joint-mats (gltf/create-joint-mats-arr joints global-tt inv-bind-mats)
-              node-0     (some-> (get global-tt 0) :global-transform)
+        (let [{:keys [draw-fn model program-info joints transform-tree inv-bind-mats]} gltf-model
+              joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)
+              node-0     (some-> (get transform-tree 0) :global-transform)
               model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))
