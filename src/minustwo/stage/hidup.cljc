@@ -2,6 +2,7 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [engine.game :refer [gl-ctx]]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -62,9 +63,35 @@ void main()
     o_color = vec4(result, 1.0);
 }"})
 
+(def the-vertex-shader
+  {:precision  "mediump float"
+   :inputs     '{POSITION   vec3
+                 NORMAL     vec3
+                 TEXCOORD_0 vec2}
+   :outputs    '{Normal    vec3
+                 TexCoords vec2}
+   :uniforms   '{u_model      mat4
+                 u_view       mat4
+                 u_projection mat4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([]
+           (= gl_Position (* u_projection u_view u_model (vec4 POSITION "1.0")))
+           (= Normal NORMAL)
+           (= TexCoords TEXCOORD_0))}})
+
+(def the-fragment-shader
+  {:precision  "mediump float"
+   :inputs     '{Normal    vec3
+                 TexCoords vec2}
+   :outputs    '{o_color vec4}
+   :signatures '{main ([] void)}
+   :functions
+   '{main ([] (= o_color (vec4 0.6 0.9 0.9 0.7)))}})
+
 (defn init-fn [world game]
   (println "[minustwo.stage.hidup] system running!")
-  (let [ctx (:webgl-context game)]
+  (let [ctx (gl-ctx game)]
     (-> world
         (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
         #_(esse ::simpleanime
@@ -76,6 +103,12 @@ void main()
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
+              t3d/default)
+        (esse ::simpleshader
+              #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
+        (esse ::wirecube
+              #::assimp{:model-to-load ["assets/wirecube.glb"] :tex-unit-offset 0}
+              #::shader{:use ::simpleshader}
               t3d/default)
         #_(esse ::rubah
                 #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
@@ -99,7 +132,10 @@ void main()
             #::t3d{:translation (v/vec3 -15.0 0.0 0.0)})
       (esse ::rubah
             #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
-                   :scale (v/vec3 0.2)})))
+                   :scale (v/vec3 0.2)})
+      (esse ::wirecube
+            #::t3d{:translation (v/vec3 15.0 0.0 0.0)
+                   :scale (v/vec3 1.0 1.0 5.0)})))
 
 (def rules
   (o/ruleset

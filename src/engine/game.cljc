@@ -12,3 +12,7 @@
      glfw-window   (assoc :glfw-window glfw-window)
      webgl-context (assoc :webgl-context webgl-context))
    (world/->init)))
+
+(defn gl-ctx [game]
+  #?(:clj  game ;; lwjgl won't use this
+     :cljs (:webgl-context game)))
