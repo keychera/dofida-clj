@@ -1,6 +1,5 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.12.1"}
-        play-cljc/play-cljc {:mvn/version "0.9.6"}
         thi.ng/geom {:mvn/version "1.0.1"}
         iglu/iglu {:mvn/version "0.10.2"}
         io.github.keychera/odoyle-rules {:git/sha "10447b7d8e3c9611fc9d59bc29d5a6d148d10556"}

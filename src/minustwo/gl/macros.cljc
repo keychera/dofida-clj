@@ -1,5 +1,5 @@
 (ns minustwo.gl.macros
-  "gl wrapper macros from play-cljc"
+  "gl wrapper macros inspired by play-cljc"
   #?(:cljs (:require-macros [minustwo.gl.macros :refer [webgl]])))
 
 #?(:clj

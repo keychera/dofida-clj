@@ -108,7 +108,7 @@ todo:
         ✔ hot-reload JVM side @done(25-10-11 19:47)
         ☐ clj-memory-meter
 
-play-cljc.gl:
+✘ play-cljc.gl: @cancelled(25-12-16 22:56) so long partner
     ☐ from zero
         ✔ somehow we continued the tutorial (https://www.opengl-tutorial.org/beginners-tutorials) @done(25-11-29 02:10)
             ✔ firstperson movement @done(25-10-13 00:01)
