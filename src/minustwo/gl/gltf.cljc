@@ -236,9 +236,8 @@
              ((fn [{:keys [local-transform] :as node}]
                 (assoc node :global-transform local-transform))))]))
 
-(defn create-joint-mats-arr [joints transform-tree inv-bind-mats]
-  (let [f32s      (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))
-        global-tt (global-transform-tree transform-tree)]
+(defn create-joint-mats-arr [joints global-tt inv-bind-mats]
+  (let [f32s      (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))]
     (doseq [joint joints]
       (let [idx        (get joint 0)
             joint-id   (get joint 1)

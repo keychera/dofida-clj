@@ -4,6 +4,7 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
+   [engine.macros :refer [insert!]]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -16,6 +17,7 @@
    [minustwo.gl.texture :as texture]
    [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
+   [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
@@ -92,6 +94,7 @@ void main()
 
 (s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
                               :draw-fn fn?))
+(s/def ::global-tt some?)
 
 (def normal-draw {::custom-draw-fn :normal-draw})
 
@@ -120,6 +123,7 @@ void main()
         #_(esse ::rubah
                 #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
                 #::shader{:use ::pmx-shader}
+                normal-draw
                 t3d/default)
         #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
         #_(esse ::simpleskin
@@ -151,36 +155,42 @@ void main()
      [shader-id ::shader/program-info program-info]
      [esse-id ::gltf/primitives gltf-primitives]
      [esse-id ::gltf/joints joints]
-     [esse-id ::gltf/transform-tree transform-tree]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
-     [esse-id ::custom-draw-fn draw-fn {:then false}]]}))
+     [esse-id ::global-tt global-tt]
+     [esse-id ::custom-draw-fn draw-fn {:then false}]]
+
+    ::update-anime
+    [:what
+     [::time/now ::time/slice 2]
+     [esse-id ::gltf/transform-tree transform-tree]
+     :then
+     (let [anime (get (::anime/interpolated @anime/db*) esse-id)
+           transform-tree (if anime
+                            (into []
+                                  (map (fn [{:keys [idx] :as node}]
+                                         (let [value            (get anime idx)
+                                               next-translation (get value :translation)
+                                               next-rotation    (get value :rotation)
+                                               next-scale       (get value :scale)]
+                                           (cond-> node
+                                             next-translation (assoc :translation next-translation)
+                                             next-rotation (assoc :rotation next-rotation)
+                                             next-scale (assoc :scale next-scale)))))
+                                  transform-tree)
+                            transform-tree)
+           global-tt (gltf/global-transform-tree transform-tree)]
+       (insert! esse-id ::global-tt global-tt))]}))
 
 (defn render-fn [world _game]
   (let [room-data (utils/query-one world ::room/data)
         ctx       (:ctx room-data)
         project   (:project room-data)
         view      (:player-view room-data)]
-    (when-let [gltf-models (o/query-all world ::gltf-models)]
+    (when-let [gltf-models (seq (o/query-all world ::gltf-models))]
       (doseq [gltf-model gltf-models]
-        (let [{:keys [draw-fn esse-id model program-info joints transform-tree inv-bind-mats]} gltf-model
-              anime (get (::anime/interpolated @anime/db*) esse-id)
-              transform-tree (if anime
-                               (into []
-                                     (map (fn [{:keys [idx] :as node}]
-                                            (let [value            (get anime idx)
-                                                  next-translation (get value :translation)
-                                                  next-rotation    (get value :rotation)
-                                                  next-scale       (get value :scale)]
-                                              (cond-> node
-                                                next-translation (assoc :translation next-translation)
-                                                next-rotation (assoc :rotation next-rotation)
-                                                next-scale (assoc :scale next-scale)))))
-                                     transform-tree)
-                               transform-tree)
-              joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)
-              ;; duplicated calc here because gltf/create-joint-mats-arr also does this but it isn't returned
-              ;; will hammock node-0 more later because it clashes with our t3d/transform
-              node-0     (some-> (get transform-tree 0) (gltf/calc-local-transform) :local-transform)
+        (let [{:keys [draw-fn model program-info joints global-tt inv-bind-mats]} gltf-model
+              joint-mats (gltf/create-joint-mats-arr joints global-tt inv-bind-mats)
+              node-0     (some-> (get global-tt 0) :global-transform)
               model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))
@@ -206,7 +216,7 @@ void main()
                 (condp = draw-fn
                   :normal-draw
                   (gl ctx drawElements GL_TRIANGLES count component-type 0)
-                  
+
                   (draw-fn ctx gltf-model prim))
 
                 (gl ctx bindVertexArray nil)))))))))
