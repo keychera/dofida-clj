@@ -3,12 +3,13 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [engine.math :as m-ext :refer [decompose-matrix44]]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
+   [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
-   [thi.ng.geom.matrix :as mat]
-   [thi.ng.geom.vector :as v]
-   [thi.ng.geom.quaternion :as q]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
    [thi.ng.geom.core :as g]
+   [thi.ng.geom.matrix :as mat]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
 
 (def gltf-type->num-of-component
@@ -237,7 +238,7 @@
                 (assoc node :global-transform local-transform))))]))
 
 (defn create-joint-mats-arr [joints global-tt inv-bind-mats]
-  (let [f32s      (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))]
+  (let [f32s      (f32-arr (* 16 (count joints)))]
     (doseq [joint joints]
       (let [idx        (get joint 0)
             joint-id   (get joint 1)

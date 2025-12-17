@@ -2,7 +2,7 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
-   [engine.sugar :refer [f32-arr i32-arr]]
+   [engine.sugar :refer [vec->f32-arr vec->i32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.gl.cljgl :as cljgl]
@@ -83,14 +83,14 @@ void main() {
 }"})
 
 (def ^floats quad
-  (f32-arr
+  (vec->f32-arr
    [-1.0 -1.0
     1.0 -1.0
     1.0  1.0
     -1.0 1.0]))
 
 (def ^ints quad-indices
-  (i32-arr [0 1 2 0 2 3]))
+  (vec->i32-arr [0 1 2 0 2 3]))
 
 (defn init-fn [world game]
   (let [ctx (:webgl-context game)]
@@ -126,9 +126,9 @@ void main() {
           (gl useProgram (:program grid-prog))
           (gl bindVertexArray grid-vao)
 
-          (cljgl/set-uniform grid-prog 'u_inv_view (f32-arr (vec inv-view)))
-          (cljgl/set-uniform grid-prog 'u_inv_proj (f32-arr (vec inv-proj)))
-          (cljgl/set-uniform grid-prog 'u_cam_pos (f32-arr (into [] view-pos)))
+          (cljgl/set-uniform grid-prog 'u_inv_view (vec->f32-arr (vec inv-view)))
+          (cljgl/set-uniform grid-prog 'u_inv_proj (vec->f32-arr (vec inv-proj)))
+          (cljgl/set-uniform grid-prog 'u_cam_pos (vec->f32-arr (into [] view-pos)))
 
           (gl disable GL_DEPTH_TEST)
           (gl drawElements GL_TRIANGLES 6 GL_UNSIGNED_INT 0)

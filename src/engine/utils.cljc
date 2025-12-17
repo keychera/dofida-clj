@@ -5,6 +5,7 @@
              [cheshire.core :as json]])
    [clojure.edn :as edn]
    [engine.macros :refer [vars->map]]
+   [engine.sugar :refer [f32-arr]]
    [odoyle.rules :as o]
    [thi.ng.geom.matrix :as mat])
   #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
@@ -122,9 +123,9 @@
         vertex-count  (count faces)]
     (loop [i 0
            [[v-i uv-i n-i] & remains] faces
-           vertices   (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 3))
-           uvs        (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 2))
-           normals    (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 3))]
+           vertices   (f32-arr (* vertex-count 3))
+           uvs        (f32-arr (* vertex-count 2))
+           normals    (f32-arr (* vertex-count 3))]
       (if (some? v-i)
         (let [[^float v1 ^float v2 ^float v3] (nth all-vertices (dec v-i))
               [^float uv1 ^float uv2] (nth all-uvs (dec uv-i))

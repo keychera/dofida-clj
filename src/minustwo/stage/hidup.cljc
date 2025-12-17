@@ -5,7 +5,7 @@
    [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
    [engine.macros :refer [insert!]]
-   [engine.sugar :refer [f32-arr]]
+   [engine.sugar :refer [vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.anime.anime :as anime]
@@ -161,9 +161,9 @@ void main()
               model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))
-          (cljgl/set-uniform ctx program-info 'u_projection (f32-arr (vec project)))
-          (cljgl/set-uniform ctx program-info 'u_view (f32-arr (vec view)))
-          (cljgl/set-uniform ctx program-info 'u_model (f32-arr (vec model)))
+          (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
+          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec view)))
+          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec model)))
           (when-let [{:keys [uni-loc]} (get (:uni-locs program-info) 'u_joint_mats)]
             (gl ctx uniformMatrix4fv uni-loc false joint-mats))
 
