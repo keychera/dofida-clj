@@ -20,7 +20,6 @@
 (s/def ::spell sequential?)
 (s/def ::casted? #{:pending :loading true})
 (s/def ::err nil?)
-(s/def ::custom-spell-fn fn?)
 
 (def rules
   (o/ruleset
@@ -46,15 +45,7 @@
                             {:model-id esse-id
                              :use-shader use-shader
                              :tex-unit-offset texu-offset})]
-       (insert! esse-id ::spell gltf-spell))]
-
-    ::customize-spell
-    [:what
-     [esse-id ::spell spell {:then false}]
-     [esse-id ::casted? :pending {:then false}]
-     [esse-id ::custom-spell-fn custom-spell-fn]
-     :then
-     (insert! esse-id ::spell (custom-spell-fn spell))]}))
+       (insert! esse-id ::spell gltf-spell))]}))
 
 (def system
   {::world/rules rules})
