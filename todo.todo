@@ -191,6 +191,7 @@ bug:
 error path that breaks the repl dev:
     ☐ removing a rule and hot reload
     ☐ inserting wrong type to odoyle
+    ☐ shader compile error stops odoyle
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
