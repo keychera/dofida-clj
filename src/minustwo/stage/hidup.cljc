@@ -66,32 +66,6 @@ void main()
     o_color = vec4(result, 1.0);
 }"})
 
-(def the-vertex-shader
-  {:precision  "mediump float"
-   :inputs     '{POSITION   vec3
-                 NORMAL     vec3
-                 TEXCOORD_0 vec2}
-   :outputs    '{Normal    vec3
-                 TexCoords vec2}
-   :uniforms   '{u_model      mat4
-                 u_view       mat4
-                 u_projection mat4}
-   :signatures '{main ([] void)}
-   :functions
-   '{main ([]
-           (= gl_Position (* u_projection u_view u_model (vec4 POSITION "1.0")))
-           (= Normal NORMAL)
-           (= TexCoords TEXCOORD_0))}})
-
-(def the-fragment-shader
-  {:precision  "mediump float"
-   :inputs     '{Normal    vec3
-                 TexCoords vec2}
-   :outputs    '{o_color vec4}
-   :signatures '{main ([] void)}
-   :functions
-   '{main ([] (= o_color (vec4 0.6 0.9 0.9 0.7)))}})
-
 (s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
                               :draw-fn fn?))
 
@@ -112,12 +86,6 @@ void main()
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
               normal-draw
-              t3d/default)
-        (esse ::simpleshader
-              #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
-        (esse ::wirecube
-              #::assimp{:model-to-load ["assets/wirecube.glb"] :tex-unit-offset 0}
-              #::shader{:use ::simpleshader}
               t3d/default)
         #_(esse ::rubah
                 #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
