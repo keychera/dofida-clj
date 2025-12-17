@@ -188,8 +188,9 @@ bug:
     ✘ quaternion rotation on arcball sometimes morph the cube weirdly @cancelled(25-11-22 16:22) THIS IS AN OPTICAL ILLUSION LMAO
     ☐ input delay on jvm, probably the input-queue
 
-error path:
+error path that breaks the repl dev:
     ☐ removing a rule and hot reload
+    ☐ inserting wrong type to odoyle
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
