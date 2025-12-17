@@ -40,7 +40,7 @@
         (esse ::simpleshader
               #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
         (esse ::wirecube
-              #::assimp{:model-to-load ["assets/cube.glb"] :tex-unit-offset 0}
+              #::assimp{:model-to-load ["assets/wirecube.glb"] :tex-unit-offset 0}
               #::shader{:use ::simpleshader}
               hidup/normal-draw
               t3d/default))))
