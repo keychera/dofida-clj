@@ -105,3 +105,6 @@
         q2    (if (< dot-p 0.0) (g/scale q2 -1.0) q2)]
     ;; not handling quats that are too close to each other yet
     (m/mix q1 q2 t)))
+
+(defn clamp [value min-val max-val]
+  (max min-val (min value max-val)))

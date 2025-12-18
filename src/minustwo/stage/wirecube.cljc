@@ -32,7 +32,7 @@
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (vec4 0.6 0.9 0.9 0.7)))}})
+   '{main ([] (= o_color (vec4 "0.9" "0.2" "0.2" "0.7")))}})
 
 (defn init-fn [world game]
   (let [ctx (game/gl-ctx game)]
