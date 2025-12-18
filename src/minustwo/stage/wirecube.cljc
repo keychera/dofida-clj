@@ -32,7 +32,7 @@
    :outputs    '{o_color vec4}
    :signatures '{main ([] void)}
    :functions
-   '{main ([] (= o_color (vec4 "0.9" "0.2" "0.2" "0.7")))}})
+   '{main ([] (= o_color (vec4 "0.9" "0.2" "0.2" 0.7)))}})
 
 (defn init-fn [world game]
   (let [ctx (game/gl-ctx game)]
@@ -40,7 +40,7 @@
         (esse ::simpleshader
               #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
         (esse ::wirecube
-              #::assimp{:model-to-load ["assets/wirecube.glb"] :tex-unit-offset 0}
+              #::assimp{:model-to-load ["assets/wirebeing.glb"] :tex-unit-offset 0}
               #::shader{:use ::simpleshader}
               hidup/normal-draw
               t3d/default))))
