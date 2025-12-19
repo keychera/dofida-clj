@@ -9,6 +9,7 @@
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.anime.anime :as anime]
+   [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minustwo.gl.gl-magic :as gl-magic]
@@ -66,6 +67,7 @@ void main()
     o_color = vec4(result, 1.0);
 }"})
 
+;; this part needs hammock later
 (s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
                               :draw-fn fn?))
 
@@ -85,6 +87,7 @@ void main()
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
               #::shader{:use ::pmx-shader}
+              pose/default
               normal-draw
               t3d/default)
         #_(esse ::rubah
@@ -123,7 +126,7 @@ void main()
      [esse-id ::gltf/primitives gltf-primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
-     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::pose/pose-tree pose-tree]
      [esse-id ::custom-draw-fn draw-fn {:then false}]]
 
     ::update-anime
@@ -155,9 +158,9 @@ void main()
         view      (:player-view room-data)]
     (when-let [gltf-models (seq (o/query-all world ::gltf-models))]
       (doseq [gltf-model gltf-models]
-        (let [{:keys [draw-fn model program-info joints transform-tree inv-bind-mats]} gltf-model
-              joint-mats (gltf/create-joint-mats-arr joints transform-tree inv-bind-mats)
-              node-0     (some-> (get transform-tree 0) :global-transform)
+        (let [{:keys [draw-fn model program-info joints pose-tree inv-bind-mats]} gltf-model
+              joint-mats (gltf/create-joint-mats-arr joints pose-tree inv-bind-mats)
+              node-0     (some-> (get pose-tree 0) :global-transform)
               model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))

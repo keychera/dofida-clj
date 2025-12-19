@@ -3,6 +3,7 @@
    #?(:clj  [minustwo.model.assimp-lwjgl :as assimp-jvm]
       :cljs [minustwo.model.assimp-js :as assimp-js])
    [minustwo.anime.anime :as anime]
+   [minustwo.anime.pose :as pose]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.texture :as texture]
@@ -36,6 +37,7 @@
    room/system
    perspective-grid/system
    t3d/system
-
+   
+   hidup/system
    wirecube/system
-   hidup/system])
+   pose/system])
