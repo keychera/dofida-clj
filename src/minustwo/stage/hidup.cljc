@@ -90,11 +90,12 @@ void main()
               pose/default
               normal-draw
               t3d/default)
-        #_(esse ::rubah
-                #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
-                #::shader{:use ::pmx-shader}
-                normal-draw
-                t3d/default)
+        (esse ::rubah
+              #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
+              #::shader{:use ::pmx-shader}
+              pose/default
+              normal-draw
+              t3d/default)
         #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
         #_(esse ::simpleskin
                 #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
@@ -132,24 +133,24 @@ void main()
     ::update-anime
     [:what
      [::time/now ::time/slice 2]
-     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::pose/pose-tree pose-tree]
      :then
      (let [anime (get (::anime/interpolated @anime/db*) esse-id)
-           transform-tree (if anime
-                            (into []
-                                  (map (fn [{:keys [idx] :as node}]
-                                         (let [value            (get anime idx)
-                                               next-translation (get value :translation)
-                                               next-rotation    (get value :rotation)
-                                               next-scale       (get value :scale)]
-                                           (cond-> node
-                                             next-translation (assoc :translation next-translation)
-                                             next-rotation (assoc :rotation next-rotation)
-                                             next-scale (assoc :scale next-scale)))))
-                                  transform-tree)
-                            transform-tree)
-           global-tt (gltf/global-transform-tree transform-tree)]
-       (insert! esse-id ::gltf/transform-tree global-tt))]}))
+           pose-tree (if anime
+                       (into []
+                             (map (fn [{:keys [idx] :as node}]
+                                    (let [value            (get anime idx)
+                                          next-translation (get value :translation)
+                                          next-rotation    (get value :rotation)
+                                          next-scale       (get value :scale)]
+                                      (cond-> node
+                                        next-translation (assoc :translation next-translation)
+                                        next-rotation (assoc :rotation next-rotation)
+                                        next-scale (assoc :scale next-scale)))))
+                             pose-tree)
+                       pose-tree)
+           global-tt (gltf/global-transform-tree pose-tree)]
+       (insert! esse-id ::pose/pose-tree global-tt))]}))
 
 (defn render-fn [world _game]
   (let [room-data (utils/query-one world ::room/data)
