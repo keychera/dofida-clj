@@ -125,7 +125,8 @@
 
     ::animation-update
     [:what
-     [::time/now ::time/total tt]
+     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/step _]
      [::world/global ::there-are-animes true {:then false}]
      :then
      (let [db             @db*
