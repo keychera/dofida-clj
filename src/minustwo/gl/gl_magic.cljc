@@ -25,7 +25,9 @@
   (o/ruleset
    {::prepate-spell
     [:what [esse-id ::spell spell]
-     :then (insert! esse-id ::casted? :pending)]
+     :then
+     (println "casting gl-magic for" esse-id)
+     (insert! esse-id ::casted? :pending)]
 
     ::to-cast
     [:what
@@ -38,6 +40,7 @@
      [esse-id ::gltf/bins bins]
      [esse-id ::shader/use use-shader]
      [esse-id ::assimp/tex-unit-offset texu-offset]
+     [esse-id ::casted? :pending {:then false}]
      :then
      (println "[magic] gltf spell for" esse-id)
      (let [gltf-spell

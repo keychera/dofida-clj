@@ -4,6 +4,7 @@
    [clojure.string :as str]
    [engine.macros :refer [vars->map]]
    [engine.world :as world]
+   [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.model.assimp :as assimp]
    [odoyle.rules :as o]))
@@ -54,7 +55,7 @@
        model-files "gltf2"
        (fn [{:keys [json bins]}]
          (println "[assimp-js] loaded" esse-id)
-         (swap! world* o/insert esse-id {::gltf/data json ::gltf/bins bins}))))))
+         (swap! world* o/insert esse-id {::gltf/data json ::gltf/bins bins ::gl-magic/casted? :pending}))))))
 
 (def system
   {::world/rules rules})
