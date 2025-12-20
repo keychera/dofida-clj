@@ -25,7 +25,7 @@
 (s/def ::bins vector?)
 (s/def ::primitives sequential?)
 (s/def ::joints vector?)
-(s/def ::transform-tree (s/coll-of ::node+transform :kind vector))
+(s/def ::transform-tree (s/coll-of ::node+transform :kind vector?))
 (s/def ::inv-bind-mats vector?)
 
 (defn create-vao-names [prefix]
