@@ -11,6 +11,8 @@
 
 (def default {::pose-xform identity})
 
+(defn strike [a-pose] {::pose-xform a-pose})
+
 (def rules
   (o/ruleset
    {::pose
