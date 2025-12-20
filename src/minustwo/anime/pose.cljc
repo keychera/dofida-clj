@@ -13,7 +13,9 @@
 (s/def ::pose-xform fn?)
 (s/def ::pose-tree ::gltf/transform-tree)
 
-(s/def ::point-in-time (s/cat :time-inp ::keyframe/inp :pose-fn ::pose-xform))
+(s/def ::point-in-time (s/cat :time-inp ::keyframe/inp 
+                              :pose-fn ::pose-xform
+                              :anime-fn fn?))
 (s/def ::timeline (s/coll-of ::point-in-time :kind vector?))
 (s/def ::max-progress number?)
 (s/def ::kfs ::keyframe/keyframes)
@@ -21,6 +23,7 @@
 (def default {::pose-xform identity})
 (defn strike [a-pose] {::pose-xform a-pose})
 (defn anime [max-inp timeline]
+  (s/assert ::timeline timeline)
   {::timeline timeline
    ::max-progress max-inp})
 
@@ -78,10 +81,10 @@
            progress (mod (/ tt 640) max-progress)
            running  (eduction
                      (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
-                     (map (fn [{::keyframe/keys [inp next-inp out next-out]}]
+                     (map (fn [{::keyframe/keys [inp next-inp out next-out anime-fn]}]
                             (let [prev-pose (into [] out transform-tree)
                                   next-pose (into [] next-out transform-tree)
-                                  t         (/ (- progress inp) (- next-inp inp))]
+                                  t         (anime-fn (/ (- progress inp) (- next-inp inp)))]
                               (interpolate-pose prev-pose next-pose t))))
                      kfs)
            pose     (first running)]

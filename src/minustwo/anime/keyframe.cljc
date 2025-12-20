@@ -18,10 +18,10 @@
        (partition 2 1)
        (map (fn [[start-kf next-kf]]
               (let [[input output] start-kf
-                    [next-input next-output] next-kf]
+                    [next-input next-output anime-fn] next-kf]
                 {::inp input
                  ::out output
                  ::next-inp next-input
                  ::next-out next-output
-                 ::anime-fn identity})))
+                 ::anime-fn anime-fn})))
        butlast))
