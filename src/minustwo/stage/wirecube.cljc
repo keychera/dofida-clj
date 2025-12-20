@@ -2,6 +2,7 @@
   (:require
    [engine.game :as game]
    [engine.world :as world :refer [esse]]
+   [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
@@ -42,6 +43,7 @@
         (esse ::wirecube
               #::assimp{:model-to-load ["assets/wirebeing.glb"] :tex-unit-offset 0}
               #::shader{:use ::simpleshader}
+              pose/default
               hidup/normal-draw
               t3d/default))))
 
