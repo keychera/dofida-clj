@@ -128,17 +128,20 @@ void main()
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
      [esse-id ::pose/pose-tree pose-tree]
-     [esse-id ::custom-draw-fn draw-fn {:then false}]]
+     [esse-id ::custom-draw-fn draw-fn]]
 
     ::update-anime
     [:what
      [::time/now ::time/slice 2]
-     [esse-id ::pose/pose-tree pose-tree]
+     [esse-id ::pose/pose-xform pose-xform]
+     [esse-id ::gltf/transform-tree transform-tree]
      :then
-     (let [anime (get (::anime/interpolated @anime/db*) esse-id)
+     (let [anime     (get (::anime/interpolated @anime/db*) esse-id)
+           pose-tree (into [] pose-xform transform-tree)
            pose-tree (if anime
                        (into []
-                             (map (fn [{:keys [idx] :as node}]
+                             (map (fn [{:keys [idx]
+                                        :as   node}]
                                     (let [value            (get anime idx)
                                           next-translation (get value :translation)
                                           next-rotation    (get value :rotation)
@@ -148,8 +151,15 @@ void main()
                                         next-rotation (assoc :rotation next-rotation)
                                         next-scale (assoc :scale next-scale)))))
                              pose-tree)
-                       pose-tree)
-           global-tt (gltf/global-transform-tree pose-tree)]
+                       pose-tree)]
+       (insert! esse-id ::pose/pose-tree pose-tree))]
+
+    ::global-transform
+    [:what
+     [::time/now ::time/slice 4]
+     [esse-id ::pose/pose-tree pose-tree {:then false}]
+     :then
+     (let [global-tt (gltf/global-transform-tree pose-tree)]
        (insert! esse-id ::pose/pose-tree global-tt))]}))
 
 (defn render-fn [world _game]

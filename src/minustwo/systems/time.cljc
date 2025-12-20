@@ -23,8 +23,8 @@
      ::slicing
      [:what
       [::now ::slice step]
-      :when (< step 4)
-      :then 
+      :when (< step 6)
+      :then
       (insert! ::now ::slice (inc step))]})})
 
 (defn insert [world total delta]
