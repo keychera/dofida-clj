@@ -1,23 +1,92 @@
 (ns minustwo.anime.pose
   (:require
    [clojure.spec.alpha :as s]
+   [engine.macros :refer [insert! s->]]
+   [engine.math :as m-ext]
    [engine.world :as world]
+   [minustwo.anime.keyframe :as keyframe]
    [minustwo.gl.gltf :as gltf]
-   [odoyle.rules :as o]))
+   [minustwo.systems.time :as time]
+   [odoyle.rules :as o]
+   [thi.ng.math.core :as m]))
 
 (s/def ::pose-xform fn?)
 (s/def ::pose-tree ::gltf/transform-tree)
 
-(def default {::pose-xform identity})
+(s/def ::point-in-time (s/cat :time-inp ::keyframe/inp :pose-fn ::pose-xform))
+(s/def ::timeline (s/coll-of ::point-in-time :kind vector?))
+(s/def ::max-progress number?)
+(s/def ::kfs ::keyframe/keyframes)
 
+(def default {::pose-xform identity})
 (defn strike [a-pose] {::pose-xform a-pose})
+(defn anime [max-inp timeline]
+  {::timeline timeline
+   ::max-progress max-inp})
+
+(def keyframes-db* (atom {}))
+
+(defn interpolate-pose [pose-a pose-b t]
+  (into []
+        (map (fn [[bone-a bone-b]]
+               (let [trans-a    (:translation bone-a)
+                     rotate-a   (:rotation bone-a)
+                     scale-a    (:scale bone-a)
+                     trans-b    (:translation bone-b)
+                     rotate-b   (:rotation bone-b)
+                     scale-b    (:scale bone-b)
+                     int-trans  (m/mix trans-a trans-b t)
+                     int-rotate (m-ext/quat-mix rotate-a rotate-b t)
+                     int-scale  (m/mix scale-a scale-b t)]
+                 (assoc bone-b
+                        :translation int-trans
+                        :rotation int-rotate
+                        :scale int-scale))))
+        (map vector pose-a pose-b)))
 
 (def rules
   (o/ruleset
-   {::pose-interpolation
+   {::pose-keyframes
     [:what
+     [esse-id ::timeline timeline]
+     :then
+     (let [kfs (keyframe/interpolate timeline)]
+       (when (seq kfs)
+         (swap! keyframes-db* assoc-in [esse-id ::kfs] kfs)))]
+
+    ::pose-for-the-fans!
+    [:what
+     [::time/now ::time/slice 0]
      [esse-id ::pose-xform pose-xform]
-     [esse-id ::gltf/transform-tree transform-tree]]}))
+     [esse-id ::gltf/transform-tree transform-tree]
+     :then
+     (let [pose-tree (into [] pose-xform transform-tree)]
+       ;; repl heuristic: striking a pose will stop pose-interpolation
+       (swap! keyframes-db* update esse-id dissoc ::kfs)
+       (s-> session
+            (o/retract esse-id ::pose-xform)
+            (o/insert esse-id ::pose-tree pose-tree)))]
+
+    ::pose-interpolation
+    [:what
+     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/slice 1]
+     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::max-progress max-progress]
+     :then
+     (let [kfs      (get-in @keyframes-db* [esse-id ::kfs])
+           progress (mod (/ tt 640) max-progress)
+           running  (eduction
+                     (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
+                     (map (fn [{::keyframe/keys [inp next-inp out next-out]}]
+                            (let [prev-pose (into [] out transform-tree)
+                                  next-pose (into [] next-out transform-tree)
+                                  t         (/ (- progress inp) (- next-inp inp))]
+                              (interpolate-pose prev-pose next-pose t))))
+                     kfs)
+           pose     (first running)]
+       (when pose
+         (insert! esse-id ::pose-tree pose)))]}))
 
 (def system
   {::world/rules rules})

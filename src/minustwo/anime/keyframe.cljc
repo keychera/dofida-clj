@@ -11,3 +11,17 @@
 
 (s/def ::keyframe (s/keys :req [::inp ::out ::next-inp ::next-out ::anime-fn]))
 (s/def ::keyframes (s/coll-of ::keyframe :kind vector?))
+
+(defn interpolate
+  [keyframes]
+  (->> (take (inc (count keyframes)) (cycle keyframes))
+       (partition 2 1)
+       (map (fn [[start-kf next-kf]]
+              (let [[input output] start-kf
+                    [next-input next-output] next-kf]
+                {::inp input
+                 ::out output
+                 ::next-inp next-input
+                 ::next-out next-output
+                 ::anime-fn identity})))
+       butlast))

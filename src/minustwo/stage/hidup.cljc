@@ -133,11 +133,9 @@ void main()
     ::update-anime
     [:what
      [::time/now ::time/slice 2]
-     [esse-id ::pose/pose-xform pose-xform]
-     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::pose/pose-tree pose-tree]
      :then
-     (let [anime     (get (::anime/interpolated @anime/db*) esse-id)
-           pose-tree (into [] pose-xform transform-tree)
+     (let [anime     (get (::anime/interpolated @anime/db*) esse-id) 
            pose-tree (if anime
                        (into []
                              (map (fn [{:keys [idx]
