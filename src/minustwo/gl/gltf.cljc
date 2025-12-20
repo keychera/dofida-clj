@@ -237,6 +237,28 @@
              ((fn [{:keys [local-transform] :as node}]
                 (assoc node :global-transform local-transform))))]))
 
+;; I wonder if this is advisable... I need global transform in my pose-fn transducers
+(defn global-transform-xf [rf]
+  (fn
+    ([] (rf))
+    ([transform-tree]
+     (let [root [(-> (calc-local-transform (get transform-tree 0))
+                     ((fn [{:keys [local-transform] :as node}]
+                        (assoc node :global-transform local-transform))))]
+           result (transduce
+                   (tree-cat :children
+                             (fn [parent]
+                               (into []
+                                     (comp
+                                      (map (fn [cid] (calc-local-transform (get transform-tree cid))))
+                                      (map (fn [{:keys [local-transform] :as node}]
+                                             (let [global-t (m/* (:global-transform parent) local-transform)]
+                                               (assoc node :global-transform global-t)))))
+                                     (:children parent))))
+                   conj! root)]
+       (rf result)))
+    ([result input] (rf result input))))
+
 (defn create-joint-mats-arr [joints global-tt inv-bind-mats]
   (let [f32s      (f32-arr (* 16 (count joints)))]
     (doseq [joint joints]
@@ -269,18 +291,7 @@
         nodes          (:nodes gltf-data)
         nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) nodes)
         transform-tree (vec (node-transform-tree nodes))]
-    (into []
-          (tree-cat :children
-                    (fn [parent]
-                      (into [] (comp
-                                (map (fn [cid] (calc-local-transform (get transform-tree cid))))
-                                (map (fn [{:keys [local-transform] :as node}]
-                                       (let [global-t (m/* (:global-transform parent) local-transform)]
-                                         (assoc node :global-transform global-t)))))
-                            (:children parent))))
-          [(-> (calc-local-transform (first transform-tree))
-               ((fn [{:keys [local-transform] :as node}]
-                  (assoc node :global-transform local-transform))))])
+    (into [] global-transform-xf transform-tree)
 
     #_(create-joint-mats-arr (:joints skin) transform-tree inv-bind-mats))
 
