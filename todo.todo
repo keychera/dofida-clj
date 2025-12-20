@@ -20,6 +20,23 @@ todo:
         ☐ blend shapes
         ☐ shaders, czmw_, tsoding, bmtol
 
+        ☐ fundamental problem, doing my best to defer and not tackle everything at once
+            ☐ no morph target/shape keys from assimp pmx, noone to ask (ask assimp creator? ask mr. godot? probably not the latter)
+            ☐ the parser have it but where does it go???
+                - https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446
+                ☐ make our own additional parser?
+                ☐ try converting to gltf mesh in blender, work our way there (need to render multiple meshes)
+                    ☐ along with basilisp exploration?
+                ☐ just drop the format entirely, hmm, hmm
+                ✘ explore assjson, maybe it still have it @cancelled(25-12-20 10:35) checked in assimpjs online, i dont think so...
+                    ✘ need to build new renderer for this @cancelled(25-12-20 10:37)
+                ☐ if that data is in the binary already, read it ourself in clojure?
+                    ☐ clojure/gloss 
+                ☐ try assimp ourself?
+                    ☐ explore saba? https://github.com/benikabocha/saba
+                    ☐ jank exploration?
+                
+
     ☐ it begins
         ✔ reconstruct atlas asset with our current gl knowledge @done(25-11-08 15:07), not atlas yet but good enough
             ✔ sidestream: atlas @done(25-11-12 22:38)
