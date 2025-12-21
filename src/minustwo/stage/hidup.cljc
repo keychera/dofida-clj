@@ -183,10 +183,15 @@ void main()
            (= c (:name input)) (vreset! fc input))
          (rf result input))))))
 
-(def poseA
+(def pose-rest
   (comp
    gltf/global-transform-xf
-   ;; absolute cinema
+   (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 10.0 -70.0 0.0))
+   (IK-transducer "右腕" "右ひじ" "右手首" (v/vec3 -10.0 -70.0 0.0))))
+
+(def absolute-cinema
+  (comp
+   gltf/global-transform-xf
    (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 10.0))
    (IK-transducer "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 10.0))))
 
@@ -199,7 +204,12 @@ void main()
             #::t3d{:translation (v/vec3 0.0 0.0 -16.0)
                    :scale (v/vec3 24.0)})
       (esse ::rubahperak
-            (pose/strike poseA)
+            #_(pose/strike pose-rest)
+            (pose/anime 20.0
+                        [[0.0 pose-rest identity]
+                         [2.0 absolute-cinema identity]
+                         [15.5 absolute-cinema identity]
+                         [16.0 pose-rest identity]])
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)})
       (esse ::rubah
             #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
