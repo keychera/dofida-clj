@@ -196,68 +196,35 @@
           (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
 
-(defn calc-local-transform [{:keys [translation rotation scale] :as node}]
+(defn calc-local-transform [{:keys [translation rotation scale]}]
   (let [trans-mat    (m-ext/translation-mat translation)
         rot-mat      (g/as-matrix rotation)
         scale-mat    (m-ext/vec3->scaling-mat scale)
         local-trans  (reduce m/* [trans-mat rot-mat scale-mat])]
-    (assoc node :local-transform local-trans)))
+    local-trans))
 
-;; tree-seq transducer hmmm, it makes the games back to around 100 fps
-;; however, if we (st/unstrument), the game goes back to 160 fps!
-;; https://gist.github.com/green-coder/3adf11660b7b0ca83648c5be69de2a3b
-;; https://gist.github.com/cgrand/b5bf4851b0e5e3aeb438eba2298dacb9
-(defn tree-cat [branch? children]
-  (fn [rf]
-    (letfn [(nested [acc x]
-              (let [acc (rf acc x)]
-                (cond
-                  (reduced? acc) (reduced acc)
-                  (branch? x) (let [acc (reduce nested acc (children x))]
-                                (cond-> acc (reduced? acc) reduced))
-                  :else acc)))]
-      (fn
-        ([] (rf))
-        ([acc] (rf acc))
-        ([acc x] (unreduced (nested acc x)))))))
-
-(s/fdef global-transform-tree
-  :args (s/cat :transform-tree ::transform-tree))
-(defn global-transform-tree [transform-tree]
-  (into []
-        (tree-cat :children
-                  (fn [parent]
-                    (into [] (comp
-                              (map (fn [cid] (calc-local-transform (get transform-tree cid))))
-                              (map (fn [{:keys [local-transform] :as node}]
-                                     (let [global-t (m/* (:global-transform parent) local-transform)]
-                                       (assoc node :global-transform global-t)))))
-                          (:children parent))))
-        [(-> (calc-local-transform (first transform-tree))
-             ((fn [{:keys [local-transform] :as node}]
-                (assoc node :global-transform local-transform))))]))
-
-;; I wonder if this is advisable... I need global transform in my pose-fn transducers
+;; transducer with assumption that parent node will always before child node in a linear seq
 (defn global-transform-xf [rf]
-  (fn
-    ([] (rf))
-    ([transform-tree]
-     (let [root [(-> (calc-local-transform (get transform-tree 0))
-                     ((fn [{:keys [local-transform] :as node}]
-                        (assoc node :global-transform local-transform))))]
-           result (transduce
-                   (tree-cat :children
-                             (fn [parent]
-                               (into []
-                                     (comp
-                                      (map (fn [cid] (calc-local-transform (get transform-tree cid))))
-                                      (map (fn [{:keys [local-transform] :as node}]
-                                             (let [global-t (m/* (:global-transform parent) local-transform)]
-                                               (assoc node :global-transform global-t)))))
-                                     (:children parent))))
-                   conj! root)]
-       (rf result)))
-    ([result input] (rf result input))))
+  (let [parents-global-transform! (volatile! {})]
+    (fn
+      ([] (rf))
+      ([result]
+       (rf result))
+      ([result node]
+       (let [local-trans  (calc-local-transform node)
+             parent-trans (get @parents-global-transform! (:idx node))
+             global-trans (if parent-trans
+                            (m/* parent-trans local-trans)
+                            local-trans)
+             node         (assoc node
+                                 :local-transform local-trans
+                                 :global-transform global-trans
+                                 :parent-transform parent-trans)]
+         (when (:children node)
+           (vswap! parents-global-transform!
+                   into (map (fn [cid] [cid global-trans]))
+                   (:children node)))
+         (rf result node))))))
 
 (defn create-joint-mats-arr [joints global-tt inv-bind-mats]
   (let [f32s      (f32-arr (* 16 (count joints)))]
