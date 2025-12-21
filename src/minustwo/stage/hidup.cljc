@@ -95,11 +95,11 @@ void main()
               normal-draw
               t3d/default)
         #_(esse ::rubah
-              #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
-              #::shader{:use ::pmx-shader}
-              pose/default
-              normal-draw
-              t3d/default)
+                #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
+                #::shader{:use ::pmx-shader}
+                pose/default
+                normal-draw
+                t3d/default)
         #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
         #_(esse ::simpleskin
                 #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
@@ -123,31 +123,36 @@ void main()
 (defn rotatation-of-u->v [u v]
   (let [k-cosθ (m/dot u v)
         k      (Math/sqrt (* (m/mag-squared u) (m/mag-squared v)))]
-    (println "crossing..." u v (m/cross u v))
     (if (= (/ k-cosθ k) -1.0)
       (q/quat (m/normalize (orthogonal u)) 0.0)
       (m/normalize (q/quat (m/cross u v) (+ k-cosθ k))))))
 
+(defn clamped-acos [cos-v]
+  (cond
+    (<= cos-v -1) Math/PI
+    (>= cos-v 1) 0.0
+    :else (Math/acos cos-v)))
 
-(defn solve-IK1 [root-t mid-t end-t target-t] 
-  (let [origin-v   (m/- end-t root-t)
-        target-v   (m/- (m/+ target-t end-t) root-t)
-        root-angle (rotatation-of-u->v origin-v target-v) 
-        [axis _]   (q/as-axis-angle root-angle)
-        
-        AB         (m/mag (m/+ root-t mid-t))
-        BC         (m/mag (m/+ mid-t end-t))
-        to-target  (m/+ root-t target-t)
-        AC         (m/mag to-target)
-        alpha      (Math/acos (/ (+ (* AB AB) (* AC AC) (- (* BC BC)))
-                                 (* 2.0 AB AC)))
-        beta       (Math/acos (/ (+ (* AB AB) (* BC BC) (- (* AC AC)))
-                                 (* 2.0 AB BC)))
-        root-IK    (q/quat-from-axis-angle axis alpha)
-        mid-IK     (q/quat-from-axis-angle axis 0)]
-    (println "hmm1" root-t mid-t end-t)
-    (println "hmm2" origin-v target-v)
-    [root-angle mid-IK]))
+;; man Idk if this is entirely correct
+(defn solve-IK1 [root-t mid-t end-t target-t]
+  (let [origin-v     (m/- end-t root-t)
+        target-v     (m/- (m/+ target-t end-t) root-t)
+        root-angle   (rotatation-of-u->v origin-v target-v)
+        [axis angle] (q/as-axis-angle root-angle)
+
+        target-r     (g/rotate-around-axis target-t axis angle)
+        AB           (m/mag (m/+ root-t mid-t))
+        BC           (m/mag (m/+ mid-t end-t))
+        AC           (m/mag (m/+ root-t target-r))
+        cos-alpha    (/ (+ (* AB AB) (* AC AC) (* -1.0 BC BC))
+                        (* 2.0 AB AC))
+        alpha        (clamped-acos cos-alpha)
+        cos-beta     (/ (+ (* AB AB) (* BC BC) (* -1.0 AC AC))
+                        (* 2.0 AB BC))
+        beta         (clamped-acos cos-beta)
+        root-IK      (q/quat-from-axis-angle axis (- alpha))
+        mid-IK       (q/quat-from-axis-angle axis (- Math/PI beta))]
+    [(m/* root-angle root-IK) mid-IK]))
 
 (defn IK-transducer [a b c target]
   (fn [rf]
@@ -181,7 +186,9 @@ void main()
 (def poseA
   (comp
    gltf/global-transform-xf
-   (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 -4.27 0.0 4.0))))
+   ;; absolute cinema
+   (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 10.0))
+   (IK-transducer "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 10.0))))
 
 (defn after-load-fn [world _game]
   (-> world
@@ -242,15 +249,15 @@ void main()
      :then
      (let [pose-tree (into []
                            #_(map (fn [{:keys [name rotation original-r] :as node}]
-                                  (if-let [bone-pose (get {"左腕" [(v/vec3 0.0 -0.0 0.0) 200.0 180.0]} name)] 
-                                    (let [[axis-angle offset ampl] bone-pose
-                                          next-rotation (q/quat-from-axis-angle
-                                                         axis-angle
-                                                         (m/radians (* ampl (Math/sin (/ (+ tt offset) 640.0)))))]
-                                      (cond-> node
-                                        (nil? original-r) (assoc :original-r rotation)
-                                        next-rotation (assoc :rotation (m/* (or  original-r rotation) next-rotation))))
-                                    node)))
+                                    (if-let [bone-pose (get {"左腕" [(v/vec3 0.0 -0.0 0.0) 200.0 180.0]} name)]
+                                      (let [[axis-angle offset ampl] bone-pose
+                                            next-rotation (q/quat-from-axis-angle
+                                                           axis-angle
+                                                           (m/radians (* ampl (Math/sin (/ (+ tt offset) 640.0)))))]
+                                        (cond-> node
+                                          (nil? original-r) (assoc :original-r rotation)
+                                          next-rotation (assoc :rotation (m/* (or  original-r rotation) next-rotation))))
+                                      node)))
                            pose-tree)
            global-tt (into [] gltf/global-transform-xf pose-tree)]
        (insert! esse-id ::pose/pose-tree global-tt))]}))
