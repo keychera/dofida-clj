@@ -56,6 +56,13 @@
     ^thi.ng.geom.matrix.Matrix44 b]
    (m/* a b)))
 
+(defn m44->trans-vec3
+  [^thi.ng.geom.matrix.Matrix44 m]
+  (let [tx    (.-m30 m)
+        ty    (.-m31 m)
+        tz    (.-m32 m)]
+    (v/vec3 tx ty tz)))
+
 (defn ^:vibe decompose-matrix44
   "Return {:translation (v/vec3) :rotation (q/quat) :scale (v/vec3)}"
   [^thi.ng.geom.matrix.Matrix44 m]

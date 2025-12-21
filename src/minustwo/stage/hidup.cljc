@@ -5,6 +5,7 @@
    [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
    [engine.macros :refer [insert!]]
+   [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -23,8 +24,11 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
+   [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.matrix :as mat]
+   [thi.ng.geom.core :as g]))
 
 (def pmx-vert
   {:precision  "mediump float"
@@ -77,7 +81,7 @@ void main()
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (gl-ctx game)]
     (-> world
-        (firstperson/insert-player (v/vec3 0.0 18.0 72.0) (v/vec3 0.0 0.0 -1.0))
+        (firstperson/insert-player (v/vec3 0.0 15.5 13.0) (v/vec3 0.0 0.0 -1.0))
         #_(esse ::simpleanime
                 #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
                 #::shader{:program-info (cljgl/create-program-info ctx vert frag)
@@ -90,7 +94,7 @@ void main()
               pose/default
               normal-draw
               t3d/default)
-        (esse ::rubah
+        #_(esse ::rubah
               #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
               #::shader{:use ::pmx-shader}
               pose/default
@@ -102,6 +106,83 @@ void main()
                 #::shader{:use ::joints-shader}
                 t3d/default))))
 
+;; https://stackoverflow.com/a/11741520/8812880
+(defn orthogonal [[x y z :as v]]
+  (let [x (Math/abs x)
+        y (Math/abs y)
+        z (Math/abs z)
+        other (if (< x y)
+                (if (< x z)
+                  (v/vec3 1.0 0.0 0.0)
+                  (v/vec3 0.0 0.0 1.0))
+                (if (< y z)
+                  (v/vec3 0.0 1.0 0.0)
+                  (v/vec3 0.0 0.0 1.0)))]
+    (m/cross v other)))
+
+(defn rotatation-of-u->v [u v]
+  (let [k-cosθ (m/dot u v)
+        k      (Math/sqrt (* (m/mag-squared u) (m/mag-squared v)))]
+    (println "crossing..." u v (m/cross u v))
+    (if (= (/ k-cosθ k) -1.0)
+      (q/quat (m/normalize (orthogonal u)) 0.0)
+      (m/normalize (q/quat (m/cross u v) (+ k-cosθ k))))))
+
+
+(defn solve-IK1 [root-t mid-t end-t target-t] 
+  (let [origin-v   (m/- end-t root-t)
+        target-v   (m/- (m/+ target-t end-t) root-t)
+        root-angle (rotatation-of-u->v origin-v target-v) 
+        [axis _]   (q/as-axis-angle root-angle)
+        
+        AB         (m/mag (m/+ root-t mid-t))
+        BC         (m/mag (m/+ mid-t end-t))
+        to-target  (m/+ root-t target-t)
+        AC         (m/mag to-target)
+        alpha      (Math/acos (/ (+ (* AB AB) (* AC AC) (- (* BC BC)))
+                                 (* 2.0 AB AC)))
+        beta       (Math/acos (/ (+ (* AB AB) (* BC BC) (- (* AC AC)))
+                                 (* 2.0 AB BC)))
+        root-IK    (q/quat-from-axis-angle axis alpha)
+        mid-IK     (q/quat-from-axis-angle axis 0)]
+    (println "hmm1" root-t mid-t end-t)
+    (println "hmm2" origin-v target-v)
+    [root-angle mid-IK]))
+
+(defn IK-transducer [a b c target]
+  (fn [rf]
+    (let [fa (volatile! nil)
+          fb (volatile! nil)
+          fc (volatile! nil)]
+      (fn
+        ([] (rf))
+        ([result]
+         (let [root-t     (m-ext/m44->trans-vec3
+                           (m/* (:parent-transform @fa)
+                                (m-ext/vec3->trans-mat (:translation @fa))))
+               mid-t      (m-ext/m44->trans-vec3
+                           (m/* (:parent-transform @fb)
+                                (m-ext/vec3->trans-mat (:translation @fb))))
+               end-t      (m-ext/m44->trans-vec3
+                           (m/* (:parent-transform @fc)
+                                (m-ext/vec3->trans-mat (:translation @fc))))
+               [root-IK mid-IK] (solve-IK1 root-t mid-t end-t target)
+               result (-> result
+                          (assoc! (:idx @fa) (update @fa :rotation m/* root-IK))
+                          (assoc! (:idx @fb) (update @fb :rotation m/* mid-IK)))]
+           (rf result)))
+        ([result input]
+         (cond
+           (= a (:name input)) (vreset! fa input)
+           (= b (:name input)) (vreset! fb input)
+           (= c (:name input)) (vreset! fc input))
+         (rf result input))))))
+
+(def poseA
+  (comp
+   gltf/global-transform-xf
+   (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 -4.27 0.0 4.0))))
+
 (defn after-load-fn [world _game]
   (-> world
       (esse ::simpleanime
@@ -111,7 +192,8 @@ void main()
             #::t3d{:translation (v/vec3 0.0 0.0 -16.0)
                    :scale (v/vec3 24.0)})
       (esse ::rubahperak
-            #::t3d{:translation (v/vec3 -15.0 0.0 0.0)})
+            (pose/strike poseA)
+            #::t3d{:translation (v/vec3 0.0 0.0 0.0)})
       (esse ::rubah
             #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
                    :scale (v/vec3 0.2)})))
@@ -135,7 +217,7 @@ void main()
      [::time/now ::time/slice 2]
      [esse-id ::pose/pose-tree pose-tree]
      :then
-     (let [anime     (get (::anime/interpolated @anime/db*) esse-id) 
+     (let [anime     (get (::anime/interpolated @anime/db*) esse-id)
            pose-tree (if anime
                        (into []
                              (map (fn [{:keys [idx]
@@ -154,10 +236,23 @@ void main()
 
     ::global-transform
     [:what
+     [::time/now ::time/total tt {:then false}]
      [::time/now ::time/slice 4]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      :then
-     (let [global-tt (gltf/global-transform-tree pose-tree)]
+     (let [pose-tree (into []
+                           #_(map (fn [{:keys [name rotation original-r] :as node}]
+                                  (if-let [bone-pose (get {"左腕" [(v/vec3 0.0 -0.0 0.0) 200.0 180.0]} name)] 
+                                    (let [[axis-angle offset ampl] bone-pose
+                                          next-rotation (q/quat-from-axis-angle
+                                                         axis-angle
+                                                         (m/radians (* ampl (Math/sin (/ (+ tt offset) 640.0)))))]
+                                      (cond-> node
+                                        (nil? original-r) (assoc :original-r rotation)
+                                        next-rotation (assoc :rotation (m/* (or  original-r rotation) next-rotation))))
+                                    node)))
+                           pose-tree)
+           global-tt (into [] gltf/global-transform-xf pose-tree)]
        (insert! esse-id ::pose/pose-tree global-tt))]}))
 
 (defn render-fn [world _game]
