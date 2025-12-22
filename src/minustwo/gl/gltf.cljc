@@ -149,7 +149,6 @@
                                         parent-of-all))
             idx-mapping (into {} (map (juxt :orig-idx :idx)) dfs-tree)
             remapped    (into [] (map (fn [node] (update node :children (fn [children] (into [] (map idx-mapping) children))))) dfs-tree)]
-        (println idx-mapping)
         remapped)
       nodes)))
 
@@ -165,7 +164,6 @@
                                  (map process-as-geom-transform))
                                 (:children parent-node)))
                         (process-as-geom-transform (first nodes)))]
-    (println (first nodes))
     ;; this somehow already returns an ordered seq, why? is it an optimization in the assimp part? is it the nature of DFS?
     (assert (apply <= (into [] (map :idx) tree)) "assumption broken: order of resulting seq is not the same as order of :idx")
     tree))
