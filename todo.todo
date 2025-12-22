@@ -22,6 +22,7 @@ todo:
 
         ☐ fundamental problem and stuff, doing my best to defer and not tackle everything at once
             ☐ no morph target/shape keys from assimp pmx, noone to ask (ask assimp creator? ask mr. godot? probably not the latter)
+                ☐ maybe related https://github.com/assimp/assimp/issues/6361, post issue about .pmx as well? c++ is so daunting...
                 ☐ the parser have it but where does it go???
                     - https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446
                     ☐ make our own additional parser?
