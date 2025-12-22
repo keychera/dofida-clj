@@ -39,15 +39,15 @@
      [esse-id ::gltf/data gltf-data]
      [esse-id ::gltf/bins bins]
      [esse-id ::shader/use use-shader]
-     [esse-id ::assimp/tex-unit-offset texu-offset]
+     [esse-id ::assimp/config assimp-config]
      [esse-id ::casted? :pending {:then false}]
      :then
      (println "[magic] gltf spell for" esse-id)
      (let [gltf-spell
            (gltf/gltf-spell gltf-data (first bins)
-                            {:model-id esse-id
-                             :use-shader use-shader
-                             :tex-unit-offset texu-offset})]
+                            (merge {:model-id esse-id
+                                    :use-shader use-shader}
+                                   assimp-config))]
        (insert! esse-id ::spell gltf-spell))]}))
 
 (def system

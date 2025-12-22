@@ -80,26 +80,28 @@ void main()
     (-> world
         (firstperson/insert-player (v/vec3 0.0 15.5 13.0) (v/vec3 0.0 0.0 -1.0))
         #_(esse ::simpleanime
-                #::assimp{:model-to-load ["assets/simpleanime.gltf"] :tex-unit-offset 0}
+                #::assimp{:model-to-load ["assets/simpleanime.gltf"] 
+                          :config {:tex-unit-offset 0}}
                 #::shader{:program-info (cljgl/create-program-info ctx vert frag)
                           :use ::simpleanime}
                 t3d/default)
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx pmx-vert pmx-frag)})
         (esse ::rubahperak
-              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] :tex-unit-offset 2}
+              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"] 
+                        :config {:tex-unit-offset 2}}
               #::shader{:use ::pmx-shader}
               pose/default
               normal-draw
               t3d/default)
         #_(esse ::rubah
-                #::assimp{:model-to-load ["assets/fox.glb"] :tex-unit-offset 10}
+                #::assimp{:model-to-load ["assets/fox.glb"] :config {:tex-unit-offset 10}}
                 #::shader{:use ::pmx-shader}
                 pose/default
                 normal-draw
                 t3d/default)
         #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
         #_(esse ::simpleskin
-                #::assimp{:model-to-load ["assets/simpleskin.gltf"] :tex-unit-offset 20}
+                #::assimp{:model-to-load ["assets/simpleskin.gltf"] :config {:tex-unit-offset 20}}
                 #::shader{:use ::joints-shader}
                 t3d/default))))
 

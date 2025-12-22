@@ -41,7 +41,7 @@
         (esse ::simpleshader
               #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
         (esse ::wirecube
-              #::assimp{:model-to-load ["assets/wirebeing.glb"] :tex-unit-offset 0}
+              #::assimp{:model-to-load ["assets/wirebeing.glb"] :config {:tex-unit-offset 0}}
               #::shader{:use ::simpleshader}
               pose/default
               hidup/normal-draw
