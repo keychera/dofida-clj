@@ -5,11 +5,11 @@
    [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
    [engine.macros :refer [insert!]]
-   [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.anime.anime :as anime]
+   [minustwo.anime.IK :refer [IK-transducer1]]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
@@ -24,11 +24,8 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [thi.ng.geom.matrix :as mat]
-   [thi.ng.geom.core :as g]))
+   [thi.ng.math.core :as m]))
 
 (def pmx-vert
   {:precision  "mediump float"
@@ -106,94 +103,17 @@ void main()
                 #::shader{:use ::joints-shader}
                 t3d/default))))
 
-;; https://stackoverflow.com/a/11741520/8812880
-(defn orthogonal [[x y z :as v]]
-  (let [x (Math/abs x)
-        y (Math/abs y)
-        z (Math/abs z)
-        other (if (< x y)
-                (if (< x z)
-                  (v/vec3 1.0 0.0 0.0)
-                  (v/vec3 0.0 0.0 1.0))
-                (if (< y z)
-                  (v/vec3 0.0 1.0 0.0)
-                  (v/vec3 0.0 0.0 1.0)))]
-    (m/cross v other)))
-
-(defn rotatation-of-u->v [u v]
-  (let [k-cosθ (m/dot u v)
-        k      (Math/sqrt (* (m/mag-squared u) (m/mag-squared v)))]
-    (if (= (/ k-cosθ k) -1.0)
-      (q/quat (m/normalize (orthogonal u)) 0.0)
-      (m/normalize (q/quat (m/cross u v) (+ k-cosθ k))))))
-
-(defn clamped-acos [cos-v]
-  (cond
-    (<= cos-v -1) Math/PI
-    (>= cos-v 1) 0.0
-    :else (Math/acos cos-v)))
-
-;; man Idk if this is entirely correct
-(defn solve-IK1 [root-t mid-t end-t target-t]
-  (let [origin-v     (m/- end-t root-t)
-        target-v     (m/- (m/+ target-t end-t) root-t)
-        root-angle   (rotatation-of-u->v origin-v target-v)
-        [axis angle] (q/as-axis-angle root-angle)
-
-        target-r     (g/rotate-around-axis target-t axis angle)
-        AB           (m/mag (m/+ root-t mid-t))
-        BC           (m/mag (m/+ mid-t end-t))
-        AC           (m/mag (m/+ root-t target-r))
-        cos-alpha    (/ (+ (* AB AB) (* AC AC) (* -1.0 BC BC))
-                        (* 2.0 AB AC))
-        alpha        (clamped-acos cos-alpha)
-        cos-beta     (/ (+ (* AB AB) (* BC BC) (* -1.0 AC AC))
-                        (* 2.0 AB BC))
-        beta         (clamped-acos cos-beta)
-        root-IK      (q/quat-from-axis-angle axis (- alpha))
-        mid-IK       (q/quat-from-axis-angle axis (- Math/PI beta))]
-    [(m/* root-angle root-IK) mid-IK]))
-
-(defn IK-transducer [a b c target]
-  (fn [rf]
-    (let [fa (volatile! nil)
-          fb (volatile! nil)
-          fc (volatile! nil)]
-      (fn
-        ([] (rf))
-        ([result]
-         (let [root-t     (m-ext/m44->trans-vec3
-                           (m/* (:parent-transform @fa)
-                                (m-ext/vec3->trans-mat (:translation @fa))))
-               mid-t      (m-ext/m44->trans-vec3
-                           (m/* (:parent-transform @fb)
-                                (m-ext/vec3->trans-mat (:translation @fb))))
-               end-t      (m-ext/m44->trans-vec3
-                           (m/* (:parent-transform @fc)
-                                (m-ext/vec3->trans-mat (:translation @fc))))
-               [root-IK mid-IK] (solve-IK1 root-t mid-t end-t target)
-               result (-> result
-                          (assoc! (:idx @fa) (update @fa :rotation m/* root-IK))
-                          (assoc! (:idx @fb) (update @fb :rotation m/* mid-IK)))]
-           (rf result)))
-        ([result input]
-         (cond
-           (= a (:name input)) (vreset! fa input)
-           (= b (:name input)) (vreset! fb input)
-           (= c (:name input)) (vreset! fc input))
-         (rf result input))))))
-
 (def pose-rest
   (comp
    gltf/global-transform-xf
-   (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 10.0 -70.0 0.0))
-   (IK-transducer "右腕" "右ひじ" "右手首" (v/vec3 -10.0 -70.0 0.0))))
+   (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 10.0 -70.0 0.0))
+   (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -10.0 -70.0 0.0))))
 
 (def absolute-cinema
   (comp
    gltf/global-transform-xf
-   (IK-transducer "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 10.0))
-   (IK-transducer "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 10.0))))
+   (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 10.0))
+   (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 10.0))))
 
 (defn after-load-fn [world _game]
   (-> world
@@ -207,7 +127,7 @@ void main()
             #_(pose/strike pose-rest)
             (pose/anime 20.0
                         [[0.0 pose-rest identity]
-                         [2.0 absolute-cinema identity]
+                         [0.3 absolute-cinema identity]
                          [15.5 absolute-cinema identity]
                          [16.0 pose-rest identity]])
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)})

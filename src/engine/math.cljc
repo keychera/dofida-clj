@@ -115,3 +115,22 @@
 
 (defn clamp [value min-val max-val]
   (max min-val (min value max-val)))
+
+(defn orthogonal [[x y z :as v]]
+  (let [x (Math/abs x)
+        y (Math/abs y)
+        z (Math/abs z)
+        other (if (< x y)
+                (if (< x z)
+                  (v/vec3 1.0 0.0 0.0)
+                  (v/vec3 0.0 0.0 1.0))
+                (if (< y z)
+                  (v/vec3 0.0 1.0 0.0)
+                  (v/vec3 0.0 0.0 1.0)))]
+    (m/cross v other)))
+
+(defn clamped-acos [cos-v]
+  (cond
+    (<= cos-v -1) Math/PI
+    (>= cos-v 1) 0.0
+    :else (Math/acos cos-v)))
