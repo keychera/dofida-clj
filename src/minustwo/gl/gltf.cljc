@@ -138,24 +138,41 @@
                :rotation (or rot (q/quat))
                :scale (or scale (v/vec3 1.0 1.0 1.0)))))))
 
+(defn reorder-parent-child-id [nodes node-parent-fix]
+  (let [nodes (into [] (map-indexed (fn [idx item] (assoc item :orig-idx idx))) nodes)
+        ;; hardcoded for pmx for now
+        parent-of-all (first (filter #(= (:name %) node-parent-fix) nodes))]
+    (if parent-of-all
+      (let [dfs-tree    (into [] (map-indexed (fn [idx item] (assoc item :idx idx)))
+                              (tree-seq :children
+                                        (fn [{:keys [children]}] (into [] (map (fn [cid] (nth nodes cid))) children))
+                                        parent-of-all))
+            idx-mapping (into {} (map (juxt :orig-idx :idx)) dfs-tree)
+            remapped    (into [] (map (fn [node] (update node :children (fn [children] (into [] (map idx-mapping) children))))) dfs-tree)]
+        (println idx-mapping)
+        remapped)
+      nodes)))
+
 (s/fdef node-transform-tree
   :ret ::transform-tree)
-(defn node-transform-tree [nodes]
-  (let [tree (tree-seq :children
-                       (fn [parent-node]
-                         (into []
-                               (comp
-                                (map (fn [cid] (nth nodes cid)))
-                                (map process-as-geom-transform))
-                               (:children parent-node)))
-                       (process-as-geom-transform (first nodes)))]
+(defn node-transform-tree [nodes node-parent-fix]
+  (let [nodes (if node-parent-fix (reorder-parent-child-id nodes node-parent-fix) nodes)
+        tree  (tree-seq :children
+                        (fn [parent-node]
+                          (into []
+                                (comp
+                                 (map (fn [cid] (nth nodes cid)))
+                                 (map process-as-geom-transform))
+                                (:children parent-node)))
+                        (process-as-geom-transform (first nodes)))]
+    (println (first nodes))
     ;; this somehow already returns an ordered seq, why? is it an optimization in the assimp part? is it the nature of DFS?
     (assert (apply <= (into [] (map :idx) tree)) "assumption broken: order of resulting seq is not the same as order of :idx")
     tree))
 
 (defn gltf-spell
   "magic to pass to gl-magic/cast-spell"
-  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset]
+  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset node-parent-fix]
                          :or {tex-unit-offset 0}}]
   (let [gltf-dir   (some-> gltf-data :asset :dir)
         _          (assert gltf-dir "no parent dir data in [:asset :dir]")
@@ -189,7 +206,7 @@
                                         (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
                                   primitives)
              nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-data))
-             transform-tree (node-transform-tree nodes)]
+             transform-tree (node-transform-tree nodes node-parent-fix)]
          [[model-id ::primitives primitives]
           [model-id ::joints (or joints [])]
           [model-id ::transform-tree (vec transform-tree)]
@@ -252,12 +269,12 @@
         nodes     (:nodes gltf-data)
         nodes     (assoc-in nodes [0 :children] [2 1 424]) ;; testing to break the order assumption
         nodes     (map-indexed (fn [idx node] (assoc node :idx idx)) nodes)]
-    (node-transform-tree nodes))
+    (node-transform-tree nodes nil))
 
   (let [gltf-data      (-> @debug-data* :minustwo.stage.hidup/rubahperak :gltf-data)
         nodes          (:nodes gltf-data)
         nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) nodes)
-        transform-tree (vec (node-transform-tree nodes))]
+        transform-tree (vec (node-transform-tree nodes nil))]
     (into [] global-transform-xf transform-tree)
 
     #_(create-joint-mats-arr (:joints skin) transform-tree inv-bind-mats))
