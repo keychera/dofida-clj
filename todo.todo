@@ -26,8 +26,9 @@ todo:
                 ☐ the parser have it but where does it go???
                     - https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446
                     ☐ make our own additional parser?
-                    ☐ try converting to gltf mesh in blender, work our way there (need to render multiple meshes)
-                        ☐ along with basilisp exploration?
+                    ✘ try converting to gltf mesh in blender, work our way there (need to render multiple meshes) @cancelled(25-12-23 00:38) assimp fail to load pmx -> gltf exported from blender
+                        ☐ https://github.com/KhronosGroup/glTF-Blender-IO/issues/2628 this is relevant? i don't understand... python is so daunting
+                        ☐ can basilisp save us?
                     ☐ just drop the format entirely, hmm, hmm
                     ✘ explore assjson, maybe it still have it @cancelled(25-12-20 10:35) checked in assimpjs online, i dont think so...
                         ✘ need to build new renderer for this @cancelled(25-12-20 10:37)
