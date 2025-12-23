@@ -3,7 +3,8 @@
    [engine.world :as world]))
 
 (defn ->game
-  "webgl-context for WebGL, glfw-window handle for lwjgl, value from glfwCreateWindow"
+  "webgl-context for WebGL, 
+   glfw-window platform.start/Window for lwjgl, value from platform.start/->window"
   [{:keys [total-time delta-time glfw-window webgl-context]}]
   (merge
    (cond-> {::render-fns* (atom nil)

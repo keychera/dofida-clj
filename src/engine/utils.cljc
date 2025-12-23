@@ -47,7 +47,7 @@
 (defn get-size [game]
   #?(:clj  (let [*width (MemoryUtil/memAllocInt 1)
                  *height (MemoryUtil/memAllocInt 1)
-                 _ (GLFW/glfwGetFramebufferSize ^long (:glfw-window game) *width *height)
+                 _ (GLFW/glfwGetFramebufferSize ^long (-> game :glfw-window :handle) *width *height)
                  w (.get *width)
                  h (.get *height)]
              (MemoryUtil/memFree *width)
