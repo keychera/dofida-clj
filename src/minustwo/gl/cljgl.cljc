@@ -12,6 +12,7 @@
    [minustwo.gl.shader :as shader]))
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
+(def version-str (str "#version " glsl-version))
 
 (defn create-buffer [ctx] (gl ctx #?(:clj genBuffers :cljs createBuffer)))
 
@@ -38,6 +39,7 @@
     (gl ctx linkProgram program)
     (gl ctx deleteShader vertex-shader)
     (gl ctx deleteShader fragment-shader)
+    (println vs-source)
     (if #?(:clj (= GL_TRUE (gl ctx getProgrami program GL_LINK_STATUS))
            :cljs (gl ctx getProgramParameter program GL_LINK_STATUS))
       program
@@ -68,8 +70,10 @@
   :ret ::shader/program-info)
 (defn create-program-info
   ([ctx iglu-vert-shader iglu-frag-shader]
-   (let [vs-source (iglu/iglu->glsl (merge {:version glsl-version} iglu-vert-shader))
-         fs-source (iglu/iglu->glsl (merge {:version glsl-version} iglu-frag-shader))
+   (let [vs-source (or (:raw iglu-vert-shader)
+                       (iglu/iglu->glsl (merge {:version glsl-version} iglu-vert-shader)))
+         fs-source (or (:raw iglu-frag-shader)
+                       (iglu/iglu->glsl (merge {:version glsl-version} iglu-frag-shader)))
          program   (create-program ctx vs-source fs-source)
          locs      (gather-locs ctx program iglu-vert-shader iglu-frag-shader)]
      (merge {:program program} locs))))
