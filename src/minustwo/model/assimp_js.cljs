@@ -3,7 +3,6 @@
    ["assimpjs" :as assimpjs]
    [clojure.string :as str]
    [engine.macros :refer [vars->map]]
-   [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.model.assimp :as assimp]
@@ -36,12 +35,6 @@
                             bins   [(->> (.GetFile result 1) (.GetContent))]]
                         (callback (vars->map json bins)))))))))
 
-(def rules
-  (o/ruleset
-   {::assimp/model-to-load
-    [:what
-     [esse-id ::assimp/model-to-load model-files]]}))
-
 (defn load-models-from-world*
   "load models from world* and fire callback for each models loaded.
    this will retract the ::assimp/model-to-load facts"
@@ -57,5 +50,3 @@
          (println "[assimp-js] loaded" esse-id)
          (swap! world* o/insert esse-id {::gltf/data json ::gltf/bins bins ::gl-magic/casted? :pending}))))))
 
-(def system
-  {::world/rules rules})

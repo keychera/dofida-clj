@@ -57,16 +57,16 @@
                               (comp (filter :in)
                                     (map (fn [{:keys [member-type member-name]}]
                                            [member-name {:type     member-type
-                                                         :attr-loc (gl ctx getAttribLocation program member-name)}])))))
+                                                         :attr-loc (gl ctx getAttribLocation program (str member-name))}])))))
         uni-locs   (->> members
                         (into {}
                               (comp (filter :uniform)
                                     (map (fn [{:keys [member-type member-name]}]
                                            [member-name {:type    member-type
-                                                         :uni-loc (gl ctx getUniformLocation program member-name)}])))))]
+                                                         :uni-loc (gl ctx getUniformLocation program (str member-name))}])))))]
     (doseq [uni-block (filter :uniform-block members)]
       (let [{:keys [member-name]} uni-block
-            block-index (gl ctx getUniformBlockIndex program member-name)]
+            block-index (gl ctx getUniformBlockIndex program (str member-name))]
         ;; not sure why zero
         (gl ctx uniformBlockBinding program block-index 0)))
     {:program    program

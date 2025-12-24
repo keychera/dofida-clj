@@ -1,12 +1,11 @@
 (ns minustwo.systems
   (:require
-   #?(:clj  [minustwo.model.assimp-lwjgl :as assimp-jvm]
-      :cljs [minustwo.model.assimp-js :as assimp-js])
    [minustwo.anime.anime :as anime]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.texture :as texture]
+   [minustwo.model.assimp :as assimp]
    [minustwo.stage.hidup :as hidup]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
@@ -26,8 +25,7 @@
    firstperson/system
    input/system
 
-   #?(:clj  assimp-jvm/system
-      :cljs assimp-js/system)
+   assimp/system
    texture/system
 
    gl-system/system
@@ -37,7 +35,7 @@
    room/system
    perspective-grid/system
    t3d/system
-   
+
    hidup/system
    wirecube/system
    pose/system])
