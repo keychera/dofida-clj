@@ -253,8 +253,8 @@
             inv-bind-m (get inv-bind-mats idx)
             joint-mat  (m/* global-t inv-bind-m)
             i          (* idx 16)]
-        (dotimes [j 16]
-          (aset f32s (+ i j) (nth joint-mat j)))))
+        (dotimes [j 16] 
+          (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
 
 (comment

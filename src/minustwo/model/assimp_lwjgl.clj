@@ -40,13 +40,18 @@
       (swap! world* o/insert esse-id {::gltf/data gltf ::gltf/bins [bin] ::gl-magic/casted? :pending}))))
 
 (comment
-  (let [model-path (.resolve public-resource-path "assets/wirebeing.glb")
+  (require '[clojure.java.io :as io])
+  (import [java.nio.file Files])
+  (Files/exists (.resolve public-resource-path "assets/models/TopazAndNumby/Topaz.pmx") (into-array java.nio.file.LinkOption []))
+  (io/input-stream (io/resource "public/assets/models/SilverWolf/银狼.pmx"))
+  (let [model-path (.resolve public-resource-path "assets/models/SilverWolf/银狼.pmx") ;; kanji character fails to load somehow
+        filename   "C:/Users/Kevin/Documents/projects/dofida-clj/resources/public/assets/models/SilverWolf/SilverWolf.pmx"
         flags      (bit-or Assimp/aiProcess_Triangulate
                            Assimp/aiProcess_GenUVCoords
                            Assimp/aiProcess_JoinIdenticalVertices
                            Assimp/aiProcess_SortByPType)
-        aiScene    (Assimp/aiImportFile (str model-path) flags)
-        _          (println aiScene)
+        aiScene    (Assimp/aiImportFile filename flags)
+        _          (assert (some? aiScene) (str "aiScene for " model-path " is null!"))
         ;; _          (Assimp/aiExportScene aiScene "gltf2" "dummy.gltf" 0)
         blob       (Assimp/aiExportSceneToBlob aiScene "gltf2" 0)
         gltf-buf  (.data blob)
