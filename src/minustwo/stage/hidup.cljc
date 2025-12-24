@@ -28,58 +28,44 @@
    [thi.ng.math.core :as m]))
 
 (def pmx-vert
-  {:precision  "mediump float"
-   :inputs     '{POSITION   vec3
-                 NORMAL     vec3
-                 TEXCOORD_0 vec2
-                 WEIGHTS_0  vec4
-                 JOINTS_0   uvec4}
-   :outputs    '{Normal    vec3
-                 TexCoords vec2}
-   :uniforms   '{u_model      mat4
-                 u_view       mat4
-                 u_projection mat4
-                 u_joint_mats [mat4 254]}
-   :raw ;; currently with raw, we need to rewrite again the above definitions (need hammock time for this)
-   (str cljgl/version-str
-        "
-precision mediump float;
-uniform mat4 u_model;
-uniform mat4 u_view;
-uniform mat4 u_projection;
-uniform mat4[500] u_joint_mats;
-
-in vec3 POSITION;
-in vec3 NORMAL;
-in vec2 TEXCOORD_0;
-in vec4 WEIGHTS_0;
-in uvec4 JOINTS_0;
-out vec3 Normal;
-out vec2 TexCoords;
-void main()
-{
-  vec4 pos = (vec4(POSITION, 1.0));
-  mat4 skin_mat = ((WEIGHTS_0.x * u_joint_mats[JOINTS_0.x]) + (WEIGHTS_0.y * u_joint_mats[JOINTS_0.y]) + (WEIGHTS_0.z * u_joint_mats[JOINTS_0.z]) + (WEIGHTS_0.w * u_joint_mats[JOINTS_0.w]));
-  vec4 world_pos = (u_model * skin_mat * pos);
-  vec4 cam_pos = (u_view * world_pos);
-  gl_Position = (u_projection * cam_pos);
-  Normal = NORMAL;
-  TexCoords = TEXCOORD_0;
-}")})
+  (str cljgl/version-str "
+  precision mediump float;
+  uniform mat4 u_model;
+  uniform mat4 u_view;
+  uniform mat4 u_projection;
+  uniform mat4[500] u_joint_mats;
+  
+  in vec3 POSITION;
+  in vec3 NORMAL;
+  in vec2 TEXCOORD_0;
+  in vec4 WEIGHTS_0;
+  in uvec4 JOINTS_0;
+  out vec3 Normal;
+  out vec2 TexCoords;
+  void main()
+  {
+    vec4 pos = (vec4(POSITION, 1.0));
+    mat4 skin_mat = ((WEIGHTS_0.x * u_joint_mats[JOINTS_0.x]) + (WEIGHTS_0.y * u_joint_mats[JOINTS_0.y]) + (WEIGHTS_0.z * u_joint_mats[JOINTS_0.z]) + (WEIGHTS_0.w * u_joint_mats[JOINTS_0.w]));
+    vec4 world_pos = (u_model * skin_mat * pos);
+    vec4 cam_pos = (u_view * world_pos);
+    gl_Position = (u_projection * cam_pos);
+    Normal = NORMAL;
+    TexCoords = TEXCOORD_0;
+  }"))
 
 (def pmx-frag
-  {:precision  "mediump float"
-   :inputs     '{Normal vec3
-                 TexCoords vec2}
-   :outputs    '{o_color vec4}
-   :uniforms   '{u_mat_diffuse sampler2D}
-   :functions
-   "
-void main() 
-{
-    vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
-    o_color = vec4(result, 1.0);
-}"})
+  (str cljgl/version-str "
+  precision mediump float;
+  uniform sampler2D u_mat_diffuse;
+  in vec3 Normal;
+  in vec2 TexCoords;
+  out vec4 o_color;
+  
+  void main() 
+  {
+      vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
+      o_color = vec4(result, 1.0);
+  }"))
 
 ;; this part needs hammock later
 (s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
@@ -98,7 +84,7 @@ void main()
                 #::shader{:program-info (cljgl/create-program-info-from-iglu ctx vert frag)
                           :use ::simpleanime}
                 t3d/default)
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-iglu ctx pmx-vert pmx-frag)})
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"]
                         :config {:tex-unit-offset 2}}

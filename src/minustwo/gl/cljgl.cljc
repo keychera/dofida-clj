@@ -44,6 +44,30 @@
       program
       (throw (ex-info (gl ctx getProgramInfoLog program) {})))))
 
+;; inspired by twgl.js interface
+;; (s/fdef create-program-info-from-source
+;;   :ret ::shader/program-info)
+(defn create-program-info-from-source [ctx vs-source fs-source]
+  (let [program    (create-program ctx vs-source fs-source)
+        vs-members (-> vs-source shader/get-header-source shader/parse-header)
+        fs-members (-> fs-source shader/get-header-source shader/parse-header)
+        members    (concat vs-members fs-members)
+        attr-locs  (->> members
+                        (into {}
+                              (comp (filter :in)
+                                    (map (fn [{:keys [member-type member-name]}]
+                                           [member-name {:type     member-type
+                                                         :attr-loc (gl ctx getAttribLocation program member-name)}])))))
+        uni-locs   (->> members
+                        (into {}
+                              (comp (filter :uniform)
+                                    (map (fn [{:keys [member-type member-name]}]
+                                           [member-name {:type    member-type
+                                                         :uni-loc (gl ctx getUniformLocation program member-name)}])))))]
+    {:program   program
+     :attr-locs attr-locs
+     :uni-locs  uni-locs}))
+
 (s/fdef gather-locs
   :args (s/cat :ctx ::gl-system/context
                :program ::shader/program

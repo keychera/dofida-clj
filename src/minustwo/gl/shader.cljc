@@ -2,7 +2,8 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.walk :as walk]
-   [instaparse.core :as insta]))
+   [instaparse.core :as insta]
+   [clojure.string :as str]))
 
 (s/def ::glsl-type #{'float 'int 'uint 'bool
                      'vec2 'vec3 'vec4
@@ -33,10 +34,7 @@
 
 (def shader-header-grammar
   "
-Shader = StartParse Header Body
-StartParse = #'(.|\\s)*precision mediump float;\\s*'
 Header = Block+
-Body = #'(void|(u*(vec|mat)[234]))\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*\\((.|\\s)*' 
 
 Block = InDecl
       | OutDecl
@@ -57,7 +55,7 @@ InstanceName = Ident
 
 TypeDecl = TypeSpec ArraySpec?
 
-TypeSpec = #'u*(vec|mat)[234]'
+TypeSpec = #'(void|int|float|(u*(vec|mat)[234])|sampler2D)'
 ArraySpec = <'['> Number <']'>
 Ident = #'[a-zA-Z_][a-zA-Z0-9_]*'
 Number = #'[0-9]+'
@@ -70,9 +68,9 @@ Number = #'[0-9]+'
   (let [tree (parser source)
         tree (insta/transform
               (letfn [(qualify [qualifier member]
-                        (merge {:qualifier (keyword qualifier)} member))]
+                        (assoc member (keyword qualifier) true))]
                 {:TypeSpec    symbol
-                 :MemberName  (fn [[_ member-name]] [:member-name member-name])
+                 :MemberName  (fn [[_ member-name]] [:member-name (symbol member-name)])
                  :ArraySpec   (comp #?(:clj Integer/parseInt :cljs js/parseInt) second)
                  :TypeDecl    (fn [& nodes]
                                 (let [member-type (into [] nodes)
@@ -82,16 +80,23 @@ Number = #'[0-9]+'
                  :UniformDecl qualify
                  :InDecl      qualify
                  :OutDecl     qualify
-                 :Header      (fn [& blocks] [:Header (into [] (map second) blocks)])
-                 :Shader      (fn [& blocks] (into {} blocks))})
+                 :Header      (fn [& blocks] (into [] (map second) blocks))})
               tree)]
-    (:Header tree)))
+    (when (insta/failure? tree)
+      (throw (ex-info (pr-str tree) {}))) 
+    tree))
+
+(defn get-header-source [source]
+  ;; just a heuristic split that works for now
+  (let [[_ body] (str/split source #"precision mediump float;\n")
+        [header _] (str/split body #"(void|int|float|(u*(vec|mat)[234])|sampler[23]D)\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(")]
+    header))
 
 (comment
   (let [shader
         "#version 300 es
 precision mediump float;
-uniform mat4 u_model;
+uniform sampler2D u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform mat4[500] u_joint_mats;
@@ -108,7 +113,7 @@ in vec4 WEIGHTS_0;
 in uvec4 JOINTS_0;
 out vec3 Normal;
 out vec2 TexCoords;
-void main()
+float main()
 {
   vec4 pos = (vec4(POSITION, 1.0));
   mat4 skin_mat = ((WEIGHTS_0.x * u_joint_mats[JOINTS_0.x]) + (WEIGHTS_0.y * u_joint_mats[JOINTS_0.y]) + (WEIGHTS_0.z * u_joint_mats[JOINTS_0.z]) + (WEIGHTS_0.w * u_joint_mats[JOINTS_0.w]));
@@ -117,7 +122,8 @@ void main()
   gl_Position = (u_projection * cam_pos);
   Normal = NORMAL;
   TexCoords = TEXCOORD_0;
-}"]
-    (parse-header shader))
+}"
+]
+ (-> shader get-header-source parse-header))
 
   :-)
