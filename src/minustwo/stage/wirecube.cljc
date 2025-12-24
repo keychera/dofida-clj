@@ -39,7 +39,7 @@
   (let [ctx (game/gl-ctx game)]
     (-> world
         (esse ::simpleshader
-              #::shader{:program-info (cljgl/create-program-info ctx the-vertex-shader the-fragment-shader)})
+              #::shader{:program-info (cljgl/create-program-info-from-iglu ctx the-vertex-shader the-fragment-shader)})
         (esse ::wirecube
               #::assimp{:model-to-load ["assets/wirebeing.glb"] :config {:tex-unit-offset 0}}
               #::shader{:use ::simpleshader}

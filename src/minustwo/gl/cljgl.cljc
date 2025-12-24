@@ -39,7 +39,6 @@
     (gl ctx linkProgram program)
     (gl ctx deleteShader vertex-shader)
     (gl ctx deleteShader fragment-shader)
-    (println vs-source)
     (if #?(:clj (= GL_TRUE (gl ctx getProgrami program GL_LINK_STATUS))
            :cljs (gl ctx getProgramParameter program GL_LINK_STATUS))
       program
@@ -51,7 +50,7 @@
                :iglu-vert-shader map?
                :iglu-frag-shader map?)
   :ret map?)
-(defn gather-locs [ctx program iglu-vert-shader iglu-frag-shader]
+(defn gather-locs-from-iglu [ctx program iglu-vert-shader iglu-frag-shader]
   (let [both-shader [iglu-vert-shader iglu-frag-shader]
         attr-locs   (->> (transduce (map :inputs) merge both-shader)
                          (into {} (map (fn [[attr-name attr-type]]
@@ -63,19 +62,19 @@
                                                     :uni-loc (gl ctx getUniformLocation program (str uni-name))}]))))]
     (vars->map attr-locs uni-locs)))
 
-(s/fdef create-program-info
+(s/fdef create-program-info-from-iglu
   :args (s/cat :ctx ::gl-system/context
                :iglu-vert-shader map?
                :iglu-frag-shader map?)
   :ret ::shader/program-info)
-(defn create-program-info
+(defn create-program-info-from-iglu
   ([ctx iglu-vert-shader iglu-frag-shader]
    (let [vs-source (or (:raw iglu-vert-shader)
                        (iglu/iglu->glsl (merge {:version glsl-version} iglu-vert-shader)))
          fs-source (or (:raw iglu-frag-shader)
                        (iglu/iglu->glsl (merge {:version glsl-version} iglu-frag-shader)))
          program   (create-program ctx vs-source fs-source)
-         locs      (gather-locs ctx program iglu-vert-shader iglu-frag-shader)]
+         locs      (gather-locs-from-iglu ctx program iglu-vert-shader iglu-frag-shader)]
      (merge {:program program} locs))))
 
 (s/fdef set-uniform

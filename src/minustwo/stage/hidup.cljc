@@ -95,10 +95,10 @@ void main()
         #_(esse ::simpleanime
                 #::assimp{:model-to-load ["assets/simpleanime.gltf"]
                           :config {:tex-unit-offset 0}}
-                #::shader{:program-info (cljgl/create-program-info ctx vert frag)
+                #::shader{:program-info (cljgl/create-program-info-from-iglu ctx vert frag)
                           :use ::simpleanime}
                 t3d/default)
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info ctx pmx-vert pmx-frag)})
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-iglu ctx pmx-vert pmx-frag)})
         (esse ::rubahperak
               #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"]
                         :config {:tex-unit-offset 2}}
@@ -112,7 +112,7 @@ void main()
                 pose/default
                 normal-draw
                 t3d/default)
-        #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info ctx  pos+skins-vert white-frag)})
+        #_(esse ::joints-shader #::shader{:program-info (cljgl/create-program-info-from-iglu ctx  pos+skins-vert white-frag)})
         #_(esse ::simpleskin
                 #::assimp{:model-to-load ["assets/simpleskin.gltf"] :config {:tex-unit-offset 20}}
                 #::shader{:use ::joints-shader}

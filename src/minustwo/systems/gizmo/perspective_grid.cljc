@@ -96,7 +96,7 @@ void main() {
   (let [ctx (:webgl-context game)]
     (-> world
         (esse ::grid
-              #::shader{:program-info (cljgl/create-program-info ctx perspective-vert perspective-frag)
+              #::shader{:program-info (cljgl/create-program-info-from-iglu ctx perspective-vert perspective-frag)
                         :use ::grid}
               #::gl-magic{:spell [{:bind-vao ::grid}
                                   {:buffer-data quad :buffer-type GL_ARRAY_BUFFER}
