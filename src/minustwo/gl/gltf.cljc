@@ -10,7 +10,8 @@
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m])
+  #?(:clj (:import [java.nio ByteOrder])))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -75,7 +76,8 @@
            :buffer-data #?(:clj  (let [slice (doto (.duplicate result-bin)
                                                (.position id-byteOffset)
                                                (.limit (+ id-byteLength id-byteOffset)))]
-                                   (.slice slice))
+                                   (doto (.slice slice)
+                                     (.order ByteOrder/LITTLE_ENDIAN)))
                            :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
 
@@ -97,8 +99,11 @@
           buffer-view   (get buffer-views (:bufferView accessor))
           byteLength    (:byteLength buffer-view)
           byteOffset    (:byteOffset buffer-view)
-          ^ints ibm-u8s #?(:clj  (let [slice (doto (.duplicate result-bin) (.position byteOffset) (.limit (+ byteOffset byteLength)))]
-                                   (.slice slice))
+          ^ints ibm-u8s #?(:clj  (let [slice (doto (.duplicate result-bin)
+                                               (.position byteOffset)
+                                               (.limit (+ byteOffset byteLength)))]
+                                   (doto (.slice slice)
+                                     (.order ByteOrder/LITTLE_ENDIAN)))
                            :cljs (.subarray result-bin byteOffset (+ byteLength byteOffset)))
           ibm-f32s      #?(:clj  (.asFloatBuffer ibm-u8s)
                            :cljs (js/Float32Array. ibm-u8s.buffer ibm-u8s.byteOffset
@@ -253,7 +258,7 @@
             inv-bind-m (get inv-bind-mats idx)
             joint-mat  (m/* global-t inv-bind-m)
             i          (* idx 16)]
-        (dotimes [j 16] 
+        (dotimes [j 16]
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
 

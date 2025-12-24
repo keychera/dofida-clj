@@ -11,7 +11,8 @@
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m])
+  #?(:clj (:import [java.nio ByteOrder])))
 
 ;; currently anime is complected with gltf animations
 
@@ -42,7 +43,8 @@
         byteLength         (:byteLength bufferView)
         byteOffset         (:byteOffset bufferView)
         u8s                #?(:clj  (let [slice (doto (.duplicate bin) (.position byteOffset) (.limit (+ byteOffset byteLength)))]
-                                      (.slice slice))
+                                      (doto (.slice slice)
+                                        (.order ByteOrder/LITTLE_ENDIAN)))
                               :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
         component-per-elem (gltf/gltf-type->num-of-component (:type sampler-accessor))
         buffer             #?(:clj  (.asFloatBuffer u8s)

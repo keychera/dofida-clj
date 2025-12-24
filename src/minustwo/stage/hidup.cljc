@@ -143,7 +143,7 @@
                          [15.5 absolute-cinema identity]
                          [16.0 pose-rest identity]])
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)
-                   :scale (v/vec3 0.02)})
+                   :scale (v/vec3 1.0)})
       (esse ::rubah
             #::t3d{:translation (v/vec3 -30.0 0.0 0.0)
                    :scale (v/vec3 0.2)})))

@@ -20,19 +20,15 @@
                                            out (java.io.ByteArrayOutputStream.)]
                                  (io/copy is out)
                                  (.toByteArray out))
-                 *width (MemoryUtil/memAllocInt 1)
-                 *height (MemoryUtil/memAllocInt 1)
-                 *components (MemoryUtil/memAllocInt 1)
-                 direct-buffer (doto ^ByteBuffer (ByteBuffer/allocateDirect (alength barray))
-                                 (.put barray)
-                                 (.flip))
-                 _ (STBImage/stbi_set_flip_vertically_on_load true)
+                 *width        (MemoryUtil/memAllocInt 1)
+                 *height       (MemoryUtil/memAllocInt 1)
+                 *components   (MemoryUtil/memAllocInt 1)
+                 direct-buffer (doto ^ByteBuffer (ByteBuffer/allocateDirect (alength barray)) (.put barray) (.flip))
+                 _             (STBImage/stbi_set_flip_vertically_on_load false)
                  decoded-image (STBImage/stbi_load_from_memory
                                 direct-buffer *width *height *components
                                 STBImage/STBI_rgb_alpha)
-                 image {:data decoded-image
-                        :width (.get *width)
-                        :height (.get *height)}]
+                 image         {:data   decoded-image :width (.get *width) :height (.get *height)}]
              (MemoryUtil/memFree *width)
              (MemoryUtil/memFree *height)
              (MemoryUtil/memFree *components)
@@ -198,3 +194,14 @@
                       height (.-height bitmap)]
                   (println "blob:" data-type "count" (.-length uint8-arr))
                   (callback (vars->map bitmap width height))))))))
+
+(comment
+
+  ;; for debugging
+  (def counter (atom 0))
+  (defn print-mat4-until [args end]
+    (let [cnt (swap! counter inc)]
+      (when (< cnt end)
+        (println (vec args)))))
+
+  :-)

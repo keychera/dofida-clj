@@ -7,6 +7,7 @@
    [minustwo.model.assimp :as assimp]
    [odoyle.rules :as o])
   (:import
+   [java.nio ByteOrder]
    [org.lwjgl.assimp Assimp]))
 
 ;; https://javadoc.lwjgl.org/org/lwjgl/assimp/package-summary.html
@@ -26,6 +27,7 @@
         gltf       (json/parse-string gltf-json true)
         bin-blob   (.next blob)
         bin-buf    (.data bin-blob)
+        _          (.order bin-buf ByteOrder/LITTLE_ENDIAN) ;; actually already little endian, but just to remind me this concept exist (slicing make big endian by default chatgpt says)
         parent-dir (.getParent rs-path)
         gltf       (assoc-in gltf [:asset :dir] parent-dir)]
     [gltf bin-buf]))
