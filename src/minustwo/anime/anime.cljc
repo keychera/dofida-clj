@@ -41,12 +41,13 @@
         bufferView         (get bufferViews (:bufferView sampler-accessor))
         byteLength         (:byteLength bufferView)
         byteOffset         (:byteOffset bufferView)
-        u8s                #?(:clj [bin byteLength byteOffset] ;; jvm TODO
+        u8s                #?(:clj  (let [slice (doto (.duplicate bin) (.position byteOffset) (.limit (+ byteOffset byteLength)))]
+                                      (.slice slice))
                               :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
-        component-size     4.0 ;; assuming all float for now
         component-per-elem (gltf/gltf-type->num-of-component (:type sampler-accessor))
-        buffer             #?(:clj [component-size u8s] ;; jvm TODO
-                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset (/ u8s.byteLength component-size))))]
+        buffer             #?(:clj  (.asFloatBuffer u8s)
+                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset
+                                                           (/ u8s.byteLength js/Float32Array.BYTES_PER_ELEMENT))))]
     (if (> component-per-elem 1)
       (partition component-per-elem buffer)
       buffer)))
@@ -165,5 +166,5 @@
                                :url (str "http://localhost:9333/" (rand))
                                :reveal true
                                :sidebar-panel? true})
-  
+
   :-)

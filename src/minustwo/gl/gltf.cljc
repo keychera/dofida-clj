@@ -31,7 +31,7 @@
 (defn create-vao-names [prefix]
   (map-indexed
    (fn [idx primitive]
-     (let [vao-name #?(:clj  (format "%s_vao%04d" idx prefix)
+     (let [vao-name #?(:clj  (format "%s_vao%04d" prefix idx)
                        :cljs (str prefix "_vao" (.padStart (str idx) 4 "0")))]
        (assoc primitive :vao-name vao-name)))))
 
@@ -72,7 +72,10 @@
               id-byteOffset (:byteOffset id-bufferView)
               id-byteLength (:byteLength id-bufferView)]
           {:buffer-type GL_ELEMENT_ARRAY_BUFFER
-           :buffer-data #?(:clj  [(count result-bin) id-byteOffset id-byteLength :jvm-not-handled]
+           :buffer-data #?(:clj  (let [slice (doto (.duplicate result-bin)
+                                               (.position id-byteOffset)
+                                               (.limit (+ id-byteLength id-byteOffset)))]
+                                   (.slice slice))
                            :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
 
@@ -94,12 +97,12 @@
           buffer-view   (get buffer-views (:bufferView accessor))
           byteLength    (:byteLength buffer-view)
           byteOffset    (:byteOffset buffer-view)
-          ^ints ibm-u8s #?(:clj  [result-bin byteLength byteOffset] ;; jvm TODO
+          ^ints ibm-u8s #?(:clj  (let [slice (doto (.duplicate result-bin) (.position byteOffset) (.limit (+ byteOffset byteLength)))]
+                                   (.slice slice))
                            :cljs (.subarray result-bin byteOffset (+ byteLength byteOffset)))
-          ibm-f32s      #?(:clj  ibm-u8s ;; jvm TODO
-                           :cljs (js/Float32Array. ibm-u8s.buffer
-                                                   ibm-u8s.byteOffset
-                                                   (/ ibm-u8s.byteLength 4.0)))
+          ibm-f32s      #?(:clj  (.asFloatBuffer ibm-u8s)
+                           :cljs (js/Float32Array. ibm-u8s.buffer ibm-u8s.byteOffset
+                                                   (/ ibm-u8s.byteLength js/Float32Array.BYTES_PER_ELEMENT)))
           inv-bind-mats (into [] (map (fn [i] (utils/f32s->get-mat4 ibm-f32s i))) (range (:count accessor)))]
       inv-bind-mats)))
 

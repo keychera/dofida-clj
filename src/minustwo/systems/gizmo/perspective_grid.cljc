@@ -2,6 +2,7 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [engine.game :refer [gl-ctx]]
    [engine.sugar :refer [vec->f32-arr vec->i32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -93,7 +94,7 @@ void main() {
   (vec->i32-arr [0 1 2 0 2 3]))
 
 (defn init-fn [world game]
-  (let [ctx (:webgl-context game)]
+  (let [ctx (gl-ctx game)]
     (-> world
         (esse ::grid
               #::shader{:program-info (cljgl/create-program-info-from-iglu ctx perspective-vert perspective-frag)

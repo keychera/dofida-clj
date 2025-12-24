@@ -233,7 +233,7 @@
 
                   (draw-fn ctx gltf-model prim))
 
-                (gl ctx bindVertexArray nil)))))))))
+                (gl ctx bindVertexArray #?(:clj 0 :cljs nil))))))))))
 
 (def system
   {::world/init-fn init-fn
