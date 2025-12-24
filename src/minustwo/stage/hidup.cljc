@@ -12,7 +12,7 @@
    [minustwo.anime.IK :refer [IK-transducer1]]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
+   [minustwo.gl.constants :refer [GL_UNIFORM_BUFFER GL_DYNAMIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
@@ -27,13 +27,17 @@
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
 
+(def MAX_JOINTS 500)
+
 (def pmx-vert
   (str cljgl/version-str "
   precision mediump float;
   uniform mat4 u_model;
   uniform mat4 u_view;
   uniform mat4 u_projection;
-  uniform mat4[500] u_joint_mats;
+  layout(std140) uniform Skinning {
+     mat4[" MAX_JOINTS "] u_joint_mats;
+  };
   
   in vec3 POSITION;
   in vec3 NORMAL;
@@ -77,6 +81,13 @@
   (println "[minustwo.stage.hidup] system running!")
   (let [ctx (gl-ctx game)]
     (-> world
+        (esse :skinning-ubo
+              (let [ubo (cljgl/create-buffer ctx)]
+                (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
+                (gl ctx bufferData GL_UNIFORM_BUFFER (* MAX_JOINTS 16 4) GL_DYNAMIC_DRAW)
+                (gl ctx bindBufferBase GL_UNIFORM_BUFFER 0 ubo)
+                (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+                {::shader/ubo ubo}))
         (firstperson/insert-player (v/vec3 0.0 15.5 13.0) (v/vec3 0.0 0.0 -1.0))
         #_(esse ::simpleanime
                 #::assimp{:model-to-load ["assets/simpleanime.gltf"]
@@ -140,6 +151,7 @@
   (o/ruleset
    {::gltf-models
     [:what
+     [:skinning-ubo ::shader/ubo skinning-ubo]
      [esse-id ::gl-magic/casted? true]
      [esse-id ::t3d/transform model]
      [esse-id ::shader/use shader-id]
@@ -178,19 +190,7 @@
      [::time/now ::time/slice 4]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      :then
-     (let [pose-tree (into []
-                           #_(map (fn [{:keys [name rotation original-r] :as node}]
-                                    (if-let [bone-pose (get {"左腕" [(v/vec3 0.0 -0.0 0.0) 200.0 180.0]} name)]
-                                      (let [[axis-angle offset ampl] bone-pose
-                                            next-rotation (q/quat-from-axis-angle
-                                                           axis-angle
-                                                           (m/radians (* ampl (Math/sin (/ (+ tt offset) 640.0)))))]
-                                        (cond-> node
-                                          (nil? original-r) (assoc :original-r rotation)
-                                          next-rotation (assoc :rotation (m/* (or  original-r rotation) next-rotation))))
-                                      node)))
-                           pose-tree)
-           global-tt (into [] gltf/global-transform-xf pose-tree)]
+     (let [global-tt (into [] gltf/global-transform-xf pose-tree)]
        (insert! esse-id ::pose/pose-tree global-tt))]}))
 
 (defn render-fn [world _game]
@@ -200,7 +200,7 @@
         view      (:player-view room-data)]
     (when-let [gltf-models (seq (o/query-all world ::gltf-models))]
       (doseq [gltf-model gltf-models]
-        (let [{:keys [draw-fn model program-info joints pose-tree inv-bind-mats]} gltf-model
+        (let [{:keys [draw-fn model program-info joints pose-tree inv-bind-mats skinning-ubo]} gltf-model
               joint-mats (gltf/create-joint-mats-arr joints pose-tree inv-bind-mats)
               node-0     (some-> (get pose-tree 0) :global-transform)
               model      (when node-0 (m/* node-0 model) model)]
@@ -209,8 +209,10 @@
           (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
           (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec view)))
           (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec model)))
-          (when-let [{:keys [uni-loc]} (get (:uni-locs program-info) 'u_joint_mats)]
-            (gl ctx uniformMatrix4fv uni-loc false joint-mats))
+
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
 
           (doseq [prim (:gltf-primitives gltf-model)]
             (let [indices        (:indices prim)

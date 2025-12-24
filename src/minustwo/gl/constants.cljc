@@ -21,8 +21,10 @@
 
 ;; Buffer types
 (def ^:const GL_STATIC_DRAW 35044)
+(def ^:const GL_DYNAMIC_DRAW 35048)
 (def ^:const GL_ARRAY_BUFFER 34962)
 (def ^:const GL_ELEMENT_ARRAY_BUFFER 34963)
+(def ^:const GL_UNIFORM_BUFFER 35345)
 
 ;; Texture types and units
 (def ^:const GL_TEXTURE_2D 3553)

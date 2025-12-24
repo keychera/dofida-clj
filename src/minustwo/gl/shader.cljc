@@ -1,7 +1,6 @@
 (ns minustwo.gl.shader
   (:require
    [clojure.spec.alpha :as s]
-   [clojure.walk :as walk]
    [instaparse.core :as insta]
    [clojure.string :as str]))
 
@@ -25,11 +24,10 @@
 (s/def ::uni (s/keys :req-un [::type ::uni-loc]))
 (s/def ::uni-locs (s/map-of symbol? ::uni))
 
-(s/def ::uniform-block-spec some?)
-
-(s/def ::program-info (s/keys :req-un [::program ::attr-locs ::uni-locs]
-                              :opt-un [::uniform-block-spec]))
+(s/def ::program-info (s/keys :req-un [::program ::attr-locs ::uni-locs]))
 (s/def ::all (s/map-of some? ::program-info))
+
+(s/def ::ubo some?)
 (s/def ::use some?)
 
 (def shader-header-grammar
@@ -43,15 +41,19 @@ Block = InDecl
 
 MemberDecl = TypeDecl MemberName <';'>
 MemberName = Ident
-InDecl = 'in' MemberDecl
-OutDecl = 'out' MemberDecl
-UniformDecl = 'uniform' MemberDecl
+InDecl = Layout? 'in' MemberDecl
+OutDecl = Layout? 'out' MemberDecl
+UniformDecl = Layout? 'uniform' MemberDecl
 
-InterfaceBlockDecl = 'layout' <'('> Ident <')'> StorageQualifier BlockName
-  <'{'> MemberDecl+ <'}'> InstanceName? <';'>
+InterfaceBlockDecl = Layout? StorageQualifier BlockName
+  <'{'> InterfaceMembers <'}'> InstanceName? <';'>
+InterfaceMembers = MemberDecl+
 StorageQualifier = 'uniform'
 BlockName = Ident
 InstanceName = Ident
+
+Layout = <'layout'> <'('> LayoutQualifier+ <')'>
+LayoutQualifier = Ident
 
 TypeDecl = TypeSpec ArraySpec?
 
@@ -68,19 +70,24 @@ Number = #'[0-9]+'
   (let [tree (parser source)
         tree (insta/transform
               (letfn [(qualify [qualifier member]
-                        (assoc member (keyword qualifier) true))]
-                {:TypeSpec    symbol
-                 :MemberName  (fn [[_ member-name]] [:member-name (symbol member-name)])
-                 :ArraySpec   (comp #?(:clj Integer/parseInt :cljs js/parseInt) second)
-                 :TypeDecl    (fn [& nodes]
-                                (let [member-type (into [] nodes)
-                                      member-type (if (= (count member-type) 1) (first member-type) member-type)]
-                                  (vector :member-type member-type)))
-                 :MemberDecl  (fn [& nodes] (into {} nodes))
-                 :UniformDecl qualify
-                 :InDecl      qualify
-                 :OutDecl     qualify
-                 :Header      (fn [& blocks] (into [] (map second) blocks))})
+                        (assoc member (keyword qualifier) true))
+                      
+                      (mapify [& nodes] (into {} nodes))]
+                {:TypeSpec           symbol
+                 :MemberName         (fn [[_ member-name]] [:member-name (symbol member-name)])
+                 :BlockName          (fn [[_ member-name]] [:member-name (symbol member-name)])
+                 :ArraySpec          (comp #?(:clj Integer/parseInt :cljs js/parseInt) second)
+                 :TypeDecl           (fn [& nodes]
+                                       (let [member-type (into [] nodes)
+                                             member-type (if (= (count member-type) 1) (first member-type) member-type)]
+                                         (vector :member-type member-type)))
+                 :StorageQualifier   (fn [member-type] [(keyword (str member-type "-block")) true])
+                 :MemberDecl         mapify
+                 :InterfaceBlockDecl mapify
+                 :UniformDecl        qualify
+                 :InDecl             qualify
+                 :OutDecl            qualify
+                 :Header             (fn [& blocks] (into [] (map second) blocks))})
               tree)]
     (when (insta/failure? tree)
       (throw (ex-info (pr-str tree) {}))) 
