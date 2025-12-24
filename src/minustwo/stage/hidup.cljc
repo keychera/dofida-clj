@@ -96,13 +96,13 @@
                           :use ::simpleanime}
                 t3d/default)
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
-        (esse ::rubahperak
-              #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"]
-                        :config {:tex-unit-offset 2}}
-              #::shader{:use ::pmx-shader}
-              pose/default
-              normal-draw
-              t3d/default)
+        #_(esse ::rubahperak
+                #::assimp{:model-to-load ["assets/models/SilverWolf/银狼.pmx"]
+                          :config {:tex-unit-offset 2}}
+                #::shader{:use ::pmx-shader}
+                pose/default
+                normal-draw
+                t3d/default)
         #_(esse ::rubah
                 #::assimp{:model-to-load ["assets/fox.glb"] :config {:tex-unit-offset 10}}
                 #::shader{:use ::pmx-shader}

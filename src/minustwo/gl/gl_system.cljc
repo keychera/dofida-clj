@@ -7,10 +7,11 @@
    [minustwo.systems.window :as window]
    [odoyle.rules :as o]))
 
-(s/def ::context #?(:clj any? :cljs #(instance? js/WebGL2RenderingContext %)))
+(s/def ::context #?(:clj some? :cljs #(instance? js/WebGL2RenderingContext %)))
 
+#_{:clj-kondo/ignore [:unused-binding]}
 (defn init-fn [world game]
-  (let [gl-context #?(:clj (:nothing game) :cljs (:webgl-context game))]
+  (let [gl-context #?(:clj {} :cljs (:webgl-context game))]
     (o/insert world ::world/global ::context gl-context)))
 
 (def rules
