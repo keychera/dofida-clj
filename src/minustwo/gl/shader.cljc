@@ -31,8 +31,39 @@
 (s/def ::all (s/map-of some? ::program-info))
 (s/def ::use some?)
 
+(def shader-grammar
+"
+Blocks = Block+
+
+Block = InDecl
+      | OutDecl
+      | UniformDecl
+      | InterfaceBlockDecl
+
+MemberDecl = TypeDecl MemberName <';'>
+MemberName = Ident
+InDecl = 'in' MemberDecl
+OutDecl = 'out' MemberDecl
+UniformDecl = 'uniform' MemberDecl
+
+InterfaceBlockDecl = 'layout' <'('> Ident <')'> StorageQualifier BlockName
+  <'{'> MemberDecl+ <'}'> InstanceName? <';'>
+StorageQualifier = 'uniform'
+BlockName = Ident
+InstanceName = Ident
+
+TypeDecl = TypeSpec ArraySpec?
+
+TypeSpec = #'u*(vec|mat)[234]'
+ArraySpec = <'['> Number <']'>
+Ident = #'[a-zA-Z_][a-zA-Z0-9_]*'
+Number = #'[0-9]+'
+")
+
+
 (comment
-  (let [shader
+  (let [whitespace (insta/parser "whitespace = #'\\s+'")
+        shader
         "uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
@@ -40,49 +71,31 @@ uniform mat4[500] u_joint_mats;
 layout(std140) uniform matrix {
     mat4 mvp;
 } mat;
-
-
+layout(std140) uniform Skinning {
+    mat4[500] u_joint_mats;
+};
 in vec3 POSITION;
 in vec3 NORMAL;
 in vec2 TEXCOORD_0;
 in vec4 WEIGHTS_0;
 in uvec4 JOINTS_0;
 out vec3 Normal;
-out vec2 TexCoords;"
-        ^:vibe shader-grammar
-        "
-Blocks = (Block WS*)+
-
-Block = InDecl
-      | OutDecl
-      | UniformDecl
-      | InterfaceBlockDecl
-
-MemberDecl = Type WS Ident WS* <';'>
-InDecl = 'in' WS MemberDecl
-OutDecl = 'out' WS MemberDecl
-UniformDecl = 'uniform' WS MemberDecl
-
-InterfaceBlockDecl = 'layout' WS* <'('> Ident <')'> WS StorageQualifier WS BlockName WS
-         <'{'> WS*
-         (MemberDecl WS*)+
-         <'}'> WS InstanceName <';'>
-         
-         StorageQualifier = 'uniform'
-         BlockName = Ident
-         InstanceName = Ident
-
-WS = #'\\s+'
-Type = 'u'* ('vec'|'mat') ('2'|'3'|'4') ArraySpec*
-ArraySpec = <'['> Number <']'>
-
-Ident = #'[a-zA-Z_][a-zA-Z0-9_]*'
-Number = #'[0-9]+'
-"
-        parser (insta/parser shader-grammar)
-        tree (parser shader)]
-    (walk/postwalk
-     (fn [node] (when-not (and (vector? node) (= (first node) :WS)) node))
-     tree))
+out vec2 TexCoords;" 
+        parser (insta/parser shader-grammar :auto-whitespace whitespace)
+        tree   (parser shader)
+        tree   (insta/transform
+                (letfn [(qualify [qualifier member]
+                          (merge {:qualifier (keyword qualifier)} member))]
+                  {:TypeSpec    keyword
+                   :MemberName  (fn [[_ member-name]] [:member-name member-name])
+                   :ArraySpec   (comp #?(:clj Integer/parseInt :cljs js/parseInt) second)
+                   :TypeDecl    (fn [& nodes] (vector :member-type (into [] nodes)))
+                   :MemberDecl  (fn [& nodes] (into {} nodes))
+                   :UniformDecl qualify
+                   :InDecl      qualify
+                   :OutDecl     qualify
+                   :Blocks      (fn [& blocks] (into [] (map second) blocks))})
+                tree)]
+    tree)
 
   :-)
