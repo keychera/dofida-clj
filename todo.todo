@@ -15,27 +15,39 @@ todo:
         ✔ joints, @done(25-12-15 00:29)
         
     anime arc:
-        ☐ the pose interpolation
-        ☐ blender integration
-        ☐ blend shapes
-        ☐ shaders, czmw_, tsoding, bmtol
+        ✔ the pose interpolation @done(25-12-25 00:27)
+        ✔ IK solver @done(25-12-25 00:37) kinda working
+        ✘ blender integration  @cancelled(25-12-25 00:32) deferred, more hammock with basilisp later
+        ✘ blend shapes @cancelled(25-12-25 00:27) assimp blocker
+        ☐ let's dance!
+        ☐ skybox
+        ☐ prop
+        ☐ audio
+        ☐ shaders, bnpr, czmw_, tsoding, bmtol
+        ☐ multi-mesh, multi-scene
 
         ☐ fundamental problem and stuff, doing my best to defer and not tackle everything at once
-            ☐ no morph target/shape keys from assimp pmx, noone to ask (ask assimp creator? ask mr. godot? probably not the latter)
-                ☐ maybe related https://github.com/assimp/assimp/issues/6361, post issue about .pmx as well? c++ is so daunting...
+            ✘ no morph target/shape keys from assimp pmx, noone to ask (ask assimp creator? ask mr. godot? probably not the latter) @cancelled(25-12-25 00:19)
+                ✘ maybe related https://github.com/assimp/assimp/issues/6361, post issue about .pmx as well? c++ is so daunting... @cancelled(25-12-25 00:19)
+                ☐ the PmxMorph exist but it is not being sent to aiScene
+                    ☐ no PmxMorph or Morph keyword here https://github.com/assimp/assimp/blob/ae6f4776045c115efdc0b66f78c8895e2d3b782c/code/AssetLib/MMD/MMDImporter.cpp
+                    ☐ patch assimp? maybe let's do it when we Jank!
                 ☐ the parser have it but where does it go???
-                    - https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446
                     ☐ make our own additional parser?
                     ✘ try converting to gltf mesh in blender, work our way there (need to render multiple meshes) @cancelled(25-12-23 00:38) assimp fail to load pmx -> gltf exported from blender
-                        ☐ https://github.com/KhronosGroup/glTF-Blender-IO/issues/2628 this is relevant? i don't understand... python is so daunting
-                        ☐ can basilisp save us?
-                    ☐ just drop the format entirely, hmm, hmm
+                        ✘ https://github.com/KhronosGroup/glTF-Blender-IO/issues/2628 this is relevant? i don't understand... python is so daunting @cancelled(25-12-25 00:24)
+                        ✘ can basilisp save us? @cancelled(25-12-25 00:24) probably not, python feels even more loose, we tried basilisp tho, it is cool as heck
+                    ✘ just drop the format entirely, hmm, hmm @cancelled(25-12-25 00:26) no, we want pmx!
                     ✘ explore assjson, maybe it still have it @cancelled(25-12-20 10:35) checked in assimpjs online, i dont think so...
                         ✘ need to build new renderer for this @cancelled(25-12-20 10:37)
-                    ☐ if that data is in the binary already, read it ourself in clojure?
-                        ☐ clojure/gloss 
-                    ☐ try assimp ourself?
-                        ☐ explore saba? https://github.com/benikabocha/saba
+                ☐ if that data is in the binary already, read it ourself in clojure?
+                    ☐ clojure/gloss 
+                        ☐ PmxMorph references
+                            ☐ https://github.com/MMD-Blender/blender_mmd_tools/blob/9286b30ac3ab70edddb80e45af3a820a92d86f1b/mmd_tools/core/pmx/importer.py#L41
+                            ☐ https://github.com/benikabocha/saba
+                            ☐ https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446
+
+                    ✘ try assimp ourself? @cancelled(25-12-25 00:25)
                         ☐ jank exploration?
             ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
                 
@@ -60,7 +72,7 @@ todo:
             ✔ does assimp make sense in clojure? @done(25-11-22 16:22) assimpjs kinda attempted now, seems fine (not integrated yet)
             ✔ load model that is not compile-time for js @done(25-11-22 16:22) assimpjs saikou!
             ✔ integrate assimp into rules engine @done(25-11-30 22:38) kinda done, still needs many rework in the optimized loading part
-            ☐ try lwjgl assimp as well
+            ✔ try lwjgl assimp as well @done(25-12-25 00:19)
             ✔ try pmx @done(25-11-30 22:38) baby steps but we got it! -> move to rubah-perak
         ✔ maybe try implementing opengl tutorial again regarding light and materials @done(25-11-25 21:47)
         ☐ sidestream: dialogue
