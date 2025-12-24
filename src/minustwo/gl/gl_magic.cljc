@@ -98,7 +98,7 @@
           (let [uri      (-> chant :image :uri)
                 tex-unit (:tex-unit chant)
                 tex-name (:bind-texture chant)]
-            (println "[assimp-js] binding" tex-name "to" tex-unit)
+            (println "[texture] binding" tex-name "to" tex-unit)
             (recur remaining
                    (conj summons
                          [tex-name ::texture/uri-to-load uri]

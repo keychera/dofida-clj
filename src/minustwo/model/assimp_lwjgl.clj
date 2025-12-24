@@ -36,7 +36,7 @@
     (println "[assimp-lwjgl] loading model" esse-id)
     (swap! world* o/retract esse-id ::assimp/model-to-load)
     (let [[gltf bin] (load-model (first model-files) "gltf2")]
-      (println "[assimp-js] loaded" esse-id)
+      (println "[assimp-lwjgl] loaded" esse-id)
       (swap! world* o/insert esse-id {::gltf/data gltf ::gltf/bins [bin] ::gl-magic/casted? :pending}))))
 
 (comment
