@@ -2,6 +2,7 @@
   (:require
    [clojure.java.io :as io]
    [gloss.core :as g :refer [finite-frame string]]
+   [gloss.core.codecs :refer [enum]]
    [gloss.core.structure :refer [compile-frame]]
    [gloss.io :as gio]))
 
@@ -21,25 +22,34 @@
     (io/copy xin xout)
     (.toByteArray xout)))
 
-(let [frame      [:magic               (string :utf-8 :length 4)
-                  :version             :float32-le
-                  :header-size         :byte
-                  :encoding            :byte
-                  :additional-uv       :byte
-                  :vertex-index-size   :byte
-                  :texture-index-size  :byte
-                  :material-index-size :byte
-                  :bone-index-size     :byte
-                  :morph-index-size    :byte
-                  :rigid-index-size    :byte
-                  :local-name          (finite-frame :int32-le (string :utf-16LE))
-                  :global-name         (finite-frame :int32-le (string :utf-16LE))
-                  :local-comment       (finite-frame :int32-le (string :utf-16LE))
-                  :global-comment      (finite-frame :int32-le (string :utf-16LE))]
-      pmx-codec  (compile-frame frame)
-      model-path "public/assets/models/SilverWolf/SilverWolf.pmx"
-      pmx-byte   (file->bytes (io/file (io/resource model-path)))]
-  (gio/decode pmx-codec pmx-byte false))
+(let [pmx-header   [:magic               (string :utf-8 :length 4)
+                    :version             :float32-le
+                    :header-size         :byte
+                    :encoding            (enum :byte :utf-16LE :utf-8)
+                    :additional-uv       :byte
+                    :vertex-index-size   :byte
+                    :texture-index-size  :byte
+                    :material-index-size :byte
+                    :bone-index-size     :byte
+                    :morph-index-size    :byte
+                    :rigid-index-size    :byte]
+      header-codec (compile-frame pmx-header)
+      model-path   "public/assets/models/SilverWolf/SilverWolf.pmx"
+      pmx-byte     (file->bytes (io/file (io/resource model-path)))
+      header-only  (into {} (map vec) (partition 2 (gio/decode header-codec pmx-byte false)))
+      encoding     (:encoding header-only)
+      t_text       (finite-frame :int32-le (string encoding))
+      pmx-frame    (apply conj pmx-header
+                          [:local-name     t_text
+                           :global-name    t_text
+                           :local-comment  t_text
+                           :global-comment t_text
+                           :vert-count     :int32-le])
+      pmx-codec    (compile-frame pmx-frame)]
+  [header-only
+   (gio/decode pmx-codec pmx-byte false)])
+
+(apply conj [1 2 3] [1 2 3])
 
 ;; other refs;
 ;; https://gist.github.com/ulrikdamm/8274171
