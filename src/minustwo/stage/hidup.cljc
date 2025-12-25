@@ -12,7 +12,8 @@
    [minustwo.anime.IK :refer [IK-transducer1]]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_UNIFORM_BUFFER GL_DYNAMIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
+   [minustwo.gl.constants :refer [GL_BACK GL_DYNAMIC_DRAW GL_FRONT GL_TEXTURE0
+                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
@@ -32,6 +33,8 @@
 (def pmx-vert
   (str cljgl/version-str "
   precision mediump float;
+  uniform float u_invertedHull;
+  uniform float u_lineThickness;
   uniform mat4 u_model;
   uniform mat4 u_view;
   uniform mat4 u_projection;
@@ -48,7 +51,12 @@
   out vec2 TexCoords;
   void main()
   {
-    vec4 pos = (vec4(POSITION, 1.0));
+    vec4 pos;
+    if (u_invertedHull > 0.5) {
+       pos = vec4((POSITION + NORMAL * u_lineThickness), 1.0);
+    } else {
+       pos = vec4(POSITION, 1.0);
+    }
     mat4 skin_mat = ((WEIGHTS_0.x * u_joint_mats[JOINTS_0.x]) + (WEIGHTS_0.y * u_joint_mats[JOINTS_0.y]) + (WEIGHTS_0.z * u_joint_mats[JOINTS_0.z]) + (WEIGHTS_0.w * u_joint_mats[JOINTS_0.w]));
     vec4 world_pos = (u_model * skin_mat * pos);
     vec4 cam_pos = (u_view * world_pos);
@@ -61,14 +69,21 @@
   (str cljgl/version-str "
   precision mediump float;
   uniform sampler2D u_mat_diffuse;
+  uniform float u_invertedHull;
   in vec3 Normal;
   in vec2 TexCoords;
   out vec4 o_color;
   
   void main() 
   {
-      vec3 result = texture(u_mat_diffuse, TexCoords).rgb;
-      o_color = vec4(result, 1.0);
+      vec4 result;
+      if (u_invertedHull > 0.5) {
+         vec3 color = vec3(0.0, 0.0, 0.0);
+         result = vec4(color, 1.0);
+      } else {
+         result = vec4(texture(u_mat_diffuse, TexCoords).rgb, 1.0);
+      }
+      o_color = result;
   }"))
 
 ;; this part needs hammock later
@@ -129,6 +144,7 @@
 
 (defn after-load-fn [world _game]
   (-> world
+
       (esse ::simpleanime
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                    :scale (v/vec3 8.0)})
@@ -155,13 +171,16 @@
      [:skinning-ubo ::shader/ubo skinning-ubo]
      [esse-id ::gl-magic/casted? true]
      [esse-id ::t3d/transform model]
-     [esse-id ::shader/use shader-id]
-     [shader-id ::shader/program-info program-info]
-     [esse-id ::gltf/primitives gltf-primitives]
+     [esse-id ::shader/use ::pmx-shader]
+     [::pmx-shader ::shader/program-info program-info]
+     [esse-id ::gltf/primitives gltf-primitives {:then false}]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
      [esse-id ::pose/pose-tree pose-tree]
-     [esse-id ::custom-draw-fn draw-fn]]
+     [esse-id ::custom-draw-fn draw-fn]
+     :then
+     (insert! esse-id
+              ::gltf/primitives (into [] (map-indexed (fn [idx prim] (assoc prim :idx idx))) gltf-primitives))]
 
     ::update-anime
     [:what
@@ -228,6 +247,19 @@
                   (gl ctx bindTexture GL_TEXTURE_2D texture)
                   (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
 
+                (when (#{ 1 2     9 10 11 12 13 14 15 16 17 18 20 21 22 23} (:idx prim))
+                  (cljgl/set-uniform ctx program-info 'u_invertedHull 1.0)
+                  (cljgl/set-uniform ctx program-info 'u_lineThickness 0.03)
+                  (gl ctx cullFace GL_FRONT)
+                  (condp = draw-fn
+                    :normal-draw
+                    (gl ctx drawElements GL_TRIANGLES count component-type 0)
+
+                    (draw-fn ctx gltf-model prim))
+                  (gl ctx cullFace GL_BACK))
+
+
+                (cljgl/set-uniform ctx program-info 'u_invertedHull 0.0)
                 (condp = draw-fn
                   :normal-draw
                   (gl ctx drawElements GL_TRIANGLES count component-type 0)
