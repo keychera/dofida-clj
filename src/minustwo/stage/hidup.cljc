@@ -12,8 +12,9 @@
    [minustwo.anime.IK :refer [IK-transducer1]]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_BACK GL_DYNAMIC_DRAW GL_FRONT GL_TEXTURE0
-                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER]]
+   [minustwo.gl.constants :refer [GL_BACK GL_CULL_FACE GL_DYNAMIC_DRAW
+                                  GL_FRONT GL_TEXTURE0 GL_TEXTURE_2D
+                                  GL_TRIANGLES GL_UNIFORM_BUFFER]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
@@ -246,8 +247,13 @@
                   (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
                   (gl ctx bindTexture GL_TEXTURE_2D texture)
                   (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+                
+                (if (#{20 21} (:idx prim))
+                  (gl ctx disable GL_CULL_FACE)
+                  (gl ctx enable GL_CULL_FACE))
 
-                (when (#{ 1 2     9 10 11 12 13 14 15 16 17 18 20 21 22 23} (:idx prim))
+                (when (#{1 2 9 10 11 12 13 14 15 16 17 18 20 22 23} (:idx prim))
+                  
                   (cljgl/set-uniform ctx program-info 'u_invertedHull 1.0)
                   (cljgl/set-uniform ctx program-info 'u_lineThickness 0.03)
                   (gl ctx cullFace GL_FRONT)
@@ -256,8 +262,7 @@
                     (gl ctx drawElements GL_TRIANGLES count component-type 0)
 
                     (draw-fn ctx gltf-model prim))
-                  (gl ctx cullFace GL_BACK))
-
+                  (gl ctx cullFace GL_BACK)) 
 
                 (cljgl/set-uniform ctx program-info 'u_invertedHull 0.0)
                 (condp = draw-fn
