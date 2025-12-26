@@ -3,7 +3,6 @@
    [clojure.java.io :as io]
    [gloss.core :as g :refer [finite-frame string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
-   [gloss.core.structure :refer [compile-frame]]
    [gloss.io :as gio]))
 
 
@@ -16,35 +15,32 @@
     (.toByteArray xout)))
 
 (def header-codec
-  (compile-frame
-   (ordered-map
-    :magic               (string :utf-8 :length 4)
-    :version             :float32-le
-    :header-size         :byte
-    :encoding            (enum :byte :utf-16LE :utf-8)
-    :additional-uv       :byte
-    :vertex-index-size   :byte
-    :texture-index-size  :byte
-    :material-index-size :byte
-    :bone-index-size     :byte
-    :morph-index-size    :byte
-    :rigid-index-size    :byte)))
+  (ordered-map
+   :magic               (string :utf-8 :length 4)
+   :version             :float32-le
+   :header-size         :byte
+   :encoding            (enum :byte :utf-16LE :utf-8)
+   :additional-uv       :byte
+   :vertex-index-size   :byte
+   :texture-index-size  :byte
+   :material-index-size :byte
+   :bone-index-size     :byte
+   :morph-index-size    :byte
+   :rigid-index-size    :byte))
 
 (defn body-codec-fn [{:keys [encoding] :as header-data}]
-  (let [text_t       (finite-frame :int32-le (string encoding))]
-    (compile-frame
-     (ordered-map
-      :header-data    header-data
-      :local-name     text_t
-      :global-name    text_t
-      :local-comment  text_t
-      :global-comment text_t
-      :vert-count     :int32-le))))
+  (let [t_text (finite-frame :int32-le (string encoding))]
+    (ordered-map
+     :header-data    header-data
+     :local-name     t_text
+     :global-name    t_text
+     :local-comment  t_text
+     :global-comment t_text
+     :vert-count     :int32-le)))
 
 (let [model-path   "public/assets/models/SilverWolf/SilverWolf.pmx"
       pmx-byte     (file->bytes (io/file (io/resource model-path)))
-      pmx-frame    (header header-codec body-codec-fn identity)
-      pmx-codec    (compile-frame pmx-frame)]
+      pmx-codec    (header header-codec body-codec-fn identity)]
   (gio/decode pmx-codec pmx-byte false))
 
 ;; other refs;
