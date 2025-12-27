@@ -1,7 +1,7 @@
 (ns minustwo.model.pmx-parser
   (:require
    [clojure.java.io :as io]
-   [gloss.core :as g :refer [finite-frame repeated string]]
+   [gloss.core :as g :refer [defcodec finite-frame repeated string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
    [gloss.core.structure :refer [compile-frame]]
    [gloss.io :as gio]))
@@ -59,8 +59,7 @@
      :textures       (repeated text_f :prefix int_f)
      :materials      (repeated (create-material-frame text_f texture-idx_f) :prefix int_f)
      :bones          (repeated (create-bone-frame text_f bone-idx_f) :prefix int_f)
-     :morphN         int_f
-     :morph          (create-morph-frame text_f))))
+     :morphs         (repeated (create-morph-frame text_f root-header) :prefix int_f))))
 
 ;; vertices
 
@@ -237,13 +236,88 @@
      :bone-data       bone-codec)))
 
 ;; morph
-(defn create-morph-frame [text_f]
-  (let [morph-offset-codec []]
+
+(defcodec morph-type-frame
+  (ordered-map
+   :panel-type :byte
+   :morph-type (enum :byte :group :vertex :bone :uv :uv-ext1 :uv-ext2 :uv-ext3 :uv-ext4 :material #_:flip #_:impulse)))
+
+(defn group-offset [morph-idx_f]
+  (compile-frame
+   (ordered-map
+    :morph-idx morph-idx_f
+    :influence float_f)))
+
+(defn vertex-offset [vertex-idx_f]
+  (compile-frame
+   (ordered-map
+    :vertex-idx  vertex-idx_f
+    :translation vec3_f)))
+
+(defn bone-offset [bone-idx_f]
+  (compile-frame
+   (ordered-map
+    :bone-idx    bone-idx_f
+    :translation vec3_f
+    :rotation    vec4_f)))
+
+(defn uv-offset [vertex-idx_f]
+  (compile-frame
+   (ordered-map
+    :vertex-idx vertex-idx_f
+    :floats     vec4_f)))
+
+(defn material-offset [material-idx_f]
+  (compile-frame
+   (ordered-map
+    :material-idx material-idx_f
+    :hmm?             :byte
+    :diffuse-color    vec4_f
+    :specular-color   vec3_f
+    :specularity      float_f
+    :ambient-color    vec3_f
+    :edge-color       vec4_f
+    :edge-size        float_f
+    :texture-tint     vec4_f
+    :environment-tint vec4_f
+    :toon-tint        vec4_f)))
+
+(defn create-offset-codec [morph-type morph-idx_f vertex-idx_f bone-idx_f material-idx_f]
+  (case morph-type
+    :group    (group-offset morph-idx_f)
+    :vertex   (vertex-offset vertex-idx_f)
+    :bone     (bone-offset bone-idx_f)
+    :uv       (uv-offset vertex-idx_f)
+    :uv-ext1  (uv-offset vertex-idx_f)
+    :uv-ext2  (uv-offset vertex-idx_f)
+    :uv-ext3  (uv-offset vertex-idx_f)
+    :uv-ext4  (uv-offset vertex-idx_f)
+    :material (material-offset material-idx_f)))
+
+(defn create-morph-frame
+  [text_f
+   {:keys [vertex-index-size
+           bone-index-size
+           morph-index-size
+           material-index-size] :as _root-header}]
+  (println [vertex-index-size
+            bone-index-size
+            morph-index-size
+            material-index-size])
+  (let [morph-idx_f    (keyword morph-index-size)
+        vertex-idx_f   (keyword vertex-index-size)
+        bone-idx_f     (keyword bone-index-size)
+        material-idx_f (keyword material-index-size)
+        morph-offset-codec
+        (header morph-type-frame
+                (fn [{:keys [morph-type] :as types}]
+                  (ordered-map
+                   :types       types
+                   :offset-data (repeated (create-offset-codec morph-type morph-idx_f vertex-idx_f bone-idx_f material-idx_f) :prefix int_f)))
+                identity)]
     (ordered-map
      :local-name  text_f
      :global-name text_f
-     :panel-type  :byte
-     :morph-type  :byte
      :offsets     morph-offset-codec)))
 
 (comment
@@ -255,11 +329,13 @@
              pmx-byte   (file->bytes (io/file (io/resource model-path)))
              pmx-codec  (header header-codec body-codec-fn identity)
              result     (gio/decode pmx-codec pmx-byte false)]
+         (def hmm result)
          (-> result
              (update :vertices (juxt count #(into [] (take 2) %)))
              (update :faces (juxt count identity))
              (update :materials (juxt count #(into [] (take 2) %)))
-             (update :bones (juxt count #(into [] (comp (take 10)) %)))))))
+             (update :bones (juxt count #(into [] (comp (take 2)) %)))
+             (update :morphs (juxt count #(into [] (comp (map (juxt :local-name (comp count :offset-data :offsets)))) %)))))))
 
   *e
 
