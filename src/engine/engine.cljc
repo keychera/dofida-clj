@@ -5,7 +5,7 @@
    [engine.game :as game :refer [gl-ctx]]
    [engine.refresh :refer [*refresh?]]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_FRONT]]
+   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE]]
    [minustwo.systems :as systems]
    [minustwo.zone.loading :refer [loading-zone]]
    [minustwo.zone.render :refer [render-zone]]
