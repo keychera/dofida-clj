@@ -27,7 +27,7 @@
   (with-redefs
    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]
     (let [window (start/->window true)
-          game   (game/->game (:glfw-window window))
+          game   (game/->game {:glfw-window window})
           imguiGlfw (ImGuiImplGlfw.)
           imGuiGl3 (ImGuiImplGl3.)
           callback #::start{:init-fn (partial debug-ui/init imguiGlfw imGuiGl3)

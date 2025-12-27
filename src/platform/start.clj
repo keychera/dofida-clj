@@ -143,7 +143,7 @@
                                   (MemoryUtil/memFree *window-width)
                                   (MemoryUtil/memFree *window-height)
                                   (GLFW/glfwSetCursorPos window half-w half-h)
-                                      ;; GLFW_CURSOR_HIDDEN doesn't work somehow
+                                  ;; GLFW_CURSOR_HIDDEN doesn't work somehow
                                   (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
                               (reset! mouse-locked?* true))
 
@@ -278,5 +278,5 @@
 
 (defn -main [& _args]
   (let [window (->window)]
-    (start (game/->game (:handle window)) window)))
+    (start (game/->game {:glfw-window window}) window)))
 

@@ -7,10 +7,12 @@
    [engine.world :as world]
    [minustwo.anime.keyframe :as keyframe]
    [minustwo.gl.gltf :as gltf]
-   [odoyle.rules :as o]
    [minustwo.systems.time :as time]
-   [thi.ng.geom.quaternion]
-   [thi.ng.math.core :as m]))
+   [odoyle.rules :as o]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m])
+  #?(:clj (:import [java.nio ByteOrder])))
 
 ;; currently anime is complected with gltf animations
 
@@ -32,12 +34,38 @@
 
 (s/def ::animes (s/coll-of ::anime))
 
+;; sampler/animation
+(defn resolve-sampler
+  "this needs input with some related data connected (:input. :output -> bufferView, :target)"
+  [gltf-data bin sampler-accessor]
+  (let [bufferViews        (:bufferViews gltf-data)
+        bufferView         (get bufferViews (:bufferView sampler-accessor))
+        byteLength         (:byteLength bufferView)
+        byteOffset         (:byteOffset bufferView)
+        u8s                #?(:clj  (let [slice (doto (.duplicate bin) (.position byteOffset) (.limit (+ byteOffset byteLength)))]
+                                      (doto (.slice slice)
+                                        (.order ByteOrder/LITTLE_ENDIAN)))
+                              :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
+        component-per-elem (gltf/gltf-type->num-of-component (:type sampler-accessor))
+        buffer             #?(:clj  (.asFloatBuffer u8s)
+                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset
+                                                           (/ u8s.byteLength js/Float32Array.BYTES_PER_ELEMENT))))]
+    (if (> component-per-elem 1)
+      (partition component-per-elem buffer)
+      buffer)))
+
+(defn interpret-animation-target [element path]
+  (case path
+    "translation" (apply v/vec3 element)
+    "rotation" (apply q/quat element)
+    "scale" (apply v/vec3 element)))
+
 (s/fdef gltf->animes
   :ret ::animes)
 (defn gltf->animes [gltf-data bin] ;; assuming only one bin for now 
   (when-let [animes (:animations gltf-data)]
     (let [accessors (:accessors gltf-data)
-          resolver  (partial gltf/resolve-sampler gltf-data bin)]
+          resolver  (partial resolve-sampler gltf-data bin)]
       (transduce
        (map (fn [{:keys [channels samplers] :as anime}]
               (eduction
@@ -55,7 +83,7 @@
                (map #(update % :output resolver))
                (map (fn [{:keys [target] :as this}]
                       (sp/transform [:output sp/ALL]
-                                    (fn [ele] (gltf/interpret-animation-target ele (-> target :path)))
+                                    (fn [ele] (interpret-animation-target ele (-> target :path)))
                                     this)))
                (map (fn [channel]
                       (assoc channel :keyframes (map vector (:input channel) (:output channel)))))
@@ -100,13 +128,12 @@
 
     ::animation-update
     [:what
-     [::time/now ::time/total tt]
+     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/step _]
      [::world/global ::there-are-animes true {:then false}]
      :then
      (let [db             @db*
-           max-progress   8.0
-           duration       4800.0
-           progress       (* max-progress (/ (mod tt duration) duration))
+           progress       (/ tt 500)
            running-animes (eduction
                            ;; still hardcoded anime-name filtering, fox: Walk, Survey, Run
                            (filter #(#{"anim" "Run"} (:anime-name %)))
@@ -131,11 +158,15 @@
   {::world/after-load-fn (fn [world _game] (reset! db* {}) world)
    ::world/rules rules})
 
-(comment 
-  (distinct (sp/select [::animes sp/ALL :anime-name] @db*))
+(comment
+  (distinct (sp/select [::animes sp/ALL :max-input] @db*))
   ["Survey" "Walk" "Run" "anim"]
-  
+
+  (-> @gltf/debug-data* :minustwo.stage.hidup/simpleskin :gltf-data)
+
   (tagged-literal 'flare/html {:title "game"
                                :url (str "http://localhost:9333/" (rand))
                                :reveal true
-                               :sidebar-panel? true}))
+                               :sidebar-panel? true})
+
+  :-)

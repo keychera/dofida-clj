@@ -25,7 +25,9 @@
   (o/ruleset
    {::prepate-spell
     [:what [esse-id ::spell spell]
-     :then (insert! esse-id ::casted? :pending)]
+     :then
+     (println "casting gl-magic for" esse-id)
+     (insert! esse-id ::casted? :pending)]
 
     ::to-cast
     [:what
@@ -37,14 +39,15 @@
      [esse-id ::gltf/data gltf-data]
      [esse-id ::gltf/bins bins]
      [esse-id ::shader/use use-shader]
-     [esse-id ::assimp/tex-unit-offset texu-offset]
+     [esse-id ::assimp/config assimp-config]
+     [esse-id ::casted? :pending {:then false}]
      :then
      (println "[magic] gltf spell for" esse-id)
      (let [gltf-spell
            (gltf/gltf-spell gltf-data (first bins)
-                            {:model-id esse-id
-                             :use-shader use-shader
-                             :tex-unit-offset texu-offset})]
+                            (merge {:model-id esse-id
+                                    :use-shader use-shader}
+                                   assimp-config))]
        (insert! esse-id ::spell gltf-spell))]}))
 
 (def system
@@ -95,7 +98,7 @@
           (let [uri      (-> chant :image :uri)
                 tex-unit (:tex-unit chant)
                 tex-name (:bind-texture chant)]
-            (println "[assimp-js] binding" tex-name "to" tex-unit)
+            (println "[texture] binding" tex-name "to" tex-unit)
             (recur remaining
                    (conj summons
                          [tex-name ::texture/uri-to-load uri]

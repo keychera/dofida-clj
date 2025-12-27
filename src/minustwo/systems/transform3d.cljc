@@ -29,9 +29,7 @@
      [esse-id ::scale scale-vec3]
      :then
      (let [trans-mat     (m-ext/translation-mat position-vec3)
-           rot-mat       (g/as-matrix (q/quat-from-axis-angle
-                                       (v/vec3 0.0 1.0 0.0)
-                                       (m/radians 0.0)))
+           rot-mat       (g/as-matrix rotation-quat)
            scale-mat     (m-ext/vec3->scaling-mat scale-vec3)
            transform-mat (reduce m/* [trans-mat rot-mat scale-mat])]
        (insert! esse-id ::transform transform-mat))]}))

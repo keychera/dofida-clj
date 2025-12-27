@@ -20,7 +20,7 @@
         (let [summons-map (gl-magic/cast-spell world spell-fact)]
           (swap! world* gl-magic/summons->world* summons-map))))
     (when models-to-load
-      #?(:clj  assimp-lwjgl/system ;; JVM assimp todo
+      #?(:clj  (some-> models-to-load (assimp-lwjgl/load-models-from-world* (::world/atom* game)))
          :cljs (some-> models-to-load (assimp-js/load-models-from-world* (::world/atom* game)))))
     (when data-uri-to-load
       (texture/load-texture->world* data-uri-to-load world*)))

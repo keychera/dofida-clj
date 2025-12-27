@@ -1,22 +1,28 @@
 (ns rules.dofida
   (:require
-   #?(:clj  [play-cljc.macros-java :refer [gl]]
-      :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [rules.asset :as asset :refer [asset]]
-   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT GL_FLOAT GL_FRAMEBUFFER GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS GL_MAX_TEXTURE_IMAGE_UNITS GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS GL_ONE GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES GL_ZERO]]
-   [minustwo.gl.texture :as texture]
+   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]
    [engine.world :as world]
    [iglu.core :as iglu]
+   [minustwo.gl.cljgl :as cljgl]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT GL_FLOAT
+                                  GL_FRAMEBUFFER
+                                  GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+                                  GL_MAX_TEXTURE_IMAGE_UNITS
+                                  GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS GL_ONE
+                                  GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
+                                  GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
+                                  GL_TRIANGLES GL_ZERO]]
+   [minustwo.gl.texture :as texture]
+   [minustwo.systems.input :as input]
    [odoyle.rules :as o]
-   [play-cljc.gl.utils :as gl-utils]
-   [play-cljc.math :as plcjc-m]
+   [rules.asset :as asset :refer [asset]]
    [rules.camera.arcball :as arcball]
    [rules.firstperson :as firstperson]
-   [minustwo.systems.input :as input]
+   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
    [rules.window :as window]
    [thi.ng.geom.core :as g]))
 
@@ -87,14 +93,14 @@
         right        [(Math/sin (- horiz-angle (/ Math/PI 2)))
                       0.0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
-        up           (#'plcjc-m/cross right direction)
-
-        look-at      (plcjc-m/look-at-matrix-3d position (mapv + position direction) up)
-        view         (plcjc-m/inverse-matrix-3d look-at)
+        up           (#_PLACEHOLDER-cross vector right direction)
+        
+        look-at      (#_PLACEHOLDER-look-at-matrix vector position (mapv + position direction) up)
+        view         (#_PLACEHOLDER-inverse-matrix vector look-at)
 
         ;; rotation is part of m
-        rotation     (plcjc-m/z-rotation-matrix-3d (plcjc-m/deg->rad 180))]
-    (plcjc-m/multiply-matrices-3d rotation view)))
+        rotation     (#_PLACEHOLDER-z-rotation-matrix-3d vector (#_PLACEHOLDER-deg->rad vector 180))]
+    (#_PLACEHOLDER-multiply-matrices-3d vector rotation view)))
 
 ;; jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
 ;; webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
@@ -103,7 +109,7 @@
 
 (defn calc-adhoc-mvp [dimension rot-mat]
   ;; will refactor, this ugly
-  (let [initial-fov  (plcjc-m/deg->rad 45)
+  (let [initial-fov  (#_PLACEHOLDER-deg->rad vector 45)
         horiz-angle  Math/PI
         verti-angle  0.0
         position     [0 0 5]
@@ -115,15 +121,15 @@
                       0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
 
-        up           (#'plcjc-m/cross right direction)
+        up           (#_PLACEHOLDER-cross right direction)
 
         aspect-ratio (/ (:width dimension) (:height dimension))
-        projection   (plcjc-m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
+        projection   (#_PLACEHOLDER-perspective-matrix-3d vector initial-fov aspect-ratio 0.1 100)
 
-        camera       (plcjc-m/look-at-matrix-3d position (mapv + position direction) up)
-        view         (plcjc-m/inverse-matrix-3d camera)
-        p*v          (plcjc-m/multiply-matrices-3d view projection)
-        mvp          (plcjc-m/multiply-matrices-3d rot-mat p*v)
+        camera       (#_PLACEHOLDER-look-at-matrix-3d vector position (mapv + position direction) up)
+        view         (#_PLACEHOLDER-inverse-matrix-3d vector camera)
+        p*v          (#_PLACEHOLDER-multiply-matrices-3d vector view projection)
+        mvp          (#_PLACEHOLDER-multiply-matrices-3d vector rot-mat p*v)
         mvp          (#?(:clj float-array :cljs #(js/Float32Array. %)) mvp)]
     mvp))
 
@@ -135,7 +141,7 @@
       (let [rot-quat (:new-quat (first (o/query-all world ::arcball/rot-quat)))
             rot-mat  (some-> rot-quat g/as-matrix vec)
             mvp      (some->> rot-mat (calc-adhoc-mvp dimension))]
-        (or mvp (plcjc-m/identity-matrix 4))))
+        (or mvp (#_PLACEHOLDER-identity-matrix vector 4))))
     (:mvp (first (o/query-all world ::firstperson/state)))))
 
 ;; vao
@@ -152,7 +158,7 @@
    (fn [world game]
      (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
            fragment-source (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
-           the-program     (gl-utils/create-program game vertex-source fragment-source)
+           the-program     (cljgl/create-program game vertex-source fragment-source)
 
            the-attr-loc    (gl game getAttribLocation the-program "a_pos")
            the-uv-attr-loc (gl game getAttribLocation the-program "a_uv")
@@ -173,11 +179,11 @@
            ((fn set-off-plane [esse-3d]
               (let [off-vao       (gl game #?(:clj genVertexArrays :cljs createVertexArray))
                     _             (gl game bindVertexArray off-vao)
-                    off-vbo       (gl-utils/create-buffer game)
+                    off-vbo       (cljgl/create-buffer game)
                     _             (gl game bindBuffer GL_ARRAY_BUFFER off-vbo)
                     _             (gl game bufferData GL_ARRAY_BUFFER plane3d-vertices GL_STATIC_DRAW)
 
-                    off-uv-buffer (gl-utils/create-buffer game)
+                    off-uv-buffer (cljgl/create-buffer game)
                     _             (gl game bindBuffer GL_ARRAY_BUFFER off-uv-buffer)
                     _             (gl game bufferData GL_ARRAY_BUFFER plane3d-uvs GL_STATIC_DRAW)]
 
@@ -195,8 +201,8 @@
               (gl game bindVertexArray vao)
               (let [vertex-source    (iglu/iglu->glsl (merge {:version glsl-version} vertex-shader))
                     fragment-source  (iglu/iglu->glsl (merge {:version glsl-version} fragment-shader))
-                    triangle-program (gl-utils/create-program game vertex-source fragment-source)
-                    triangle-buffer  (gl-utils/create-buffer game)
+                    triangle-program (cljgl/create-program game vertex-source fragment-source)
+                    triangle-buffer  (cljgl/create-buffer game)
                     _                (gl game bindBuffer GL_ARRAY_BUFFER triangle-buffer)
                     _                (gl game bufferData GL_ARRAY_BUFFER triangle-data GL_STATIC_DRAW)
                     attr-name        (-> vertex-shader :inputs keys first str)
@@ -212,12 +218,12 @@
            ((fn set-cube [esse-3d]
               (let [cube-vao     (gl game #?(:clj genVertexArrays :cljs createVertexArray))
                     _            (gl game bindVertexArray cube-vao)
-                    cube-buffer  (gl-utils/create-buffer game)
+                    cube-buffer  (cljgl/create-buffer game)
                     _            (gl game bindBuffer GL_ARRAY_BUFFER cube-buffer)
                     cube-data    (:vertices cube-model)
                     _            (gl game bufferData GL_ARRAY_BUFFER cube-data GL_STATIC_DRAW)
 
-                    uv-buffer    (gl-utils/create-buffer game)
+                    uv-buffer    (cljgl/create-buffer game)
                     _            (gl game bindBuffer GL_ARRAY_BUFFER uv-buffer)
                     cube-uvs     (:uvs cube-model)
                     _            (gl game bufferData GL_ARRAY_BUFFER cube-uvs GL_STATIC_DRAW)
@@ -240,7 +246,7 @@
 
                     model           dofida-plane
 
-                    vbo             (gl-utils/create-buffer game)
+                    vbo             (cljgl/create-buffer game)
                     _               (gl game bindBuffer GL_ARRAY_BUFFER vbo)
                     vertices-data   (:vertices model)
                     _               (gl game bufferData GL_ARRAY_BUFFER vertices-data GL_STATIC_DRAW)
@@ -249,7 +255,7 @@
 
                     uniform-name    (-> the-vertex-shader :uniforms keys first str)
                     uniform-loc     (gl game getUniformLocation program uniform-name)
-                    uv-buffer       (gl-utils/create-buffer game)
+                    uv-buffer       (cljgl/create-buffer game)
                     _               (gl game bindBuffer GL_ARRAY_BUFFER uv-buffer)
                     cube-uvs        (:uvs model)
                     _               (gl game bufferData GL_ARRAY_BUFFER cube-uvs GL_STATIC_DRAW)
@@ -352,8 +358,8 @@
           (gl game useProgram the-program)
 
           (gl game uniformMatrix4fv the-mvp-loc false
-              #?(:clj (float-array (plcjc-m/identity-matrix 4))
-                 :cljs (plcjc-m/identity-matrix 4)))
+              #?(:clj (float-array (#_PLACEHOLDER-identity-matrix vector 4))
+                 :cljs (#_PLACEHOLDER-identity-matrix vector 4)))
 
           ;; texture still needs to bind each frame
           ;; https://stackoverflow.com/questions/40438590/is-it-necessary-to-bind-all-vbos-and-textures-each-frame
@@ -376,10 +382,10 @@
           (gl game bindBuffer GL_ARRAY_BUFFER just-uv-buffer)
           (gl game vertexAttribPointer the-uv-attr-loc 2 GL_FLOAT false 0 0)
 
-          (let [initial-fov  (plcjc-m/deg->rad 45)
+          (let [initial-fov  (#_PLACEHOLDER-deg->rad vector 45)
                 aspect-ratio (/ (:width dim) (:height dim))
-                projection   (plcjc-m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
-                mvp          (plcjc-m/multiply-matrices-3d static-model-view-matrix projection)]
+                projection   (#_PLACEHOLDER-perspective-matrix-3d vector initial-fov aspect-ratio 0.1 100)
+                mvp          (#_PLACEHOLDER-multiply-matrices-3d vector static-model-view-matrix projection)]
             (gl game uniformMatrix4fv the-mvp-loc false
                 #?(:clj (float-array mvp)
                    :cljs mvp)))
@@ -404,7 +410,7 @@
   (let [game            (:game hmm)
         vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} the-vertex-shader))
         fragment-source (iglu/iglu->glsl (merge {:version glsl-version} the-fragment-shader))
-        cube-program    (gl-utils/create-program game vertex-source fragment-source)]
+        cube-program    (cljgl/create-program game vertex-source fragment-source)]
     (gl game getAttribLocation cube-program "a_color")
     [(gl game getParameter GL_MAX_TEXTURE_IMAGE_UNITS)
      (gl game getParameter GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS)
