@@ -6,7 +6,7 @@
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
-   [minustwo.stage.hidup :as hidup]
+   [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
@@ -15,7 +15,8 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.view.room :as room]
-   [minustwo.systems.window :as window]))
+   [minustwo.systems.window :as window]
+   [minustwo.model.pmx-model :as pmx-model]))
 
 (def all
   [time/system
@@ -36,6 +37,8 @@
    perspective-grid/system
    t3d/system
 
-   hidup/system
+  ;;  hidup/system
+   pmx-model/system
+   pmx-renderer/system
    wirecube/system
    pose/system])

@@ -1,6 +1,7 @@
 (ns minustwo.model.pmx-parser
   (:require
    [clojure.java.io :as io]
+   [engine.utils :refer [file->bytes]]
    [gloss.core :as g :refer [defcodec finite-frame repeated string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
    [gloss.core.structure :refer [compile-frame]]
@@ -319,27 +320,35 @@
      :global-name text_f
      :offsets     morph-offset-codec)))
 
+(def pmx-codec (header header-codec body-codec-fn identity))
+
+(defn parse-pmx [pmx-path]
+  (let [model-path (str "public/" pmx-path)
+        pmx-byte   (file->bytes (io/file (io/resource model-path)))]
+    (gio/decode pmx-codec pmx-byte false)))
+
 (comment
-  (do (require '[engine.utils :refer [file->bytes]]
-               #_'[clj-async-profiler.core :as prof])
-      (identity #_prof/profile
-       (time
-        (let [model-path
-              #_"public/assets/models/Alicia_blade.pmx"
-              "public/assets/models/SilverWolf/SilverWolf.pmx"
-              pmx-byte   (file->bytes (io/file (io/resource model-path)))
-              pmx-codec  (header header-codec body-codec-fn identity)
-              result     (gio/decode pmx-codec pmx-byte false)]
-          (def hmm result)
-          (-> result
-              (update :vertices (juxt count #(into [] (take 2) %)))
-              (update :faces (juxt count identity))
-              (update :materials (juxt count #(into [] (take 2) %)))
-              (update :bones (juxt count #(into [] (comp (take 2)) %)))
-              (update :morphs (juxt count #(into [] (comp (map (juxt :local-name (comp count :offset-data :offsets)))) %))))))))
+  #_(require '[clj-async-profiler.core :as prof])
+  (identity #_prof/profile
+   (time
+    (let [model-path
+          #_"public/assets/models/Alicia_blade.pmx"
+          "public/assets/models/SilverWolf/SilverWolf.pmx"
+          pmx-byte   (file->bytes (io/file (io/resource model-path)))
+          pmx-codec  (header header-codec body-codec-fn identity)
+          result     (gio/decode pmx-codec pmx-byte false)]
+      (def hmm result)
+      (-> result
+          (update :vertices (juxt count #(into [] (take 2) %)))
+          (update :faces (juxt count identity))
+          (update :materials (juxt count #(into [] (take 2) %)))
+          (update :bones (juxt count #(into [] (comp (take 2)) %)))
+          (update :morphs (juxt count #(into [] (comp (map (juxt :local-name (comp count :offset-data :offsets)))) %)))))))
 
-  (-> hmm)
+  (let [verts (float-array (into [] (:faces hmm)))]
+    (float-array verts))
 
+  (alength *1)
   *e
 
   :-)
