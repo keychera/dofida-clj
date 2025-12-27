@@ -126,7 +126,7 @@
      :env-mode          :byte
      :toon              toon-codec
      :memo              text_f
-     :face-count        float_f)))
+     :face-count        int_f)))
 
 (comment
   (time
