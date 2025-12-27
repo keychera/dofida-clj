@@ -300,10 +300,6 @@
            bone-index-size
            morph-index-size
            material-index-size] :as _root-header}]
-  (println [vertex-index-size
-            bone-index-size
-            morph-index-size
-            material-index-size])
   (let [morph-idx_f    (keyword morph-index-size)
         vertex-idx_f   (keyword vertex-index-size)
         bone-idx_f     (keyword bone-index-size)

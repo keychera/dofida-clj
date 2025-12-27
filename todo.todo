@@ -31,21 +31,26 @@ todo:
                 ✘ maybe related https://github.com/assimp/assimp/issues/6361, post issue about .pmx as well? c++ is so daunting... @cancelled(25-12-25 00:19)
                 ☐ the PmxMorph exist but it is not being sent to aiScene
                     ☐ no PmxMorph or Morph keyword here https://github.com/assimp/assimp/blob/ae6f4776045c115efdc0b66f78c8895e2d3b782c/code/AssetLib/MMD/MMDImporter.cpp
-                    ☐ patch assimp? maybe let's do it when we Jank!
-                ☐ the parser have it but where does it go???
-                    ☐ make our own additional parser?
+                    ✘ patch assimp? maybe let's do it when we Jank! @cancelled(25-12-27 15:18) not interested anymore since we are not afraid of binary no more
+                ✘ the parser have it but where does it go??? @cancelled(25-12-27 15:18)
+                    ✘ make our own additional parser? @cancelled(25-12-27 15:18) we parsed the whole thing ourself 💀 bc gloss is just so nice, though with its debuggability and perf warts
                     ✘ try converting to gltf mesh in blender, work our way there (need to render multiple meshes) @cancelled(25-12-23 00:38) assimp fail to load pmx -> gltf exported from blender
                         ✘ https://github.com/KhronosGroup/glTF-Blender-IO/issues/2628 this is relevant? i don't understand... python is so daunting @cancelled(25-12-25 00:24)
                         ✘ can basilisp save us? @cancelled(25-12-25 00:24) probably not, python feels even more loose, we tried basilisp tho, it is cool as heck
                     ✘ just drop the format entirely, hmm, hmm @cancelled(25-12-25 00:26) no, we want pmx!
                     ✘ explore assjson, maybe it still have it @cancelled(25-12-20 10:35) checked in assimpjs online, i dont think so...
                         ✘ need to build new renderer for this @cancelled(25-12-20 10:37)
-                ☐ if that data is in the binary already, read it ourself in clojure?
-                    ☐ clojure/gloss 
-                        ☐ PmxMorph references
-                            ☐ https://github.com/MMD-Blender/blender_mmd_tools/blob/9286b30ac3ab70edddb80e45af3a820a92d86f1b/mmd_tools/core/pmx/importer.py#L41
-                            ☐ https://github.com/benikabocha/saba
-                            ☐ https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446
+                ✔ if that data is in the binary already, read it ourself in clojure? @done(25-12-27 15:18)
+                    ✔ clojure/gloss @done(25-12-27 15:18)
+                        ✘ PmxMorph references @cancelled(25-12-27 15:18)
+                            ✘ https://github.com/MMD-Blender/blender_mmd_tools/blob/9286b30ac3ab70edddb80e45af3a820a92d86f1b/mmd_tools/core/pmx/importer.py#L41 @cancelled(25-12-27 15:18)
+                            ✘ https://github.com/benikabocha/saba @cancelled(25-12-27 15:18)
+                            ✘ https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446 @cancelled(25-12-27 15:18)
+                                ✔ we only need the spec huh @done(25-12-27 15:18)
+                        ☐ pmx -> gltf
+                        ☐ profile parser
+                        ☐ morph shader
+                        ☐ the Anime
 
                     ✘ try assimp ourself? @cancelled(25-12-25 00:25)
                         ☐ jank exploration?
