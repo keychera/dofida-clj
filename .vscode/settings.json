@@ -22,5 +22,6 @@
             ]
         }
     ],
-    "html.format.wrapAttributes": "preserve-aligned"
+    "html.format.wrapAttributes": "preserve-aligned",
+    "calva.refreshNssAfterFn": "engine.refresh/set-refresh",
 }
