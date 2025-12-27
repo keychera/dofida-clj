@@ -12,13 +12,18 @@
 
 ;; _f is a convention, indicating a gloss frame
 (def empty-frame (compile-frame []))
+(def has-flag? (comp not zero? bit-and))
+(defn resolve-mask [flags mask]
+  (update-vals flags (fn [fs] (has-flag? fs mask))))
+
 (def ^:const int_f :int32-le)
 (def ^:const float_f :float32-le)
 (def ^:const vec2_f [float_f float_f])
 (def ^:const vec3_f [float_f float_f float_f])
 (def ^:const vec4_f [float_f float_f float_f float_f])
 ;; if index enum is the same keyword as actual types, weird error happens, dont do that
-(def ^:const index_f (enum :byte {'byte 2r001 'uint16-le 2r010 'uint32-le 2r100}))
+(def ^:const vert-index_f (enum :byte {'ubyte 2r001 'uint16-le 2r010 'uint32-le 2r100}))
+(def ^:const index_f (enum :byte {'byte 2r001 'int16-le 2r010 'uint32-le 2r100}))
 
 (def header-codec
   (ordered-map
@@ -27,7 +32,7 @@
    :header-size         :byte
    :encoding            (enum :byte :utf-16LE :utf-8)
    :additional-uv-count :byte
-   :vertex-index-size   index_f
+   :vertex-index-size   vert-index_f
    :texture-index-size  index_f
    :material-index-size index_f
    :bone-index-size     index_f
@@ -113,44 +118,54 @@
                                   :inbuilt :byte)]))
           identity))
 
+(def drawing-mode-flag
+  {:no-cull        0x01
+   :ground-shadow  0x02
+   :draw-shadow    0x04
+   :receive-shadow 0x08
+   :has-edge       0x10})
+
 (defn create-material-frame [text_f texture-idx_f]
   (let [toon-codec (create-toon-codec texture-idx_f)]
-    (ordered-map
-     :local-name        text_f
-     :global-name       text_f
-     :diffuse-color     vec4_f
-     :specular-color    vec3_f
-     :specularity       float_f
-     :ambient-color     vec3_f
-     :drawing-mode      :byte
-     :edge-color        vec4_f
-     :edge-size         float_f
-     :texture-index     texture-idx_f
-     :env-texture-index texture-idx_f
-     :env-mode          :byte
-     :toon              toon-codec
-     :memo              text_f
-     :face-count        int_f)))
+    (compile-frame
+     (ordered-map
+      :local-name        text_f
+      :global-name       text_f
+      :diffuse-color     vec4_f
+      :specular-color    vec3_f
+      :specularity       float_f
+      :ambient-color     vec3_f
+      :drawing-mode      :byte
+      :edge-color        vec4_f
+      :edge-size         float_f
+      :texture-index     texture-idx_f
+      :env-texture-index texture-idx_f
+      :env-mode          :byte
+      :toon              toon-codec
+      :memo              text_f
+      :face-count        int_f)
+     identity
+     (fn [res] (update res :drawing-mode (fn [mask] (resolve-mask drawing-mode-flag mask)))))))
 
 ;; bones
 
 ;; this one is better regarding the bone flags part
 ;; https://gist.github.com/hakanai/d442724ac3728c1b50e50f7d1df65e1b#file-pmx21-md
-(def ^:const connection             0x0001)
-(def ^:const rotatable?             0x0002)
-(def ^:const translatable?          0x0004)
-(def ^:const visible?               0x0008)
-(def ^:const enabled?               0x0010)
-(def ^:const IK                     0x0020)
-(def ^:const parent-local?          0x0040) ;; https://gist.github.com/felixjones/f8a06bd48f9da9a4539f?permalink_comment_id=4559705#gistcomment-4559705
-(def ^:const inherit-scale          0x0080) ;; our interpretation
-(def ^:const inherit-rotation       0x0100)
-(def ^:const inherit-translation    0x0200)
-(def ^:const fixed-axis             0x0400)
-(def ^:const local-axis             0x0800)
-(def ^:const after-physics-deform   0x1000)
-(def ^:const external-parent-deform 0x2000)
-(def has-flag? (comp not zero? bit-and))
+(def bone-flags
+  {:connection           0x0001
+   :rotatable?           0x0002
+   :translatable?        0x0004
+   :visible?             0x0008
+   :enabled?             0x0010
+   :IK                   0x0020
+   :parent-local?        0x0040 ;; https://gist.github.com/felixjones/f8a06bd48f9da9a4539f?permalink_comment_id=4559705#gistcomment-4559705
+   :inherit-scale        0x0080 ;; our interpretation
+   :inherit-rotation     0x0100
+   :inherit-translation  0x0200
+   :fixed-axis           0x0400
+   :local-axis           0x0800
+   :after-physics-deform 0x1000})
+
 
 (defn create-angle-limits-frame []
   (ordered-map :lower vec3_f :upper vec3_f))
@@ -168,57 +183,45 @@
 (defn create-bone-codec [bone-idx_f]
   (header
    (compile-frame :int16-le)
-   (fn bone-fn [bone-flag]
-     (let [f bone-flag]
+   (fn bone-fn [bone-mask]
+     (let [flags (resolve-mask bone-flags bone-mask)]
        ;; debugging purposes, I wonder if gloss' debuggability can be improved
        ;; seems like this is the way to go! https://github.com/H31MDALLR/redis-clojure/blob/0de431c284d55253f29723b86e128813523b2a34/src/redis/rdb/schema.clj#L533C6-L533C53
-       #_(println bone-flag
-                  [:conn          (has-flag? f connection)
-                   :rotatable?    (has-flag? f rotatable?)
-                   :translatable? (has-flag? f translatable?)
-                   :visible?      (has-flag? f visible?)
-                   :enabled?      (has-flag? f enabled?)
-                   :inherit       (or (has-flag? f inherit-rotation)
-                                      (has-flag? f inherit-translation))
-                   :fixed         (has-flag? f fixed-axis)
-                   :local-axis    (has-flag? f local-axis)
-                   :after-physics (has-flag? f after-physics-deform)
-                   :parent-deform (has-flag? f external-parent-deform)
-                   :IK            (has-flag? f IK)])
+       #_(println flags)
        (apply ordered-map
-              (cond-> [:rotatable?    (has-flag? f rotatable?)
-                       :translatable? (has-flag? f translatable?)
-                       :visible?      (has-flag? f visible?)
-                       :enabled?      (has-flag? f enabled?)]
+              (cond-> [:rotatable?    (:rotatable? flags)
+                       :translatable? (:translatable? flags)
+                       :visible?      (:visible? flags)
+                       :enabled?      (:enabled? flags)]
                 ;; the order is clearer here https://github.com/hirakuni45/glfw3_app/blob/master/glfw3_app/docs/PMX_spec.txt
                 ;; 接続先:0 の場合
-                (has-flag? f connection)
+                (:connection flags)
                 (conj :connection bone-idx_f)
 
                 ;; 接続先:1 の場合
-                (not (has-flag? f connection))
+                (not (:connection flags))
                 (conj :position-offset vec3_f)
 
                 ;; 回転付与:1 または 移動付与:1 の場合
-                (or (has-flag? f inherit-rotation)
-                    (has-flag? f inherit-translation))
+                (or (:inherit-rotation flags)
+                    (:inherit-translation flags))
                 (conj :parent-idx       bone-idx_f
                       :parent-influence float_f)
 
                 ;; 軸固定:1 の場合
-                (has-flag? f fixed-axis)
+                (:fixed-axis flags)
                 (conj :axis-vector vec3_f)
 
                 ;; ローカル軸:1 の場合
-                (has-flag? f local-axis)
+                (:local-axis flags)
                 (conj :x-axis-vector vec3_f
                       :z-axis-vector vec3_f)
 
                 ;; 外部親変形:1 の場合
-                (has-flag? f external-parent-deform)
+                (:external-parent-deform flags)
                 (conj :key-value int_f)
 
-                (has-flag? f IK)
+                (:IK flags)
                 (conj :IK-bone-idx bone-idx_f
                       :iterations  int_f
                       :limit-angle float_f
@@ -319,7 +322,7 @@
 (comment
   (do (require '[engine.utils :refer [file->bytes]]
                #_'[clj-async-profiler.core :as prof])
-      (identity #_prof/profile 
+      (identity #_prof/profile
        (time
         (let [model-path
               #_"public/assets/models/Alicia_blade.pmx"
@@ -334,6 +337,8 @@
               (update :materials (juxt count #(into [] (take 2) %)))
               (update :bones (juxt count #(into [] (comp (take 2)) %)))
               (update :morphs (juxt count #(into [] (comp (map (juxt :local-name (comp count :offset-data :offsets)))) %))))))))
+
+  (-> hmm)
 
   *e
 
