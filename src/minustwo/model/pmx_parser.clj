@@ -175,6 +175,7 @@
    (fn [bone-flag]
      (let [f bone-flag]
        ;; debugging purposes, I wonder if gloss' debuggability can be improved
+       ;; seems like this is the way to go! https://github.com/H31MDALLR/redis-clojure/blob/0de431c284d55253f29723b86e128813523b2a34/src/redis/rdb/schema.clj#L533C6-L533C53
        #_(println bone-flag
                 [:conn          (has-flag? f connection)
                  :rotatable?    (has-flag? f rotatable?)
