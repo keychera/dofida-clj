@@ -8,12 +8,7 @@
 
 ;; PMX spec
 ;; https://gist.github.com/felixjones/f8a06bd48f9da9a4539f/b3944390bd935f48ddf72dd2fc058ffe87c10708
-
-(defn file->bytes [file]
-  (with-open [xin (io/input-stream file)
-              xout (java.io.ByteArrayOutputStream.)]
-    (io/copy xin xout)
-    (.toByteArray xout)))
+;; https://github.com/hirakuni45/glfw3_app/blob/master/glfw3_app/docs/PMX_spec.txt
 
 ;; _f is a convention, indicating a gloss frame
 (def empty-frame (compile-frame []))
@@ -39,7 +34,7 @@
    :morph-index-size    index_f
    :rigid-index-size    index_f))
 
-(declare create-vertex-frame create-material-frame create-bone-frame)
+(declare create-vertex-frame create-material-frame create-bone-frame create-morph-frame)
 
 (defn body-codec-fn
   [{:keys [magic
@@ -63,7 +58,9 @@
      :faces          (repeated vertex-idx_f :prefix int_f)
      :textures       (repeated text_f :prefix int_f)
      :materials      (repeated (create-material-frame text_f texture-idx_f) :prefix int_f)
-     :bones          (repeated (create-bone-frame text_f bone-idx_f) :prefix int_f))))
+     :bones          (repeated (create-bone-frame text_f bone-idx_f) :prefix int_f)
+     :morphN         int_f
+     :morph          (create-morph-frame text_f))))
 
 ;; vertices
 
@@ -177,18 +174,18 @@
        ;; debugging purposes, I wonder if gloss' debuggability can be improved
        ;; seems like this is the way to go! https://github.com/H31MDALLR/redis-clojure/blob/0de431c284d55253f29723b86e128813523b2a34/src/redis/rdb/schema.clj#L533C6-L533C53
        #_(println bone-flag
-                [:conn          (has-flag? f connection)
-                 :rotatable?    (has-flag? f rotatable?)
-                 :translatable? (has-flag? f translatable?)
-                 :visible?      (has-flag? f visible?)
-                 :enabled?      (has-flag? f enabled?)
-                 :inherit       (or (has-flag? f inherit-rotation)
-                                    (has-flag? f inherit-translation))
-                 :fixed         (has-flag? f fixed-axis)
-                 :local-axis    (has-flag? f local-axis)
-                 :after-physics (has-flag? f after-physics-deform)
-                 :parent-deform (has-flag? f external-parent-deform)
-                 :IK            (has-flag? f IK)])
+                  [:conn          (has-flag? f connection)
+                   :rotatable?    (has-flag? f rotatable?)
+                   :translatable? (has-flag? f translatable?)
+                   :visible?      (has-flag? f visible?)
+                   :enabled?      (has-flag? f enabled?)
+                   :inherit       (or (has-flag? f inherit-rotation)
+                                      (has-flag? f inherit-translation))
+                   :fixed         (has-flag? f fixed-axis)
+                   :local-axis    (has-flag? f local-axis)
+                   :after-physics (has-flag? f after-physics-deform)
+                   :parent-deform (has-flag? f external-parent-deform)
+                   :IK            (has-flag? f IK)])
        (apply ordered-map
               (cond-> [:rotatable?    (has-flag? f rotatable?)
                        :translatable? (has-flag? f translatable?)
@@ -239,19 +236,30 @@
      :transform-level int_f
      :bone-data       bone-codec)))
 
+;; morph
+(defn create-morph-frame [text_f]
+  (let [morph-offset-codec []]
+    (ordered-map
+     :local-name  text_f
+     :global-name text_f
+     :panel-type  :byte
+     :morph-type  :byte
+     :offsets     morph-offset-codec)))
+
 (comment
-  (time
-   (let [model-path
-         #_"public/assets/models/Alicia_blade.pmx"
-         "public/assets/models/SilverWolf/SilverWolf.pmx"
-         pmx-byte   (file->bytes (io/file (io/resource model-path)))
-         pmx-codec  (header header-codec body-codec-fn identity)
-         result     (gio/decode pmx-codec pmx-byte false)]
-     (-> result
-         (update :vertices (juxt count #(into [] (take 2) %)))
-         (update :faces (juxt count identity))
-         (update :materials (juxt count #(into [] (take 2) %)))
-         (update :bones (juxt count #(into [] (comp (take 10)) %))))))
+  (do (require '[engine.utils :refer [file->bytes]])
+      (time
+       (let [model-path
+             #_"public/assets/models/Alicia_blade.pmx"
+             "public/assets/models/SilverWolf/SilverWolf.pmx"
+             pmx-byte   (file->bytes (io/file (io/resource model-path)))
+             pmx-codec  (header header-codec body-codec-fn identity)
+             result     (gio/decode pmx-codec pmx-byte false)]
+         (-> result
+             (update :vertices (juxt count #(into [] (take 2) %)))
+             (update :faces (juxt count identity))
+             (update :materials (juxt count #(into [] (take 2) %)))
+             (update :bones (juxt count #(into [] (comp (take 10)) %)))))))
 
   *e
 
@@ -259,4 +267,3 @@
 
 ;; other refs;
 ;; https://gist.github.com/ulrikdamm/8274171
-;; https://github.com/hirakuni45/glfw3_app/blob/master/glfw3_app/docs/PMX_spec.txt
