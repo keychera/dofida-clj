@@ -66,7 +66,7 @@
 (def weight-type (enum :byte :BDEF1 :BDEF2 :BDEF4 :SDEF #_:QDEF))
 (defn create-weight-codec [bone-idx_f]
   (header weight-type
-          (fn [weight-type]
+          (fn weight-type-fn [weight-type]
             (apply ordered-map
                    (concat
                     [:weight-type weight-type]
@@ -105,7 +105,7 @@
 
 (defn create-toon-codec [texture-idx_f]
   (header (enum :byte :texture :inbuilt)
-          (fn [toon-flag]
+          (fn toon-fn [toon-flag]
             (apply ordered-map
                    [:toon-flag  toon-flag
                     :toon-index (case toon-flag
@@ -168,7 +168,7 @@
 (defn create-bone-codec [bone-idx_f]
   (header
    (compile-frame :int16-le)
-   (fn [bone-flag]
+   (fn bone-fn [bone-flag]
      (let [f bone-flag]
        ;; debugging purposes, I wonder if gloss' debuggability can be improved
        ;; seems like this is the way to go! https://github.com/H31MDALLR/redis-clojure/blob/0de431c284d55253f29723b86e128813523b2a34/src/redis/rdb/schema.clj#L533C6-L533C53
@@ -306,7 +306,7 @@
         material-idx_f (keyword material-index-size)
         morph-offset-codec
         (header morph-type-frame
-                (fn [{:keys [morph-type] :as types}]
+                (fn morph-type-fn [{:keys [morph-type] :as types}]
                   (ordered-map
                    :types       types
                    :offset-data (repeated (create-offset-codec morph-type morph-idx_f vertex-idx_f bone-idx_f material-idx_f) :prefix int_f)))
@@ -317,21 +317,23 @@
      :offsets     morph-offset-codec)))
 
 (comment
-  (do (require '[engine.utils :refer [file->bytes]])
-      (time
-       (let [model-path
-             #_"public/assets/models/Alicia_blade.pmx"
-             "public/assets/models/SilverWolf/SilverWolf.pmx"
-             pmx-byte   (file->bytes (io/file (io/resource model-path)))
-             pmx-codec  (header header-codec body-codec-fn identity)
-             result     (gio/decode pmx-codec pmx-byte false)]
-         (def hmm result)
-         (-> result
-             (update :vertices (juxt count #(into [] (take 2) %)))
-             (update :faces (juxt count identity))
-             (update :materials (juxt count #(into [] (take 2) %)))
-             (update :bones (juxt count #(into [] (comp (take 2)) %)))
-             (update :morphs (juxt count #(into [] (comp (map (juxt :local-name (comp count :offset-data :offsets)))) %)))))))
+  (do (require '[engine.utils :refer [file->bytes]]
+               #_'[clj-async-profiler.core :as prof])
+      (identity #_prof/profile 
+       (time
+        (let [model-path
+              #_"public/assets/models/Alicia_blade.pmx"
+              "public/assets/models/SilverWolf/SilverWolf.pmx"
+              pmx-byte   (file->bytes (io/file (io/resource model-path)))
+              pmx-codec  (header header-codec body-codec-fn identity)
+              result     (gio/decode pmx-codec pmx-byte false)]
+          (def hmm result)
+          (-> result
+              (update :vertices (juxt count #(into [] (take 2) %)))
+              (update :faces (juxt count identity))
+              (update :materials (juxt count #(into [] (take 2) %)))
+              (update :bones (juxt count #(into [] (comp (take 2)) %)))
+              (update :morphs (juxt count #(into [] (comp (map (juxt :local-name (comp count :offset-data :offsets)))) %))))))))
 
   *e
 

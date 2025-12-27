@@ -48,7 +48,7 @@ todo:
                             ✘ https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446 @cancelled(25-12-27 15:18)
                                 ✔ we only need the spec huh @done(25-12-27 15:18)
                         ☐ pmx -> gltf
-                        ☐ profile parser
+                        ✘ profile parser @cancelled(25-12-27 19:10) did it, not sure if we can do anything about it, mostly gloss bottleneck
                         ☐ morph shader
                         ☐ the Anime
 
