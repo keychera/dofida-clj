@@ -19,7 +19,6 @@
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
-   [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
@@ -218,7 +217,8 @@
   (let [room-data (utils/query-one world ::room/data)
         ctx       (:ctx room-data)
         project   (:project room-data)
-        view      (:player-view room-data)]
+        view      (:player-view room-data)
+        vao-db*   (:vao-db* room-data)]
     (when-let [gltf-models (seq (o/query-all world ::gltf-models))]
       (doseq [gltf-model gltf-models]
         (let [{:keys [draw-fn model program-info joints pose-tree inv-bind-mats skinning-ubo]} gltf-model
@@ -239,7 +239,7 @@
             (let [indices        (:indices prim)
                   count          (:count indices)
                   component-type (:componentType indices)
-                  vao            (get @vao/db* (:vao-name prim))
+                  vao            (get @vao-db* (:vao-name prim))
                   tex            (get @texture/db* (:tex-name prim))]
               (when vao
                 (gl ctx bindVertexArray vao)

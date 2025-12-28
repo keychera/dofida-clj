@@ -14,7 +14,6 @@
                                   GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
-   [minustwo.gl.vao :as vao]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
@@ -120,11 +119,12 @@
   (let [room-data (utils/query-one world ::room/data)
         ctx       (:ctx room-data)
         project   (:project room-data)
-        view      (:player-view room-data)]
+        view      (:player-view room-data)
+        vao-db*   (:vao-db* room-data)]
     (doseq [{:keys [esse-id data] :as render-data} (o/query-all world ::render-data)]
       (let [program-info (:program-info render-data)
             program      (:program program-info :program)
-            vao          (get @vao/db* esse-id)
+            vao          (get @vao-db* esse-id)
             materials    (:materials data)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}

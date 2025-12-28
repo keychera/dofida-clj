@@ -4,6 +4,7 @@
    [engine.macros :refer [insert!]]
    [engine.world :as world]
    [minustwo.gl.shader :as shader]
+   [minustwo.gl.vao :as vao]
    [minustwo.systems.window :as window]
    [odoyle.rules :as o]))
 
@@ -19,6 +20,7 @@
    {::data
     [:what
      [::world/global ::context ctx]
+     [::world/global ::vao/db* vao-db*]
      [::world/global ::window/dimension window]
      [::world/global ::shader/all all-shaders]]
 

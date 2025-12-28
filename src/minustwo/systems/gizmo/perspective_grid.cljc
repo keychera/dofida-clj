@@ -13,7 +13,6 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
-   [minustwo.gl.vao :as vao]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.math.core :as m]))
@@ -118,12 +117,13 @@ void main() {
         ctx       (:ctx room-data)
         project   (:project room-data)
         view      (:player-view room-data)
-        view-pos  (:player-pos room-data)]
+        view-pos  (:player-pos room-data)
+        vao-db*   (:vao-db* room-data)]
     (when-let [render-data (utils/query-one world ::grid-model)]
       (let [inv-proj   (m/invert project)
             inv-view   (m/invert view)
             grid-prog  (:grid-prog render-data)
-            grid-vao   (get @vao/db* ::grid)]
+            grid-vao   (get @vao-db* ::grid)]
         (doto ctx
           (gl useProgram (:program grid-prog))
           (gl bindVertexArray grid-vao)

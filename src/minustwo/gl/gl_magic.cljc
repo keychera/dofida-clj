@@ -6,7 +6,6 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! vars->map]]
    [engine.world :as world]
-   [minustwo.gl.vao :as vao]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
    [minustwo.gl.gl-system :as gl-system]
@@ -51,7 +50,7 @@
 
 (defn cast-spell [world spell-fact]
   (let [{:keys [esse-id spell]}  spell-fact
-        {:keys [ctx all-shaders]} (utils/query-one world ::gl-system/data)
+        {:keys [ctx all-shaders vao-db*]} (utils/query-one world ::gl-system/data)
         all-attr-locs             (update-vals all-shaders :attr-locs)]
     (loop [[chant & remaining] spell summons [] state {}]
       (if chant
@@ -59,7 +58,7 @@
           [{:bind-vao _}] ;; entry: vao binding
           (let [vao (gl ctx #?(:clj genVertexArrays :cljs createVertexArray))]
             (gl ctx bindVertexArray vao)
-            (swap! vao/db* assoc (:bind-vao chant) vao)
+            (swap! vao-db* assoc (:bind-vao chant) vao)
             (recur remaining summons state))
 
           [{:buffer-data _ :buffer-type _}] ;; entry: buffer binding

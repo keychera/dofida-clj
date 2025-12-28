@@ -16,7 +16,8 @@
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]
-   [minustwo.model.pmx-model :as pmx-model]))
+   [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.gl.vao :as vao]))
 
 (def all
   [time/system
@@ -31,6 +32,7 @@
 
    gl-system/system
    gl-magic/system
+   vao/system
    anime/system
 
    room/system
