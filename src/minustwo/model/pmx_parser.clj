@@ -69,32 +69,40 @@
 ;; vertices
 
 (def weight-type (enum :byte :BDEF1 :BDEF2 :BDEF4 :SDEF #_:QDEF))
+
+(defn weight-type-fn [bone-idx_f weight-type]
+  (apply ordered-map
+         (concat
+          [:weight-type weight-type]
+          (case weight-type
+            :BDEF1 [:bone-index1 bone-idx_f]
+            :BDEF2 [:bone-index1 bone-idx_f
+                    :bone-index2 bone-idx_f
+                    :weight1 float_f]
+            :BDEF4 [:bone-index1 bone-idx_f
+                    :bone-index2 bone-idx_f
+                    :bone-index3 bone-idx_f
+                    :bone-index4 bone-idx_f
+                    :weight1 float_f
+                    :weight2 float_f
+                    :weight3 float_f
+                    :weight4 float_f]
+            :SDEF  [:bone-index1 bone-idx_f
+                    :bone-index2 bone-idx_f
+                    :weight1 float_f
+                    :C       vec3_f
+                    :R0      vec3_f
+                    :R1      vec3_f]))))
+
+(def weight-type-memo (memoize weight-type-fn))
+
+(defn weight-body-fn [bone-idx_f]
+  (fn [weight-type] (weight-type-memo bone-idx_f weight-type)))
+
+(def weight-body-memo (memoize weight-body-fn))
+
 (defn create-weight-codec [bone-idx_f]
-  (header weight-type
-          (fn weight-type-fn [weight-type]
-            (apply ordered-map
-                   (concat
-                    [:weight-type weight-type]
-                    (case weight-type
-                      :BDEF1 [:bone-index1 bone-idx_f]
-                      :BDEF2 [:bone-index1 bone-idx_f
-                              :bone-index2 bone-idx_f
-                              :weight1 float_f]
-                      :BDEF4 [:bone-index1 bone-idx_f
-                              :bone-index2 bone-idx_f
-                              :bone-index3 bone-idx_f
-                              :bone-index4 bone-idx_f
-                              :weight1 float_f
-                              :weight2 float_f
-                              :weight3 float_f
-                              :weight4 float_f]
-                      :SDEF  [:bone-index1 bone-idx_f
-                              :bone-index2 bone-idx_f
-                              :weight1 float_f
-                              :C       vec3_f
-                              :R0      vec3_f
-                              :R1      vec3_f]))))
-          identity))
+  (header weight-type (weight-body-memo bone-idx_f) identity))
 
 (defn create-vertex-frame [additional-uv-count bone-idx_f]
   (let [weight-codec  (create-weight-codec bone-idx_f)]
@@ -108,15 +116,22 @@
 
 ;; materials
 
+(defn toon-fn [texture-idx_f toon-flag]
+  (apply ordered-map
+         [:toon-flag  toon-flag
+          :toon-index (case toon-flag
+                        :texture texture-idx_f
+                        :inbuilt :byte)]))
+
+(def toon-memo (memoize toon-fn))
+
+(defn toon-body-fn [texture-idx_f]
+  (fn [toon-flag] (toon-memo texture-idx_f toon-flag)))
+
+(def toon-body-memo (memoize toon-body-fn))
+
 (defn create-toon-codec [texture-idx_f]
-  (header (enum :byte :texture :inbuilt)
-          (fn toon-fn [toon-flag]
-            (apply ordered-map
-                   [:toon-flag  toon-flag
-                    :toon-index (case toon-flag
-                                  :texture texture-idx_f
-                                  :inbuilt :byte)]))
-          identity))
+  (header (enum :byte :texture :inbuilt) (toon-body-memo texture-idx_f) identity))
 
 (def drawing-mode-flag
   {:no-cull        0x01
@@ -170,63 +185,72 @@
 (defn create-angle-limits-frame []
   (ordered-map :lower vec3_f :upper vec3_f))
 
+(defn limit-angle-fn [limit-angle?]
+  (if limit-angle?
+    (create-angle-limits-frame)
+    empty-frame))
+
+(def limit-angle-memo (memoize limit-angle-fn))
+
 (defn create-IK-link-frame [bone-idx_f]
   (ordered-map
    :IK-bone-idx  bone-idx_f
-   :angle-limits (header (enum :byte false true)
-                         (fn [limit-angle?]
-                           (if limit-angle?
-                             (create-angle-limits-frame)
-                             empty-frame))
-                         identity)))
+   :angle-limits (header (enum :byte false true) limit-angle-memo identity)))
+
+(defn bone-mask-fn [bone-idx_f bone-mask]
+  (let [flags (resolve-mask bone-flags bone-mask)]
+    ;; debugging purposes, I wonder if gloss' debuggability can be improved
+    ;; seems like this is the way to go! https://github.com/H31MDALLR/redis-clojure/blob/0de431c284d55253f29723b86e128813523b2a34/src/redis/rdb/schema.clj#L533C6-L533C53
+    #_(println flags)
+    (apply ordered-map
+           (cond-> [:rotatable?    (:rotatable? flags)
+                    :translatable? (:translatable? flags)
+                    :visible?      (:visible? flags)
+                    :enabled?      (:enabled? flags)]
+             ;; the order is clearer here https://github.com/hirakuni45/glfw3_app/blob/master/glfw3_app/docs/PMX_spec.txt
+             ;; 接続先:0 の場合
+             (:connection flags)
+             (conj :connection bone-idx_f)
+
+             ;; 接続先:1 の場合
+             (not (:connection flags))
+             (conj :position-offset vec3_f)
+
+             ;; 回転付与:1 または 移動付与:1 の場合
+             (or (:inherit-rotation flags)
+                 (:inherit-translation flags))
+             (conj :parent-idx       bone-idx_f
+                   :parent-influence float_f)
+
+             ;; 軸固定:1 の場合
+             (:fixed-axis flags)
+             (conj :axis-vector vec3_f)
+
+             ;; ローカル軸:1 の場合
+             (:local-axis flags)
+             (conj :x-axis-vector vec3_f
+                   :z-axis-vector vec3_f)
+
+             ;; 外部親変形:1 の場合
+             (:external-parent-deform flags)
+             (conj :key-value int_f)
+
+             (:IK flags)
+             (conj :IK-bone-idx bone-idx_f
+                   :iterations  int_f
+                   :limit-angle float_f
+                   :links       (repeated (create-IK-link-frame bone-idx_f) :prefix int_f))))))
+
+(def bone-mask-memo (memoize bone-mask-fn))
+
+(defn bone-body-fn [bone-idx_f]
+  (fn bone-mask-fn [bone-mask]
+    (bone-mask-memo bone-idx_f bone-mask)))
+
+(def bone-body-memo (memoize bone-body-fn))
 
 (defn create-bone-codec [bone-idx_f]
-  (header
-   (compile-frame :int16-le)
-   (fn bone-fn [bone-mask]
-     (let [flags (resolve-mask bone-flags bone-mask)]
-       ;; debugging purposes, I wonder if gloss' debuggability can be improved
-       ;; seems like this is the way to go! https://github.com/H31MDALLR/redis-clojure/blob/0de431c284d55253f29723b86e128813523b2a34/src/redis/rdb/schema.clj#L533C6-L533C53
-       #_(println flags)
-       (apply ordered-map
-              (cond-> [:rotatable?    (:rotatable? flags)
-                       :translatable? (:translatable? flags)
-                       :visible?      (:visible? flags)
-                       :enabled?      (:enabled? flags)]
-                ;; the order is clearer here https://github.com/hirakuni45/glfw3_app/blob/master/glfw3_app/docs/PMX_spec.txt
-                ;; 接続先:0 の場合
-                (:connection flags)
-                (conj :connection bone-idx_f)
-
-                ;; 接続先:1 の場合
-                (not (:connection flags))
-                (conj :position-offset vec3_f)
-
-                ;; 回転付与:1 または 移動付与:1 の場合
-                (or (:inherit-rotation flags)
-                    (:inherit-translation flags))
-                (conj :parent-idx       bone-idx_f
-                      :parent-influence float_f)
-
-                ;; 軸固定:1 の場合
-                (:fixed-axis flags)
-                (conj :axis-vector vec3_f)
-
-                ;; ローカル軸:1 の場合
-                (:local-axis flags)
-                (conj :x-axis-vector vec3_f
-                      :z-axis-vector vec3_f)
-
-                ;; 外部親変形:1 の場合
-                (:external-parent-deform flags)
-                (conj :key-value int_f)
-
-                (:IK flags)
-                (conj :IK-bone-idx bone-idx_f
-                      :iterations  int_f
-                      :limit-angle float_f
-                      :links       (repeated (create-IK-link-frame bone-idx_f) :prefix int_f))))))
-   identity))
+  (header (compile-frame :int16-le) (bone-body-memo bone-idx_f) identity))
 
 (defn create-bone-frame [text_f bone-idx_f]
   (let [bone-codec (create-bone-codec bone-idx_f)]
@@ -297,6 +321,18 @@
     :uv-ext4  (uv-offset vertex-idx_f)
     :material (material-offset material-idx_f)))
 
+(defn morph-type-fn [{:keys [morph-type] :as types} morph-idx_f vertex-idx_f bone-idx_f material-idx_f]
+  (ordered-map
+   :types       types
+   :offset-data (repeated (create-offset-codec morph-type morph-idx_f vertex-idx_f bone-idx_f material-idx_f) :prefix int_f)))
+
+(def morph-type-memo (memoize morph-type-fn))
+
+(defn morph-body-fn [morph-idx_f vertex-idx_f bone-idx_f material-idx_f]
+  (fn morph-type-fn [types] (morph-type-memo types morph-idx_f vertex-idx_f bone-idx_f material-idx_f)))
+
+(def morph-body-memo (memoize morph-body-fn))
+
 (defn create-morph-frame
   [text_f
    {:keys [vertex-index-size
@@ -308,12 +344,7 @@
         bone-idx_f     (keyword bone-index-size)
         material-idx_f (keyword material-index-size)
         morph-offset-codec
-        (header morph-type-frame
-                (fn morph-type-fn [{:keys [morph-type] :as types}]
-                  (ordered-map
-                   :types       types
-                   :offset-data (repeated (create-offset-codec morph-type morph-idx_f vertex-idx_f bone-idx_f material-idx_f) :prefix int_f)))
-                identity)]
+        (header morph-type-frame (morph-body-memo morph-idx_f vertex-idx_f bone-idx_f material-idx_f) identity)]
     (ordered-map
      :local-name  text_f
      :global-name text_f
