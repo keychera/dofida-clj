@@ -74,9 +74,13 @@
         textures      (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
         materials     (into [] accumulate-face-count (:materials pmx-data))
         bones         (into []
-                            (map (fn [{:keys [position] :as bone}]
-                                   (assoc bone :inv-bind-mat
-                                          (-> position v/vec3 m-ext/vec3->trans-mat m/invert))))
+                            (map-indexed
+                             (fn [idx {:keys [position] :as bone}]
+                               (let [global-mat (m-ext/vec3->trans-mat (or (some-> position v/vec3) (v/vec3)))]
+                                 (assoc bone
+                                        :idx          idx
+                                        :global-mat   global-mat
+                                        :inv-bind-mat (m/invert global-mat)))))
                             (:bones pmx-data))]
     (vars->map pmx-data
                POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
@@ -100,5 +104,6 @@
 
   (viscous/inspect (-> @debug-data*
                        :minustwo.stage.pmx-renderer/silverwolf-pmx
-                       :pmx-data))
+                       :pmx-data
+                       :bones))
   :-)
