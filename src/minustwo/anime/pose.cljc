@@ -27,7 +27,10 @@
   {::timeline timeline
    ::max-progress max-inp})
 
-(def keyframes-db* (atom {}))
+(s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
+
+(defn init-fn [world _game]
+  (o/insert world ::world/global ::db* (atom {})))
 
 (defn interpolate-pose [pose-a pose-b t]
   (into []
@@ -52,6 +55,7 @@
    {::pose-keyframes
     [:what
      [esse-id ::timeline timeline]
+     [::world/global ::db* keyframes-db*]
      :then
      (let [kfs (keyframe/interpolate timeline)]
        (when (seq kfs)
@@ -62,6 +66,7 @@
      [::time/now ::time/slice 0]
      [esse-id ::pose-xform pose-xform]
      [esse-id ::gltf/transform-tree transform-tree]
+     [::world/global ::db* keyframes-db*]
      :then
      (let [pose-tree (into [] pose-xform transform-tree)]
        ;; repl heuristic: striking a pose will stop pose-interpolation
@@ -76,6 +81,7 @@
      [::time/now ::time/slice 1]
      [esse-id ::gltf/transform-tree transform-tree]
      [esse-id ::max-progress max-progress]
+     [::world/global ::db* keyframes-db*]
      :then
      (let [kfs      (get-in @keyframes-db* [esse-id ::kfs])
            progress (mod (/ tt 640) max-progress)
@@ -92,4 +98,4 @@
          (insert! esse-id ::pose-tree pose)))]}))
 
 (def system
-  {::world/rules rules})
+  {::world/init-fn init-fn ::world/rules rules})

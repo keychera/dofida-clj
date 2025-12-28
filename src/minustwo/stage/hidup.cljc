@@ -185,8 +185,9 @@
     [:what
      [::time/now ::time/slice 2]
      [esse-id ::pose/pose-tree pose-tree]
+     [::world/global ::anime/db* anime-db*]
      :then
-     (let [anime     (get (::anime/interpolated @anime/db*) esse-id)
+     (let [anime     (get (::anime/interpolated @anime-db*) esse-id)
            pose-tree (if anime
                        (into []
                              (map (fn [{:keys [idx]

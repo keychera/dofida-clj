@@ -109,8 +109,12 @@
                channels)))
        concat animes))))
 
-(defonce db* (atom {}))
 (s/def ::there-are-animes boolean?)
+
+(s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
+
+(defn init-fn [world _game]
+  (o/insert world ::world/global ::db* (atom {})))
 
 (def rules
   (o/ruleset
@@ -118,12 +122,13 @@
     [:what
      [esse-id ::gltf/bins bins]
      [esse-id ::gltf/data gltf-data]
+     [::world/global ::db* anime-db*]
      :then
      (println "checking anime for" esse-id)
      (let [animes (gltf->animes gltf-data (first bins))]
        (when (seq animes)
          (println "anime for" esse-id)
-         (swap! db* update ::animes concat (into [] (map #(assoc % :esse-id esse-id)) animes))
+         (swap! anime-db* update ::animes concat (into [] (map #(assoc % :esse-id esse-id)) animes))
          (insert! ::world/global ::there-are-animes true)))]
 
     ::animation-update
@@ -131,8 +136,9 @@
      [::time/now ::time/total tt {:then false}]
      [::time/now ::time/step _]
      [::world/global ::there-are-animes true {:then false}]
+     [::world/global ::db* anime-db*]
      :then
-     (let [db             @db*
+     (let [db             @anime-db*
            progress       (/ tt 500)
            running-animes (eduction
                            ;; still hardcoded anime-name filtering, fox: Walk, Survey, Run
@@ -149,17 +155,17 @@
                                                    (m/mix out next-out t))]
                                     [esse-id target-node target-path mixed])))
                            (::animes db))]
-       (swap! db* assoc ::interpolated
+       (swap! anime-db* assoc ::interpolated
               (reduce
                (fn [m [esse-id target-node target-path v]] (assoc-in m [esse-id target-node target-path] v))
                {} running-animes)))]}))
 
 (def system
-  {::world/after-load-fn (fn [world _game] (reset! db* {}) world)
+  {::world/init-fn init-fn
+   ::world/after-load-fn (fn [world _game] (o/insert world ::world/global ::db* (atom {})))
    ::world/rules rules})
 
 (comment
-  (distinct (sp/select [::animes sp/ALL :max-input] @db*))
   ["Survey" "Walk" "Run" "anim"]
 
   (-> @gltf/debug-data* :minustwo.stage.hidup/simpleskin :gltf-data)

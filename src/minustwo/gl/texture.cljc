@@ -101,7 +101,6 @@
       (let [tex-name (:tex-name to-load)
             uri      (:uri to-load)
             tex-unit (:tex-unit to-load)]
-        (println "[texture] loading texture" tex-name)
         (swap! world* #(-> %
                            (o/retract tex-name ::uri-to-load)
                            (o/insert tex-name ::loaded? :loading)))
