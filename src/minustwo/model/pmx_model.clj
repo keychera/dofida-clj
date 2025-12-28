@@ -20,8 +20,10 @@
 (defn load-pmx-model [model-path]
   (let [pmx-data (time (parse-pmx model-path))
         POSITION (float-array (into [] (mapcat :position) (:vertices pmx-data)))
+        NORMAL   (float-array (into [] (mapcat :normal) (:vertices pmx-data)))
+        TEXCOORD (float-array (into [] (mapcat :uv) (:vertices pmx-data)))
         INDICES  (int-array (into [] (:faces pmx-data)))]
-    (vars->map pmx-data POSITION INDICES)))
+    (vars->map pmx-data POSITION NORMAL TEXCOORD INDICES)))
 
 (defn load-models-from-world*
   [models-to-load world*]

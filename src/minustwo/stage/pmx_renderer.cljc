@@ -26,15 +26,22 @@
  precision mediump float;
  
  in vec3 POSITION;
+ in vec3 NORMAL;
+ in vec2 TEXCOORD;
 
  uniform mat4 u_model;
  uniform mat4 u_view;
  uniform mat4 u_projection;
 
+ out vec3 Normal;
+ out vec2 TexCoord;
+
  void main() {
    vec4 pos;
    pos = vec4(POSITION, 1.0);
    gl_Position = u_projection * u_view * u_model * pos;
+   Normal = NORMAL;
+   TexCoord = TEXCOORD;
  }
 "))
 
@@ -43,33 +50,44 @@
        "
  precision mediump float;
  
+ in vec3 Normal;
+ in vec2 TexCoord;
+ 
  out vec4 o_color;
 
  void main() {
-   o_color = vec4(1.0); 
+   o_color = vec4(TexCoord, 1.0, 1.0); 
  }
 "))
 
-(defn init-fn [world game]
+(defn init-fn [world _game]
+  (-> world
+      (firstperson/insert-player (v/vec3 0.0 15.5 15.0) (v/vec3 0.0 0.0 -1.0))
+      (esse ::silverwolf-pmx
+            #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
+            #::shader{:use ::pmx-shader})))
+
+(defn after-load-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
-        (firstperson/insert-player (v/vec3 0.0 15.5 15.0) (v/vec3 0.0 0.0 -1.0))
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
-        (esse ::silverwolf-pmx
-              #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
-              #::shader{:use ::pmx-shader}))))
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)}))))
 
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
     [:what
      [esse-id ::pmx-model/arbitraty data]
+     [::pmx-shader ::shader/program-info _]
      :then
      (println esse-id "got" (keys data) "!")
      (let [spell
            [{:bind-vao esse-id}
             {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER}
             {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+            {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
+            {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+            {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
+            {:point-attr 'TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
             {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
             {:unbind-vao true}]]
        (insert! esse-id #::gl-magic{:spell spell}))]
@@ -105,6 +123,7 @@
 
 (def system
   {::world/init-fn #'init-fn
+   ::world/after-load-fn #'after-load-fn
    ::world/rules #'rules
    ::world/render-fn #'render-fn})
 
