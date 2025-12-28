@@ -33,7 +33,7 @@ todo:
                     ☐ no PmxMorph or Morph keyword here https://github.com/assimp/assimp/blob/ae6f4776045c115efdc0b66f78c8895e2d3b782c/code/AssetLib/MMD/MMDImporter.cpp
                     ✘ patch assimp? maybe let's do it when we Jank! @cancelled(25-12-27 15:18) not interested anymore since we are not afraid of binary no more
                 ✘ the parser have it but where does it go??? @cancelled(25-12-27 15:18)
-                    ✘ make our own additional parser? @cancelled(25-12-27 15:18) we parsed the whole thing ourself 💀 bc gloss is just so nice, though with its debuggability and perf warts
+                    ✘ make our own additional parser? @cancelled(25-12-27 15:18) we parsed the whole thing ourself 💀 bc gloss is just so nice, though with its debuggability and perf warts -> WRONG, no perf issue from gloss, debuggability still fair points tho when repl'ing
                     ✘ try converting to gltf mesh in blender, work our way there (need to render multiple meshes) @cancelled(25-12-23 00:38) assimp fail to load pmx -> gltf exported from blender
                         ✘ https://github.com/KhronosGroup/glTF-Blender-IO/issues/2628 this is relevant? i don't understand... python is so daunting @cancelled(25-12-25 00:24)
                         ✘ can basilisp save us? @cancelled(25-12-25 00:24) probably not, python feels even more loose, we tried basilisp tho, it is cool as heck
@@ -47,8 +47,10 @@ todo:
                             ✘ https://github.com/benikabocha/saba @cancelled(25-12-27 15:18)
                             ✘ https://github.com/assimp/assimp/blob/f4980c455cb9adc431de3d0e6b3f3fc919f93d13/code/AssetLib/MMD/MMDPmxParser.h#L446 @cancelled(25-12-27 15:18)
                                 ✔ we only need the spec huh @done(25-12-27 15:18)
-                        ☐ pmx -> gltf
+                        ✘ pmx -> gltf @cancelled(25-12-28 12:25) just make a new renderer instead
+                            ☐ pmx renderer
                         ✘ profile parser @cancelled(25-12-27 19:10) did it, not sure if we can do anything about it, mostly gloss bottleneck
+                            ✔ actually, 200ms model load times now, it was our bad code instead of gloss, sorry Mr Zach @done(25-12-28 12:24)
                         ☐ morph shader
                         ☐ the Anime
 
