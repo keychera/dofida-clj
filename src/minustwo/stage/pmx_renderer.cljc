@@ -10,7 +10,8 @@
    [engine.world :as world :refer [esse]]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
-                                  GL_FLOAT GL_TRIANGLES GL_UNSIGNED_INT]]
+                                  GL_FLOAT GL_TEXTURE0 GL_TEXTURE_2D
+                                  GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.vao :as vao]
@@ -18,7 +19,8 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.geom.vector :as v]))
+   [thi.ng.geom.vector :as v]
+   [minustwo.gl.texture :as texture]))
 
 (def pmx-vert
   (str cljgl/version-str
@@ -53,10 +55,12 @@
  in vec3 Normal;
  in vec2 TexCoord;
  
+ uniform sampler2D u_mat_diffuse;
+ 
  out vec4 o_color;
 
  void main() {
-   o_color = vec4(TexCoord, 1.0, 1.0); 
+   o_color = vec4(texture(u_mat_diffuse, TexCoord).rgb, 1.0); 
  }
 "))
 
@@ -95,7 +99,7 @@
   (o/ruleset
    {::I-cast-pmx-magic!
     [:what
-     [esse-id ::pmx-model/arbitraty data]
+     [esse-id ::pmx-model/data data]
      [::pmx-shader ::shader/program-info _]
      :then
      (println esse-id "got" (keys data) "!")
@@ -104,6 +108,7 @@
 
     ::render-data
     [:what
+     [esse-id ::pmx-model/data data]
      [esse-id ::gl-magic/casted? true]
      [esse-id ::shader/use ::pmx-shader]
      [::pmx-shader ::shader/program-info program-info]
@@ -115,10 +120,11 @@
         ctx       (:ctx room-data)
         project   (:project room-data)
         view      (:player-view room-data)]
-    (doseq [{:keys [esse-id] :as render-data} (o/query-all world ::render-data)]
+    (doseq [{:keys [esse-id data] :as render-data} (o/query-all world ::render-data)]
       (let [program-info (:program-info render-data)
             program      (:program program-info :program)
-            vao          (get @vao/db* esse-id)]
+            vao          (get @vao/db* esse-id)
+            materials    (:materials data)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
         (def hmm render-data)
@@ -129,7 +135,18 @@
         (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec view)))
         (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec (m-ext/scaling-mat 1.0))))
 
-        (gl ctx drawElements GL_TRIANGLES 96210 GL_UNSIGNED_INT 0)))))
+        (doseq [material materials]
+          (let [face-count  (:face-count material)
+                face-offset (* 4 (:face-offset material))
+                tex-idx     (:texture-index material)
+                tex         (get @texture/db* (str "tex-" esse-id "-" tex-idx))]
+            
+            (when-let [{:keys [tex-unit texture]} tex]
+              (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+              (gl ctx bindTexture GL_TEXTURE_2D texture)
+              (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+
+            (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))))
 
 (def system
   {::world/init-fn #'init-fn
