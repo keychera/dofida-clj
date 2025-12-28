@@ -99,7 +99,8 @@ void main() {
         (esse ::grid
               #::shader{:program-info (cljgl/create-program-info-from-iglu ctx perspective-vert perspective-frag)
                         :use ::grid}
-              #::gl-magic{:spell [{:bind-vao ::grid}
+              #::gl-magic{:casted? :pending
+                          :spell [{:bind-vao ::grid}
                                   {:buffer-data quad :buffer-type GL_ARRAY_BUFFER}
                                   {:point-attr 'a_pos :use-shader ::grid :count (gltf/gltf-type->num-of-component "VEC2") :component-type GL_FLOAT}
                                   {:buffer-data quad-indices :buffer-type GL_ELEMENT_ARRAY_BUFFER}

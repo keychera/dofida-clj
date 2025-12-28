@@ -5,7 +5,10 @@
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.model.pmx-parser :refer [parse-pmx]]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o]
+   [engine.math :as m-ext]
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m]))
 
 (s/def ::model-path string?)
 (s/def ::data map?)
@@ -53,25 +56,31 @@
          (doto JOINTS (aset i b1) (aset (+ 1 i) b2) (aset (+ 2 i) b3) (aset (+ 3 i) b4)))
        (inc counter)))))
 
+
 (defn load-pmx-model [model-path]
-  (let [res-path  (str "public" java.io.File/separator model-path)
-        pmx-data  (time (parse-pmx res-path))
-        vertices  (:vertices pmx-data)
-        POSITION  (float-array (into [] (mapcat :position) vertices))
-        NORMAL    (float-array (into [] (mapcat :normal) vertices))
-        TEXCOORD  (float-array (into [] (mapcat :uv) vertices))
-        vert-wj   (transduce (map :weight)
-                             (reduce-to-WEIGHTS-and-JOINTS (count vertices))
-                             vertices)
-        WEIGHTS   (:WEIGHTS vert-wj)
-        JOINTS    (:JOINTS vert-wj)
-        INDICES   (int-array (into [] (:faces pmx-data)))
-        parent    (:parent-dir pmx-data)
-        textures  (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
-        materials (into [] accumulate-face-count (:materials pmx-data))]
+  (let [res-path      (str "public" java.io.File/separator model-path)
+        pmx-data      (time (parse-pmx res-path))
+        vertices      (:vertices pmx-data)
+        POSITION      (float-array (into [] (mapcat :position) vertices))
+        NORMAL        (float-array (into [] (mapcat :normal) vertices))
+        TEXCOORD      (float-array (into [] (mapcat :uv) vertices))
+        vert-wj       (transduce (map :weight)
+                                 (reduce-to-WEIGHTS-and-JOINTS (count vertices))
+                                 vertices)
+        WEIGHTS       (:WEIGHTS vert-wj)
+        JOINTS        (:JOINTS vert-wj)
+        INDICES       (int-array (into [] (:faces pmx-data)))
+        parent        (:parent-dir pmx-data)
+        textures      (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
+        materials     (into [] accumulate-face-count (:materials pmx-data))
+        bones         (into []
+                            (map (fn [{:keys [position] :as bone}]
+                                   (assoc bone :inv-bind-mat
+                                          (-> position v/vec3 m-ext/vec3->trans-mat m/invert))))
+                            (:bones pmx-data))]
     (vars->map pmx-data
                POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
-               textures materials)))
+               textures materials bones)))
 
 (defn load-models-from-world*
   [models-to-load world*]
@@ -92,5 +101,4 @@
   (viscous/inspect (-> @debug-data*
                        :minustwo.stage.pmx-renderer/silverwolf-pmx
                        :pmx-data))
-
   :-)

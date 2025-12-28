@@ -101,6 +101,7 @@
     [:what
      [esse-id ::pmx-model/data data]
      [::pmx-shader ::shader/program-info _]
+     [esse-id ::gl-magic/casted? :pending]
      :then
      (println esse-id "got" (keys data) "!")
      (let [spell (pmx-spell data {:esse-id esse-id})]
@@ -140,7 +141,7 @@
                 face-offset (* 4 (:face-offset material))
                 tex-idx     (:texture-index material)
                 tex         (get @texture/db* (str "tex-" esse-id "-" tex-idx))]
-            
+
             (when-let [{:keys [tex-unit texture]} tex]
               (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
               (gl ctx bindTexture GL_TEXTURE_2D texture)

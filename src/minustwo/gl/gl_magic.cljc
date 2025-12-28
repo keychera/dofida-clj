@@ -23,16 +23,12 @@
 
 (def rules
   (o/ruleset
-   {::prepate-spell
-    [:what [esse-id ::spell spell]
-     :then
-     (println "casting gl-magic for" esse-id)
-     (insert! esse-id ::casted? :pending)]
-
-    ::to-cast
+   {::to-cast
     [:what
      [esse-id ::spell spell]
-     [esse-id ::casted? :pending]]
+     [esse-id ::casted? :pending]
+     :then
+     (println "casting gl-magic for" esse-id)]
 
     ::I-cast-gltf-loading!
     [:what
