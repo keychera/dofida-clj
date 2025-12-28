@@ -1,11 +1,22 @@
 (ns minustwo.stage.pmx-renderer
   (:require
+   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :refer [gl-ctx]]
+   [engine.macros :refer [insert!]]
+   [engine.math :as m-ext]
+   [engine.sugar :refer [vec->f32-arr]]
+   [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.gl.cljgl :as cljgl]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
+                                  GL_FLOAT GL_TRIANGLES GL_UNSIGNED_INT]]
+   [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
+   [minustwo.gl.vao :as vao]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.systems.view.firstperson :as firstperson]
+   [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v]))
 
@@ -42,7 +53,7 @@
 (defn init-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
-        (firstperson/insert-player (v/vec3 0.0 15.5 13.0) (v/vec3 0.0 0.0 -1.0))
+        (firstperson/insert-player (v/vec3 0.0 15.5 15.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
         (esse ::silverwolf-pmx
               #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
@@ -50,17 +61,56 @@
 
 (def rules
   (o/ruleset
-   {::render-data
+   {::I-cast-pmx-magic!
     [:what
      [esse-id ::pmx-model/arbitraty data]
      :then
-     (println esse-id "got" (keys data) "!")]}))
+     (println esse-id "got" (keys data) "!")
+     (let [spell
+           [{:bind-vao esse-id}
+            {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER}
+            {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+            {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+            {:unbind-vao true}]]
+       (insert! esse-id #::gl-magic{:spell spell}))]
+
+    ::render-data
+    [:what
+     [esse-id ::gl-magic/casted? true]
+     [esse-id ::shader/use ::pmx-shader]
+     [::pmx-shader ::shader/program-info program-info]
+     :then
+     (println esse-id "is ready to render!")]}))
 
 (defn render-fn [world _game]
-  (let [{:keys [_data]} (o/query-all world ::render-data)]))
+  (let [room-data (utils/query-one world ::room/data)
+        ctx       (:ctx room-data)
+        project   (:project room-data)
+        view      (:player-view room-data)]
+    (doseq [{:keys [esse-id] :as render-data} (o/query-all world ::render-data)]
+      (let [program-info (:program-info render-data)
+            program      (:program program-info :program)
+            vao          (get @vao/db* esse-id)]
+        ;; (def err [:err (gl ctx getError)])
+        #_{:clj-kondo/ignore [:inline-def]}
+        (def hmm render-data)
+        (gl ctx useProgram program)
+        (gl ctx bindVertexArray vao)
 
+        (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
+        (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec view)))
+        (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec (m-ext/scaling-mat 1.0))))
+
+        (gl ctx drawElements GL_TRIANGLES 96210 GL_UNSIGNED_INT 0)))))
 
 (def system
-  {::world/init-fn init-fn
-   ::world/rules rules
-   ::world/render-fn render-fn})
+  {::world/init-fn #'init-fn
+   ::world/rules #'rules
+   ::world/render-fn #'render-fn})
+
+(comment
+
+  ;; err
+  hmm
+
+  :-)

@@ -20,7 +20,7 @@
 (defn load-pmx-model [model-path]
   (let [pmx-data (time (parse-pmx model-path))
         POSITION (float-array (into [] (mapcat :position) (:vertices pmx-data)))
-        INDICES  (float-array (into [] (:faces pmx-data)))]
+        INDICES  (int-array (into [] (:faces pmx-data)))]
     (vars->map pmx-data POSITION INDICES)))
 
 (defn load-models-from-world*
