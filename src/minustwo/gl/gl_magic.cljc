@@ -5,15 +5,15 @@
    [clojure.core.match :as m]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! vars->map]]
+   [engine.utils :as utils]
    [engine.world :as world]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
-   [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
-   [engine.utils :as utils]
+   [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]))
 
 (s/def ::spell sequential?)
@@ -50,7 +50,7 @@
 
 (defn cast-spell [world spell-fact]
   (let [{:keys [esse-id spell]}  spell-fact
-        {:keys [ctx all-shaders vao-db*]} (utils/query-one world ::gl-system/data)
+        {:keys [ctx all-shaders vao-db*]} (utils/query-one world ::room/data)
         all-attr-locs             (update-vals all-shaders :attr-locs)]
     (loop [[chant & remaining] spell summons [] state {}]
       (if chant

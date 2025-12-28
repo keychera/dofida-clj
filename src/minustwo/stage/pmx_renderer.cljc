@@ -18,8 +18,7 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.geom.vector :as v]
-   [minustwo.gl.texture :as texture]))
+   [thi.ng.geom.vector :as v]))
 
 (def pmx-vert
   (str cljgl/version-str
@@ -116,11 +115,8 @@
      (println esse-id "is ready to render!")]}))
 
 (defn render-fn [world _game]
-  (let [room-data (utils/query-one world ::room/data)
-        ctx       (:ctx room-data)
-        project   (:project room-data)
-        view      (:player-view room-data)
-        vao-db*   (:vao-db* room-data)]
+  (let [{:keys [ctx project player-view vao-db* texture-db*]}
+        (utils/query-one world ::room/data)]
     (doseq [{:keys [esse-id data] :as render-data} (o/query-all world ::render-data)]
       (let [program-info (:program-info render-data)
             program      (:program program-info :program)
@@ -133,14 +129,14 @@
         (gl ctx bindVertexArray vao)
 
         (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-        (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec view)))
+        (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
         (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec (m-ext/scaling-mat 1.0))))
 
         (doseq [material materials]
           (let [face-count  (:face-count material)
                 face-offset (* 4 (:face-offset material))
                 tex-idx     (:texture-index material)
-                tex         (get @texture/db* (str "tex-" esse-id "-" tex-idx))]
+                tex         (get @texture-db* (str "tex-" esse-id "-" tex-idx))]
 
             (when-let [{:keys [tex-unit texture]} tex]
               (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))

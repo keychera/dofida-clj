@@ -18,7 +18,6 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
-   [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
@@ -214,11 +213,8 @@
        (insert! esse-id ::pose/pose-tree global-tt))]}))
 
 (defn render-fn [world _game]
-  (let [room-data (utils/query-one world ::room/data)
-        ctx       (:ctx room-data)
-        project   (:project room-data)
-        view      (:player-view room-data)
-        vao-db*   (:vao-db* room-data)]
+  (let [{:keys [ctx project player-view vao-db* texture-db*]}
+        (utils/query-one world ::room/data)]
     (when-let [gltf-models (seq (o/query-all world ::gltf-models))]
       (doseq [gltf-model gltf-models]
         (let [{:keys [draw-fn model program-info joints pose-tree inv-bind-mats skinning-ubo]} gltf-model
@@ -228,7 +224,7 @@
 
           (gl ctx useProgram (:program program-info))
           (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec view)))
+          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
           (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec model)))
 
           (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
@@ -240,20 +236,20 @@
                   count          (:count indices)
                   component-type (:componentType indices)
                   vao            (get @vao-db* (:vao-name prim))
-                  tex            (get @texture/db* (:tex-name prim))]
+                  tex            (get @texture-db* (:tex-name prim))]
               (when vao
                 (gl ctx bindVertexArray vao)
                 (when-let [{:keys [tex-unit texture]} tex]
                   (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
                   (gl ctx bindTexture GL_TEXTURE_2D texture)
                   (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
-                
+
                 (if (#{20 21} (:idx prim))
                   (gl ctx disable GL_CULL_FACE)
                   (gl ctx enable GL_CULL_FACE))
 
                 (when (#{1 2 9 10 11 12 13 14 15 16 17 18 20 22 23} (:idx prim))
-                  
+
                   (cljgl/set-uniform ctx program-info 'u_invertedHull 1.0)
                   (cljgl/set-uniform ctx program-info 'u_lineThickness 0.03)
                   (gl ctx cullFace GL_FRONT)
@@ -262,7 +258,7 @@
                     (gl ctx drawElements GL_TRIANGLES count component-type 0)
 
                     (draw-fn ctx gltf-model prim))
-                  (gl ctx cullFace GL_BACK)) 
+                  (gl ctx cullFace GL_BACK))
 
                 (cljgl/set-uniform ctx program-info 'u_invertedHull 0.0)
                 (condp = draw-fn
