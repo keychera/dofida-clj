@@ -17,14 +17,14 @@
 (defn resolve-mask [flags mask]
   (update-vals flags (fn [fs] (has-flag? fs mask))))
 
-(def ^:const int_f :int32-le)
-(def ^:const float_f :float32-le)
-(def ^:const vec2_f [float_f float_f])
-(def ^:const vec3_f [float_f float_f float_f])
-(def ^:const vec4_f [float_f float_f float_f float_f])
+(def int_f :int32-le)
+(def float_f :float32-le)
+(def vec2_f [float_f float_f])
+(def vec3_f [float_f float_f float_f])
+(def vec4_f [float_f float_f float_f float_f])
 ;; if index enum is the same keyword as actual types, weird error happens, dont do that
-(def ^:const vert-index_f (enum :byte {'ubyte 2r001 'uint16-le 2r010 'uint32-le 2r100}))
-(def ^:const index_f (enum :byte {'byte 2r001 'int16-le 2r010 'uint32-le 2r100}))
+(def vert-index_f (enum :byte {'ubyte 2r001 'uint16-le 2r010 'uint32-le 2r100}))
+(def index_f (enum :byte {'byte 2r001 'int16-le 2r010 'uint32-le 2r100}))
 
 (def header-codec
   (ordered-map
