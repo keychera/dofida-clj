@@ -2,13 +2,16 @@
   (:require
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
+   [engine.math :as m-ext]
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.model.pmx-parser :refer [parse-pmx]]
    [odoyle.rules :as o]
-   [engine.math :as m-ext]
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [clojure.string :as str]
+   [thi.ng.geom.quaternion :as q]))
 
 (s/def ::model-path string?)
 (s/def ::data map?)
@@ -56,6 +59,34 @@
          (doto JOINTS (aset i b1) (aset (+ 1 i) b2) (aset (+ 2 i) b3) (aset (+ 3 i) b4)))
        (inc counter)))))
 
+(defn resolve-pmx-bones
+  "current understanding: pmx bones only have global translation each bones
+   this fn will resolve the value of local translation, rotation, invert bind matrix, etc.
+   local transform need to be calculated from trans and rot (no scale for now).
+   
+   assumes bone have :idx denoting its own position in the vector"
+  [rf]
+  (let [parents-pos! (volatile! {})]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result {:keys [idx parent-bone-idx position] :as bone}]
+       (let [parent       (get @parents-pos! parent-bone-idx)
+             local-pos    (if parent
+                            (mapv - position (:position parent))
+                            (v/vec3))
+             global-trans (m-ext/translation-mat position)
+             inv-bind-mat (m/invert global-trans)
+             updated-bone (-> bone
+                              (dissoc :position)
+                              (assoc :translation      local-pos
+                                     :rotation         (q/quat)
+                                     :inv-bind-mat     inv-bind-mat
+                                     :global-transform global-trans
+                                     :parent-transform (:transform parent)))]
+         (vswap! parents-pos! assoc idx {:position  position
+                                         :transform global-trans})
+         (rf result updated-bone))))))
 
 (defn load-pmx-model [model-path]
   (let [res-path      (str "public" java.io.File/separator model-path)
@@ -74,13 +105,8 @@
         textures      (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
         materials     (into [] accumulate-face-count (:materials pmx-data))
         bones         (into []
-                            (map-indexed
-                             (fn [idx {:keys [position] :as bone}]
-                               (let [global-mat (m-ext/vec3->trans-mat (or (some-> position v/vec3) (v/vec3)))]
-                                 (assoc bone
-                                        :idx          idx
-                                        :global-mat   global-mat
-                                        :inv-bind-mat (m/invert global-mat)))))
+                            (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
+                                  resolve-pmx-bones)
                             (:bones pmx-data))]
     (vars->map pmx-data
                POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
