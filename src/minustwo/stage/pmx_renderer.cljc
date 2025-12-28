@@ -38,16 +38,21 @@
  uniform mat4 u_model;
  uniform mat4 u_view;
  uniform mat4 u_projection;
-
+ layout(std140) uniform Skinning {
+   mat4[" MAX_JOINTS "] u_joint_mats;
+ };
+ 
  out vec3 Normal;
  out vec2 TexCoord;
 
  void main() {
    vec4 pos;
    pos = vec4(POSITION, 1.0);
-   vec4 ho = vec4(WEIGHTS.x - JOINTS.x, 1.0, 1.0, 1.0);
-   vec4 ha = vec4(JOINTS.x - WEIGHTS.x, -1.0, -1.0, -1.0);
-   gl_Position = u_projection * u_view * u_model * (pos + ho + ha);
+   mat4 skin = (WEIGHTS.x * u_joint_mats[JOINTS.x]) 
+             + (WEIGHTS.y * u_joint_mats[JOINTS.y]) 
+             + (WEIGHTS.z * u_joint_mats[JOINTS.z])
+             + (WEIGHTS.w * u_joint_mats[JOINTS.w]);
+   gl_Position = u_projection * u_view * u_model * skin * (pos);
    Normal = NORMAL;
    TexCoord = TEXCOORD;
  }
@@ -153,7 +158,12 @@
       (let [program   (:program program-info :program)
             vao       (get @vao-db* esse-id)
             materials (:materials pmx-data)
-            bones     (:bones pmx-data)
+            bones     (into [] 
+                            (map (fn [bone]
+                                   (if (#{"首"} (:local-name bone))
+                                     (assoc bone :global-mat (m-ext/translation-mat 3.0 16.0 0.0))
+                                     bone)))
+                            (:bones pmx-data))
             joint-mats (create-joint-mats-arr bones)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
@@ -163,9 +173,9 @@
         (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
         (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec (m-ext/scaling-mat 1.0))))
 
-        ;; (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
-        ;; (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-        ;; (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+        (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+        (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+        (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
 
         (gl ctx bindVertexArray vao)
 
