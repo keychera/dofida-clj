@@ -18,12 +18,15 @@
 (defonce debug-data* (atom {}))
 
 (defn load-pmx-model [model-path]
-  (let [pmx-data (time (parse-pmx model-path))
+  (let [res-path (str "public" java.io.File/separator model-path)
+        pmx-data (time (parse-pmx res-path))
         POSITION (float-array (into [] (mapcat :position) (:vertices pmx-data)))
         NORMAL   (float-array (into [] (mapcat :normal) (:vertices pmx-data)))
         TEXCOORD (float-array (into [] (mapcat :uv) (:vertices pmx-data)))
-        INDICES  (int-array (into [] (:faces pmx-data)))]
-    (vars->map pmx-data POSITION NORMAL TEXCOORD INDICES)))
+        INDICES  (int-array (into [] (:faces pmx-data)))
+        parent   (:parent-dir pmx-data)
+        textures (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))]
+    (vars->map pmx-data POSITION NORMAL TEXCOORD INDICES textures)))
 
 (defn load-models-from-world*
   [models-to-load world*]

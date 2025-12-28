@@ -353,11 +353,14 @@
 (def pmx-codec (header header-codec body-codec-fn identity))
 
 (defn parse-pmx [pmx-path]
-  (let [model-path (str "public/" pmx-path)]
-    (with-open [raf (java.io.RandomAccessFile. (io/file (io/resource model-path)) "r")
+  (let [pmx-file (io/file (io/resource pmx-path))]
+    (println "parsing pmx:" pmx-file)
+    (with-open [raf (java.io.RandomAccessFile. pmx-file "r")
                 ch  (.getChannel raf)]
       (let [buf (.map ch java.nio.channels.FileChannel$MapMode/READ_ONLY 0 (.size ch))]
-        (gio/decode pmx-codec buf false)))))
+        (assoc (gio/decode pmx-codec buf false)
+               ;; I have a feeling this will break if this is in a jar
+               :parent-dir (.getParent pmx-file))))))
 
 (comment
   #_(require '[clj-async-profiler.core :as prof])

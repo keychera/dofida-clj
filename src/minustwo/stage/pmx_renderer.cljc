@@ -72,6 +72,25 @@
     (-> world
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)}))))
 
+(defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
+  (let [textures (:textures data)]
+    (->> [{:bind-vao esse-id}
+          {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
+
+          (eduction
+           (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
+                                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) idx)}))
+           textures)
+
+          {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+          {:unbind-vao true}]
+         flatten (into []))))
+
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
@@ -80,16 +99,7 @@
      [::pmx-shader ::shader/program-info _]
      :then
      (println esse-id "got" (keys data) "!")
-     (let [spell
-           [{:bind-vao esse-id}
-            {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER}
-            {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
-            {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
-            {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
-            {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
-            {:point-attr 'TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
-            {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
-            {:unbind-vao true}]]
+     (let [spell (pmx-spell data {:esse-id esse-id})]
        (insert! esse-id #::gl-magic{:spell spell}))]
 
     ::render-data
