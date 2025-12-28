@@ -237,6 +237,7 @@
    (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
    (if-let [window (GLFW/glfwCreateWindow 1024 768 "Hello, dofida!" 0 0)]
      (do
+       (GLFW/glfwSetWindowPos window 2600, 600)
        (GLFW/glfwMakeContextCurrent window)
        (GLFW/glfwSwapInterval 1)
        (GL/createCapabilities)
