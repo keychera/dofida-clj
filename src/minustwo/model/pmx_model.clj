@@ -7,11 +7,9 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.model.pmx-parser :refer [parse-pmx]]
    [odoyle.rules :as o]
-   [thi.ng.geom.core :as g]
+   [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [clojure.string :as str]
-   [thi.ng.geom.quaternion :as q]))
+   [thi.ng.math.core :as m]))
 
 (s/def ::model-path string?)
 (s/def ::data map?)
