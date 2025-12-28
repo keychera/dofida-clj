@@ -15,11 +15,13 @@
    {::models-to-load
     [:what [esse-id ::model-path model-path]]}))
 
+(defonce debug-data* (atom {}))
+
 (defn load-pmx-model [model-path]
-  (let [pmx-data  (time (parse-pmx model-path))
-        POSITIONS (float-array (into [] (mapcat :position) (:vertices pmx-data)))
-        INDICES   (float-array (into [] (:faces pmx-data)))]
-    (vars->map POSITIONS INDICES)))
+  (let [pmx-data (time (parse-pmx model-path))
+        POSITION (float-array (into [] (mapcat :position) (:vertices pmx-data)))
+        INDICES  (float-array (into [] (:faces pmx-data)))]
+    (vars->map pmx-data POSITION INDICES)))
 
 (defn load-models-from-world*
   [models-to-load world*]
@@ -27,8 +29,15 @@
     (println "[minustwo-pmx] loading pmx model" esse-id)
     (swap! world* o/retract esse-id ::model-path)
     (let [data (load-pmx-model model-path)]
+      (swap! debug-data* assoc esse-id data)
       (println "[minustwo-pmx]" esse-id "=> loaded!")
       (swap! world* o/insert esse-id {::arbitraty data ::gl-magic/casted? :pending}))))
 
 (def system
   {::world/rules rules})
+
+(comment
+  (require '[com.phronemophobic.viscous :as viscous])
+  
+  (viscous/inspect @debug-data*)
+  :-)
