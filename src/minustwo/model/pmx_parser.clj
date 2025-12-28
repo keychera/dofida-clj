@@ -1,7 +1,6 @@
 (ns minustwo.model.pmx-parser
   (:require
    [clojure.java.io :as io]
-   [engine.utils :refer [file->bytes]]
    [gloss.core :as g :refer [defcodec finite-frame repeated string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
    [gloss.core.structure :refer [compile-frame]]
@@ -323,9 +322,11 @@
 (def pmx-codec (header header-codec body-codec-fn identity))
 
 (defn parse-pmx [pmx-path]
-  (let [model-path (str "public/" pmx-path)
-        pmx-byte   (file->bytes (io/file (io/resource model-path)))]
-    (gio/decode pmx-codec pmx-byte false)))
+  (let [model-path (str "public/" pmx-path)]
+    (with-open [raf (java.io.RandomAccessFile. (io/file (io/resource model-path)) "r")
+                ch  (.getChannel raf)]
+      (let [buf (.map ch java.nio.channels.FileChannel$MapMode/READ_ONLY 0 (.size ch))]
+        (gio/decode pmx-codec buf false)))))
 
 (comment
   #_(require '[clj-async-profiler.core :as prof])
@@ -334,9 +335,7 @@
     (let [model-path
           #_"public/assets/models/Alicia_blade.pmx"
           "public/assets/models/SilverWolf/SilverWolf.pmx"
-          pmx-byte   (file->bytes (io/file (io/resource model-path)))
-          pmx-codec  (header header-codec body-codec-fn identity)
-          result     (gio/decode pmx-codec pmx-byte false)]
+          result     (parse-pmx model-path)]
       (def hmm result)
       (-> result
           (update :vertices (juxt count #(into [] (take 2) %)))
