@@ -54,8 +54,15 @@
 (defn first-init? [game]
   (= 0 @(::init-cnt* game)))
 
+;; dev-only
+(defn resolve-var [v]
+  (if (instance? #?(:clj clojure.lang.Var :cljs Var) v) (deref v) v))
+
 (defn build-systems [system-coll]
-  (let [all-rules  (distinct (apply concat (sp/select [sp/ALL ::rules] system-coll)))
+  (let [all-rules  (into []
+                         (comp (distinct)
+                               (mapcat resolve-var))
+                         (sp/select [sp/ALL ::rules] system-coll))
         init-fns   (sp/select [sp/ALL ::init-fn some?] system-coll)
         before-fns (sp/select [sp/ALL ::before-load-fn some?] system-coll)
         after-fns  (sp/select [sp/ALL ::after-load-fn some?] system-coll)
