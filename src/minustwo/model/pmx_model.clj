@@ -7,6 +7,7 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.model.pmx-parser :refer [parse-pmx]]
    [odoyle.rules :as o]
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
@@ -71,11 +72,12 @@
       ([result {:keys [idx parent-bone-idx position] :as bone}]
        (let [parent       (get @parents-pos! parent-bone-idx)
              local-pos    (if parent
-                            (mapv - position (:position parent))
+                            (v/vec3 (mapv - position (:position parent)))
                             (v/vec3))
              global-trans (m-ext/translation-mat position)
              inv-bind-mat (m/invert global-trans)
              updated-bone (-> bone
+                              (update-keys (fn [k] (or ({:local-name :name} k) k)))
                               (dissoc :position)
                               (assoc :translation      local-pos
                                      :rotation         (q/quat)
@@ -84,6 +86,28 @@
                                      :parent-transform (:transform parent)))]
          (vswap! parents-pos! assoc idx {:position  position
                                          :transform global-trans})
+         (rf result updated-bone))))))
+
+(defn calc-local-transform [{:keys [translation rotation]}]
+  (let [trans-mat    (m-ext/translation-mat translation)
+        rot-mat      (g/as-matrix rotation)
+        local-trans  (m/* trans-mat rot-mat)]
+    local-trans))
+
+(defn global-transform-xf [rf]
+  (let [parents! (volatile! {})]
+    (fn
+      ([] (rf))
+      ([result]
+       (rf result))
+      ([result {:keys [idx parent-bone-idx] :as bone}]
+       (let [local-trans  (calc-local-transform bone)
+             parent       (get @parents! parent-bone-idx)
+             global-trans (if parent
+                            (m/* (:global-transform parent) local-trans)
+                            local-trans)
+             updated-bone (assoc bone :global-transform global-trans)]
+         (vswap! parents! assoc idx updated-bone)
          (rf result updated-bone))))))
 
 (defn load-pmx-model [model-path]
@@ -128,6 +152,11 @@
 
   (viscous/inspect (-> @debug-data*
                        :minustwo.stage.pmx-renderer/silverwolf-pmx
-                       :pmx-data
-                       :bones))
+                       :pmx-data))
+
+  (into []
+        (-> @debug-data*
+            :minustwo.stage.pmx-renderer/silverwolf-pmx
+            :pmx-data
+            :vertices))
   :-)

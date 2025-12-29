@@ -8,6 +8,7 @@
    [engine.sugar :refer [f32-arr vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
+   [minustwo.anime.IK :refer [IK-transducer1]]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
@@ -20,7 +21,8 @@
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.quaternion :as q]))
 
 (def MAX_JOINTS 500)
 
@@ -150,6 +152,17 @@
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
 
+(defn pose-for-the-fans! [bones]
+  (into []
+        (comp
+         (map (fn [bone]
+                (if (#{"右腕"} (:name bone))
+                  (update bone :rotation m/* (q/quat-from-axis-angle
+                                              (v/vec3 1.0 0.0 0.0) (m/radians 50.0)))
+                  bone)))
+         pmx-model/global-transform-xf)
+        bones))
+
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
@@ -158,17 +171,12 @@
       (let [program   (:program program-info :program)
             vao       (get @vao-db* esse-id)
             materials (:materials pmx-data)
-            bones     (into [] 
-                            (map (fn [bone]
-                                   (if (#{"首"} (:local-name bone))
-                                     (assoc bone :global-mat (m-ext/translation-mat 3.0 16.0 0.0))
-                                     bone)))
-                            (:bones pmx-data))
+            bones     (pose-for-the-fans! (:bones pmx-data))
             joint-mats (create-joint-mats-arr bones)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
         (def hmm pmx-data)
-        (gl ctx useProgram program) 
+        (gl ctx useProgram program)
         (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
         (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
         (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec (m-ext/scaling-mat 1.0))))
