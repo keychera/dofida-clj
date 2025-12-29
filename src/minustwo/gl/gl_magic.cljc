@@ -8,7 +8,8 @@
    [engine.utils :as utils]
    [engine.world :as world]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_SHORT]]
+   [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
+                                  GL_UNSIGNED_SHORT]]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
@@ -82,6 +83,7 @@
             (let [{:keys [count component-type stride offset] :or {stride 0 offset 0}} chant]
               (condp = component-type
                 GL_UNSIGNED_SHORT (gl ctx vertexAttribIPointer attr-loc count component-type stride offset)
+                GL_UNSIGNED_INT   (gl ctx vertexAttribIPointer attr-loc count component-type stride offset)
                 (gl ctx vertexAttribPointer attr-loc count component-type false stride offset))
               (gl ctx enableVertexAttribArray attr-loc)
               (recur remaining summons state))

@@ -110,7 +110,7 @@
           {:buffer-data (:WEIGHTS data) :buffer-type GL_ARRAY_BUFFER}
           {:point-attr 'WEIGHTS :use-shader ::pmx-shader :count 4 :component-type GL_FLOAT}
           {:buffer-data (:JOINTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_SHORT}
+          {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
 
           (eduction
            (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
@@ -146,8 +146,8 @@
 (defn create-joint-mats-arr [bones]
   (let [f32s (f32-arr (* 16 (count bones)))]
     (doseq [{:keys [idx global-transform inv-bind-mat]} bones]
-      (let [joint-mat  (m/* global-transform inv-bind-mat)
-            i          (* idx 16)]
+      (let [joint-mat (m/* global-transform inv-bind-mat)
+            i         (* idx 16)]
         (dotimes [j 16]
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
@@ -158,7 +158,7 @@
          (map (fn [bone]
                 (if (#{"右腕"} (:name bone))
                   (update bone :rotation m/* (q/quat-from-axis-angle
-                                              (v/vec3 1.0 0.0 0.0) (m/radians 50.0)))
+                                              (v/vec3 1.0 0.0 0.0) (m/radians 90.0)))
                   bone)))
          pmx-model/global-transform-xf)
         bones))

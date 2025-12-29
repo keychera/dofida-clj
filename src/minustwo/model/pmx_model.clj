@@ -82,8 +82,7 @@
                               (assoc :translation      local-pos
                                      :rotation         (q/quat)
                                      :inv-bind-mat     inv-bind-mat
-                                     :global-transform global-trans
-                                     :parent-transform (:transform parent)))]
+                                     :global-transform global-trans))]
          (vswap! parents-pos! assoc idx {:position  position
                                          :transform global-trans})
          (rf result updated-bone))))))
@@ -154,9 +153,4 @@
                        :minustwo.stage.pmx-renderer/silverwolf-pmx
                        :pmx-data))
 
-  (into []
-        (-> @debug-data*
-            :minustwo.stage.pmx-renderer/silverwolf-pmx
-            :pmx-data
-            :vertices))
   :-)
