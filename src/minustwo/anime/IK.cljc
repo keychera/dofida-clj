@@ -35,7 +35,7 @@
         mid-IK       (q/quat-from-axis-angle axis (- Math/PI beta))]
     [(m/* root-angle root-IK) mid-IK]))
 
-(defn IK-transducer1 
+(defn IK-transducer1
   "transducer assumes input conform to :minustwo.gl.gltf/node+transform"
   [a b c target]
   (fn [rf]
@@ -45,19 +45,14 @@
       (fn
         ([] (rf))
         ([result]
-         (let [root-t     (m-ext/m44->trans-vec3
-                           (m/* (:parent-transform @fa)
-                                (m-ext/vec3->trans-mat (:translation @fa))))
-               mid-t      (m-ext/m44->trans-vec3
-                           (m/* (:parent-transform @fb)
-                                (m-ext/vec3->trans-mat (:translation @fb))))
-               end-t      (m-ext/m44->trans-vec3
-                           (m/* (:parent-transform @fc)
-                                (m-ext/vec3->trans-mat (:translation @fc))))
+         (let [fa @fa fb @fb fc @fc
+               root-t (g/transform-vector (:parent-transform fa) (:translation fa))
+               mid-t  (g/transform-vector (:parent-transform fb) (:translation fb))
+               end-t  (g/transform-vector (:parent-transform fc) (:translation fc))
                [root-IK mid-IK] (solve-IK1 root-t mid-t end-t target)
                result (-> result
-                          (assoc! (:idx @fa) (update @fa :rotation m/* root-IK))
-                          (assoc! (:idx @fb) (update @fb :rotation m/* mid-IK)))]
+                          (assoc! (:idx fa) (update fa :rotation m/* root-IK))
+                          (assoc! (:idx fb) (update fb :rotation m/* mid-IK)))]
            (rf result)))
         ([result input]
          (cond

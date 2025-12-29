@@ -13,7 +13,7 @@
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
                                   GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER
-                                  GL_UNSIGNED_INT GL_UNSIGNED_SHORT]]
+                                  GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
@@ -21,8 +21,7 @@
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [thi.ng.geom.quaternion :as q]))
+   [thi.ng.math.core :as m]))
 
 (def MAX_JOINTS 500)
 
@@ -155,12 +154,8 @@
 (defn pose-for-the-fans! [bones]
   (into []
         (comp
-         (map (fn [bone]
-                (if (#{"右腕"} (:name bone))
-                  (update bone :rotation m/* (q/quat-from-axis-angle
-                                              (v/vec3 1.0 0.0 0.0) (m/radians 90.0)))
-                  bone)))
-         pmx-model/global-transform-xf)
+         (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
+         (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 -10.0)))
         bones))
 
 (defn render-fn [world _game]
@@ -168,10 +163,11 @@
         (utils/query-one world ::room/data)]
     (doseq [{:keys [esse-id pmx-data program-info skinning-ubo]}
             (o/query-all world ::render-data)]
-      (let [program   (:program program-info :program)
-            vao       (get @vao-db* esse-id)
-            materials (:materials pmx-data)
-            bones     (pose-for-the-fans! (:bones pmx-data))
+      (let [program    (:program program-info :program)
+            vao        (get @vao-db* esse-id)
+            materials  (:materials pmx-data)
+            bones      (pose-for-the-fans! (:bones pmx-data))
+            bones      (into [] pmx-model/global-transform-xf bones)
             joint-mats (create-joint-mats-arr bones)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}

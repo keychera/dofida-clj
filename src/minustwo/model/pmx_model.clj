@@ -82,7 +82,8 @@
                               (assoc :translation      local-pos
                                      :rotation         (q/quat)
                                      :inv-bind-mat     inv-bind-mat
-                                     :global-transform global-trans))]
+                                     :global-transform global-trans
+                                     :parent-transform (:transform parent)))]
          (vswap! parents-pos! assoc idx {:position  position
                                          :transform global-trans})
          (rf result updated-bone))))))
