@@ -47,6 +47,7 @@
     [:what
      [::time/now ::time/total tt {:then false}]
      [::time/now ::time/slice 4]
+     [esse-id ::gltf/primitives gltf-primitives {:then false}]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      :then
      (let [global-tt (into [] gltf/global-transform-xf pose-tree)]

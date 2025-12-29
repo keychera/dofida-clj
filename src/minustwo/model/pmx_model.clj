@@ -13,7 +13,8 @@
    [thi.ng.math.core :as m]))
 
 (s/def ::model-path string?)
-(s/def ::data map?)
+(s/def ::bones vector?)
+(s/def ::data (s/keys :req-un [::bones]))
 
 (def rules
   (o/ruleset

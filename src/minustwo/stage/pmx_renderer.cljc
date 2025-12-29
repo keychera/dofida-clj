@@ -8,21 +8,24 @@
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.anime.IK :refer [IK-transducer1]]
+   [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
                                   GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER
                                   GL_UNSIGNED_INT]]
+   [minustwo.gl.geom :as geom]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
+   [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [thi.ng.geom.quaternion :as q]))
+   [thi.ng.math.core :as m]))
 
 (def MAX_JOINTS 500)
 
@@ -77,6 +80,11 @@
  }
 "))
 
+(def absolute-cinema
+  (comp
+   (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
+   (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 -10.0))))
+
 (defn init-fn [world game]
   (-> world
       (firstperson/insert-player (v/vec3 0.0 15.5 15.0) (v/vec3 0.0 0.0 -1.0))
@@ -91,6 +99,7 @@
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-shader}
+            pose/default
             t3d/default)))
 
 (defn after-load-fn [world game]
@@ -98,6 +107,7 @@
     (-> world
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
         (esse ::silverwolf-pmx
+              (pose/strike absolute-cinema)
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                      :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 180))}))))
 
@@ -137,6 +147,13 @@
      (let [spell (pmx-spell data {:esse-id esse-id})]
        (insert! esse-id #::gl-magic{:spell spell}))]
 
+    ::bone-to-pose-tree
+    [:what
+     [esse-id ::pmx-model/data pmx-data]
+     :then
+     (println "prep bones!")
+     (insert! esse-id ::geom/transform-tree (:bones pmx-data))]
+
     ::render-data
     [:what
      [esse-id ::pmx-model/data pmx-data]
@@ -145,8 +162,18 @@
      [::pmx-shader ::shader/program-info program-info]
      [::skinning-ubo ::shader/ubo skinning-ubo]
      [esse-id ::t3d/transform transform]
+     [esse-id ::pose/pose-tree pose-tree {:then false}]
      :then
-     (println esse-id "is ready to render!")]}))
+     (println esse-id "is ready to render!")]
+
+    ::global-transform
+    [:what
+     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/slice 4]
+     [esse-id ::pose/pose-tree pose-tree {:then false}]
+     :then 
+     (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
+       (insert! esse-id ::pose/pose-tree pose-tree))]}))
 
 (defn create-joint-mats-arr [bones]
   (let [f32s (f32-arr (* 16 (count bones)))]
@@ -157,24 +184,16 @@
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
 
-(defn pose-for-the-fans! [bones]
-  (into []
-        (comp
-         (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
-         (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 -10.0)))
-        bones))
 
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
-    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform]}
+    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform pose-tree]}
             (o/query-all world ::render-data)]
       (let [program    (:program program-info :program)
             vao        (get @vao-db* esse-id)
             materials  (:materials pmx-data)
-            bones      (pose-for-the-fans! (:bones pmx-data))
-            bones      (into [] pmx-model/global-transform-xf bones)
-            joint-mats (create-joint-mats-arr bones)]
+            joint-mats (create-joint-mats-arr pose-tree)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
         (def hmm pmx-data)

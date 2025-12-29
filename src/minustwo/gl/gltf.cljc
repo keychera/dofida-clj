@@ -6,12 +6,14 @@
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
+   [minustwo.gl.geom :as geom]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m])
-  #?(:clj (:import [java.nio ByteOrder])))
+  #?(:clj (:import
+           [java.nio ByteOrder])))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -26,7 +28,6 @@
 (s/def ::bins vector?)
 (s/def ::primitives sequential?)
 (s/def ::joints vector?)
-(s/def ::transform-tree (s/coll-of ::node+transform :kind vector?))
 (s/def ::inv-bind-mats vector?)
 
 (defn create-vao-names [prefix]
@@ -113,14 +114,8 @@
 
 (defonce debug-data* (atom {}))
 
-(s/def :geom/matrix #(instance? thi.ng.geom.matrix.Matrix44 %))
-(s/def :geom/translation #(instance? thi.ng.geom.vector.Vec3 %))
-(s/def :geom/rotation #(instance? thi.ng.geom.quaternion.Quat4 %))
-(s/def :geom/scale #(instance? thi.ng.geom.vector.Vec3 %))
-(s/def ::node+transform (s/keys :req-un [:geom/matrix :geom/translation :geom/rotation :geom/scale]))
-
 (s/fdef process-as-geom-transform
-  :ret ::node+transform)
+  :ret ::geom/node+transform)
 (defn process-as-geom-transform
   "if node have :matrix, decompose it and attach :translation, :rotation, :scale
    if not, it assumed to have either :translation, :rotation, or :scale, 
@@ -161,7 +156,7 @@
       nodes)))
 
 (s/fdef node-transform-tree
-  :ret ::transform-tree)
+  :ret ::geom/transform-tree)
 (defn node-transform-tree [nodes node-parent-fix]
   (let [nodes (if node-parent-fix (reorder-parent-child-id nodes node-parent-fix) nodes)
         tree  (tree-seq :children
@@ -215,7 +210,7 @@
              transform-tree (node-transform-tree nodes node-parent-fix)]
          [[model-id ::primitives primitives]
           [model-id ::joints (or joints [])]
-          [model-id ::transform-tree (vec transform-tree)]
+          [model-id ::geom/transform-tree (vec transform-tree)]
           (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
 

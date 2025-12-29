@@ -36,7 +36,7 @@
     [(m/* root-angle root-IK) mid-IK]))
 
 (defn IK-transducer1
-  "transducer assumes input conform to :minustwo.gl.gltf/node+transform"
+  "transducer assumes input conform to :minustwo.gl.geom/node+transform"
   [a b c target]
   (fn [rf]
     (let [fa (volatile! nil)

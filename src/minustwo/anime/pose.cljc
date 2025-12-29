@@ -5,13 +5,13 @@
    [engine.math :as m-ext]
    [engine.world :as world]
    [minustwo.anime.keyframe :as keyframe]
-   [minustwo.gl.gltf :as gltf]
+   [minustwo.gl.geom :as geom]
    [minustwo.systems.time :as time]
    [odoyle.rules :as o]
    [thi.ng.math.core :as m]))
 
 (s/def ::pose-xform fn?)
-(s/def ::pose-tree ::gltf/transform-tree)
+(s/def ::pose-tree ::geom/transform-tree)
 
 (s/def ::point-in-time (s/cat :time-inp ::keyframe/inp 
                               :pose-fn ::pose-xform
@@ -65,7 +65,7 @@
     [:what
      [::time/now ::time/slice 0]
      [esse-id ::pose-xform pose-xform]
-     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::geom/transform-tree transform-tree]
      [::world/global ::db* keyframes-db*]
      :then
      (let [pose-tree (into [] pose-xform transform-tree)]
@@ -79,7 +79,7 @@
     [:what
      [::time/now ::time/total tt {:then false}]
      [::time/now ::time/slice 1]
-     [esse-id ::gltf/transform-tree transform-tree]
+     [esse-id ::geom/transform-tree transform-tree]
      [esse-id ::max-progress max-progress]
      [::world/global ::db* keyframes-db*]
      :then
@@ -98,4 +98,4 @@
          (insert! esse-id ::pose-tree pose)))]}))
 
 (def system
-  {::world/init-fn init-fn ::world/rules rules})
+  {::world/init-fn init-fn ::world/rules #'rules})
