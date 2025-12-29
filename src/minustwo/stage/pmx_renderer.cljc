@@ -4,7 +4,6 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :refer [gl-ctx]]
    [engine.macros :refer [insert!]]
-   [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -17,11 +16,13 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.quaternion :as q]))
 
 (def MAX_JOINTS 500)
 
@@ -89,12 +90,16 @@
               {::shader/ubo ubo}))
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
-            #::shader{:use ::pmx-shader})))
+            #::shader{:use ::pmx-shader}
+            t3d/default)))
 
 (defn after-load-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)}))))
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
+        (esse ::silverwolf-pmx
+              #::t3d{:translation (v/vec3 0.0 0.0 0.0)
+                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 180))}))))
 
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
@@ -139,6 +144,7 @@
      [esse-id ::shader/use ::pmx-shader]
      [::pmx-shader ::shader/program-info program-info]
      [::skinning-ubo ::shader/ubo skinning-ubo]
+     [esse-id ::t3d/transform transform]
      :then
      (println esse-id "is ready to render!")]}))
 
@@ -161,7 +167,7 @@
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
-    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo]}
+    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform]}
             (o/query-all world ::render-data)]
       (let [program    (:program program-info :program)
             vao        (get @vao-db* esse-id)
@@ -175,7 +181,7 @@
         (gl ctx useProgram program)
         (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
         (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-        (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec (m-ext/scaling-mat 1.0))))
+        (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
 
         (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
         (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
