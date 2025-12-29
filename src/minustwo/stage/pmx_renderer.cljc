@@ -7,7 +7,7 @@
    [engine.sugar :refer [f32-arr vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
-   [minustwo.anime.IK :refer [IK-transducer1]]
+   [minustwo.anime.IK :as IK]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
@@ -82,9 +82,10 @@
 
 (def absolute-cinema
   (comp
-   (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
-   (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 50.0 -10.0))
-   (IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 2.0 2.0))))
+   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
+   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 50.0 -10.0))
+   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 9.5 -1.0)
+                      (IK/make-IK-solver2 (v/vec3 -1.0 0.0 0.0)))))
 
 (defn init-fn [world game]
   (-> world
