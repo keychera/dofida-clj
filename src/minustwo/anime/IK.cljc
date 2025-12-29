@@ -23,7 +23,7 @@
 
         target-r     (g/rotate-around-axis target-t axis angle)
         AB           (m/mag (m/- root-t mid-t))
-        BC           (m/mag (m/- mid-t end-t))
+        BC           (m/mag (m/- mid-t target-r))
         AC           (m/mag (m/- root-t target-r))
         cos-alpha    (/ (+ (* AB AB) (* AC AC) (* -1.0 BC BC))
                         (* 2.0 AB AC))
@@ -48,7 +48,7 @@
 
           target-r     (g/rotate-around-axis target-t axis angle)
           AB           (m/mag (m/- root-t mid-t))
-          BC           (m/mag (m/- mid-t end-t))
+          BC           (m/mag (m/- mid-t target-r))
           AC           (m/mag (m/- root-t target-r))
           cos-alpha    (/ (+ (* AB AB) (* AC AC) (* -1.0 BC BC))
                           (* 2.0 AB AC))

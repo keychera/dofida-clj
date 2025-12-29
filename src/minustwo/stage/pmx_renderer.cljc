@@ -82,9 +82,9 @@
 
 (def absolute-cinema
   (comp
-   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
-   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 50.0 -10.0))
-   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 9.5 -1.0)
+   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 -4.27 10.0 -6.0))
+   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 -6.0))
+   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 -3.0)
                       (IK/make-IK-solver2 (v/vec3 -1.0 0.0 0.0)))))
 
 (defn init-fn [world game]
@@ -172,6 +172,7 @@
     [:what
      [::time/now ::time/total tt {:then false}]
      [::time/now ::time/slice 4]
+     [esse-id ::pmx-model/data pmx-data {:then false}]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      :then
      (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
@@ -185,7 +186,6 @@
         (dotimes [j 16]
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
-
 
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
@@ -227,6 +227,8 @@
    ::world/after-load-fn #'after-load-fn
    ::world/rules #'rules
    ::world/render-fn #'render-fn})
+
+;; 
 
 (comment
   (require '[com.phronemophobic.viscous :as viscous])
