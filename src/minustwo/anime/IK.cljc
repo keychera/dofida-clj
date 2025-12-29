@@ -22,9 +22,9 @@
         [axis angle] (q/as-axis-angle root-angle)
 
         target-r     (g/rotate-around-axis target-t axis angle)
-        AB           (m/mag (m/+ root-t mid-t))
-        BC           (m/mag (m/+ mid-t end-t))
-        AC           (m/mag (m/+ root-t target-r))
+        AB           (m/mag (m/- root-t mid-t))
+        BC           (m/mag (m/- mid-t end-t))
+        AC           (m/mag (m/- root-t target-r))
         cos-alpha    (/ (+ (* AB AB) (* AC AC) (* -1.0 BC BC))
                         (* 2.0 AB AC))
         alpha        (m-ext/clamped-acos cos-alpha)

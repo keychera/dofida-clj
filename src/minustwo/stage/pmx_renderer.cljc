@@ -83,7 +83,8 @@
 (def absolute-cinema
   (comp
    (IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 4.27 3.0 -10.0))
-   (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 3.0 -10.0))))
+   (IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 -4.27 50.0 -10.0))
+   (IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 2.0 2.0))))
 
 (defn init-fn [world game]
   (-> world
@@ -171,7 +172,7 @@
      [::time/now ::time/total tt {:then false}]
      [::time/now ::time/slice 4]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
-     :then 
+     :then
      (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
        (insert! esse-id ::pose/pose-tree pose-tree))]}))
 
@@ -231,5 +232,9 @@
 
   ;; err
   (viscous/inspect hmm)
+
+  (into []
+        (filter #(#{"左足" "左ひざ"} (:local-name %)))
+        (-> hmm :pmx-data :bones))
 
   :-)
