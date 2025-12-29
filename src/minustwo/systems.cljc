@@ -17,7 +17,8 @@
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]
    [minustwo.model.pmx-model :as pmx-model]
-   [minustwo.gl.vao :as vao]))
+   [minustwo.gl.vao :as vao]
+   [minustwo.stage.gltf-renderer :as gltf-renderer]))
 
 (def all
   [time/system
@@ -42,5 +43,7 @@
   ;;  hidup/system
    pmx-model/system
    pmx-renderer/system
+   gltf-renderer/system
+
    wirecube/system
    pose/system])

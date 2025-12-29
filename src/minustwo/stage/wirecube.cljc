@@ -6,7 +6,7 @@
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
-   [minustwo.stage.hidup :as hidup]
+   [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.systems.transform3d :as t3d]))
 
 (def the-vertex-shader
@@ -44,7 +44,7 @@
               #::assimp{:model-to-load ["assets/wirebeing.glb"] :config {:tex-unit-offset 0}}
               #::shader{:use ::simpleshader}
               pose/default
-              hidup/normal-draw
+              gltf-renderer/normal-draw
               t3d/default))))
 
 (def system
