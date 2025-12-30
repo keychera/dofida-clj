@@ -2,8 +2,9 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
-   [engine.macros :refer [insert!]]
+   [engine.macros :refer [insert! s->]]
    [engine.sugar :refer [f32-arr vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
@@ -89,7 +90,7 @@
 
 (defn init-fn [world game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 15.5 15.0) (v/vec3 0.0 0.0 -1.0))
+      (firstperson/insert-player (v/vec3 0.0 17.5 15.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::skinning-ubo
             (let [ctx (gl-ctx game)
                   ubo (cljgl/create-buffer ctx)]
@@ -111,12 +112,15 @@
         (esse ::silverwolf-pmx
               (pose/strike absolute-cinema)
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
-                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 180))}))))
+                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 180))}
+              {::morph-target "笑い"
+               ::morph-bucket {}
+               ::interpolate 1.0}))))
 
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
     (->> [{:bind-vao esse-id}
-          {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER}
+          {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
           {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
           {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
           {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
@@ -137,6 +141,10 @@
           {:unbind-vao true}]
          flatten (into []))))
 
+(s/def ::morph-target string?)
+(s/def ::morph-bucket map?)
+(s/def ::interpolate number?)
+
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
@@ -151,22 +159,54 @@
 
     ::bone-to-pose-tree
     [:what
-     [esse-id ::pmx-model/data pmx-data]
+     [esse-id ::gl-magic/casted? true]
+     [esse-id ::pmx-model/data pmx-data {:then false}]
      :then
      (println "prep bones!")
      (insert! esse-id ::geom/transform-tree (:bones pmx-data))]
 
     ::render-data
     [:what
-     [esse-id ::pmx-model/data pmx-data]
+     [esse-id ::pmx-model/data pmx-data {:then false}]
      [esse-id ::gl-magic/casted? true]
      [esse-id ::shader/use ::pmx-shader]
      [::pmx-shader ::shader/program-info program-info]
      [::skinning-ubo ::shader/ubo skinning-ubo]
      [esse-id ::t3d/transform transform]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
+     [:position ::shader/buffer position-buffer]
      :then
      (println esse-id "is ready to render!")]
+
+    ::cpu-morph
+    [:what
+     [::time/now ::time/slice 3]
+     [esse-id ::morph-target morph-target]
+     [esse-id ::pmx-model/data pmx-data {:then false}]
+     [esse-id ::morph-bucket bucket {:then false}]
+     [esse-id ::interpolate interpolate {:then false}]
+     :then
+     (let [morph-data (-> (into [] (filter #(= (:local-name %) morph-target)) (-> pmx-data :pmx-data :morphs))
+                          first :offsets :offset-data)
+           [POSITION'
+            bucket']  (reduce
+                       (fn [[pos' bucket'] {vert-idx :vertex-idx trans-v :translation}]
+                         (let [idx        (* vert-idx 3)
+                               bucket-v   (get bucket' vert-idx)
+                               orig-v     (or bucket-v [(aget pos' idx) (aget pos' (+ idx 1)) (aget pos' (+ idx 2))])
+                               bucket'    (cond-> bucket'
+                                            (nil? bucket-v) (assoc vert-idx orig-v))
+                               [x' y' z'] (mapv (fn [v v'] (+ v (* interpolate v'))) orig-v trans-v)]
+
+                           (aset pos' idx (float x'))
+                           (aset pos' (+ idx 1) (float y'))
+                           (aset pos' (+ idx 2) (float z'))
+                           [pos' bucket']))
+                       [(:POSITION pmx-data) bucket]
+                       morph-data)]
+       (s-> session
+            (o/insert esse-id ::pmx-model/data (assoc pmx-data :POSITION POSITION'))
+            (o/insert esse-id ::morph-bucket bucket')))]
 
     ::global-transform
     [:what
@@ -190,11 +230,12 @@
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
-    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform pose-tree]}
+    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform pose-tree position-buffer]}
             (o/query-all world ::render-data)]
       (let [program    (:program program-info :program)
             vao        (get @vao-db* esse-id)
             materials  (:materials pmx-data)
+            POSITION   (:POSITION pmx-data)
             joint-mats (create-joint-mats-arr pose-tree)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
@@ -203,6 +244,9 @@
         (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
         (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
         (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
+
+        (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
+        (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
 
         (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
         (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
@@ -237,7 +281,14 @@
   (viscous/inspect hmm)
 
   (into []
-        (filter #(#{"左足" "左ひざ"} (:local-name %)))
-        (-> hmm :pmx-data :bones))
+        (comp (filter #(= (:local-name %) "にこり"))
+              (map (comp :offset-data :offsets))
+              (map (fn [os] (take 3 os))))
+        (-> hmm :pmx-data :morphs))
+
+  (aget (-> hmm :POSITION) (* 24279 3))
+  (alength (-> hmm :POSITION))
+
+  (+ 1 1)
 
   :-)

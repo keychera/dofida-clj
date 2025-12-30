@@ -27,6 +27,7 @@
 (s/def ::program-info (s/keys :req-un [::program ::attr-locs ::uni-locs]))
 (s/def ::all (s/map-of some? ::program-info))
 
+(s/def ::buffer some?)
 (s/def ::ubo some?)
 (s/def ::use some?)
 

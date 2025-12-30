@@ -68,7 +68,11 @@
                 buffer-data (:buffer-data chant)]
             (gl ctx bindBuffer buffer-type buffer)
             (gl ctx bufferData buffer-type buffer-data GL_STATIC_DRAW)
-            (recur remaining summons (assoc state :current-buffer buffer :buffer-type buffer-type)))
+            (recur remaining 
+                   (if (:buffer-name chant)
+                     (conj summons [(:buffer-name chant) ::shader/buffer buffer])
+                     summons)
+                   (assoc state :current-buffer buffer :buffer-type buffer-type)))
 
           [{:bind-current-buffer _}]
           (let [current-buffer (:current-buffer state)
