@@ -102,6 +102,7 @@
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-shader}
+            {::morph-bucket {}}
             pose/default
             t3d/default)))
 
@@ -114,7 +115,6 @@
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                      :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 180))}
               {::morph-target "笑い"
-               ::morph-bucket {}
                ::interpolate 1.0}))))
 
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
