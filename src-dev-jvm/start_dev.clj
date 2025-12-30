@@ -22,7 +22,7 @@
   (reset! stop-flag* true))
 
 (defn start []
-  (st/instrument)
+  (st/instrument 'odoyle.rules/insert)
   (reset! stop-flag* false)
   (with-redefs
    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]
@@ -46,5 +46,8 @@
 (comment
   (refresh)
   (stop) ;; game won't load properly on the second start
+  
+  (st/instrument) 
+  (st/unstrument)
 
   ::waiting-for-something-to-happen?)
