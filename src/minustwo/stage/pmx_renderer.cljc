@@ -186,27 +186,25 @@
      [esse-id ::morph-bucket bucket {:then false}]
      [esse-id ::interpolate interpolate {:then false}]
      :then
-     (let [morph-data (-> (into [] (filter #(= (:local-name %) morph-target)) (-> pmx-data :pmx-data :morphs))
-                          first :offsets :offset-data)
-           [POSITION'
-            bucket']  (reduce
-                       (fn [[pos' bucket'] {vert-idx :vertex-idx trans-v :translation}]
-                         (let [idx        (* vert-idx 3)
-                               bucket-v   (get bucket' vert-idx)
-                               orig-v     (or bucket-v [(aget pos' idx) (aget pos' (+ idx 1)) (aget pos' (+ idx 2))])
-                               bucket'    (cond-> bucket'
-                                            (nil? bucket-v) (assoc vert-idx orig-v))
-                               [x' y' z'] (mapv (fn [v v'] (+ v (* interpolate v'))) orig-v trans-v)]
+     (let [morph-data   (-> (into [] (filter #(= (:local-name %) morph-target)) (-> pmx-data :pmx-data :morphs))
+                            first :offsets :offset-data)
+           ^floats pos! (:POSITION pmx-data)
+           bucket'      (reduce
+                         (fn [bucket' {vert-idx :vertex-idx
+                                       trans-v  :translation}]
+                           (let [idx        (* vert-idx 3)
+                                 bucket-v   (get bucket' vert-idx)
+                                 orig-v     (or bucket-v [(aget pos! idx) (aget pos! (+ idx 1)) (aget pos! (+ idx 2))])
+                                 bucket'    (cond-> bucket'
+                                              (nil? bucket-v) (assoc vert-idx orig-v))
+                                 [x' y' z'] (mapv (fn [v v'] (+ v (* interpolate v'))) orig-v trans-v)]
 
-                           (aset pos' idx (float x'))
-                           (aset pos' (+ idx 1) (float y'))
-                           (aset pos' (+ idx 2) (float z'))
-                           [pos' bucket']))
-                       [(:POSITION pmx-data) bucket]
-                       morph-data)]
-       (s-> session
-            (o/insert esse-id ::pmx-model/data (assoc pmx-data :POSITION POSITION'))
-            (o/insert esse-id ::morph-bucket bucket')))]
+                             (aset pos! idx (float x'))
+                             (aset pos! (+ idx 1) (float y'))
+                             (aset pos! (+ idx 2) (float z'))
+                             bucket'))
+                         bucket morph-data)]
+       (s-> session (o/insert esse-id ::morph-bucket bucket')))]
 
     ::global-transform
     [:what
