@@ -210,8 +210,8 @@
       (let [program    (:program program-info :program)
             vao        (get @vao-db* esse-id)
             materials  (:materials pmx-data)
-            POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
-            joint-mats (create-joint-mats-arr pose-tree)]
+            ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+            ^floats joint-mats (create-joint-mats-arr pose-tree)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
         (def hmm pmx-data)
@@ -220,6 +220,7 @@
         (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
         (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
 
+        ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
         (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
         (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
 
