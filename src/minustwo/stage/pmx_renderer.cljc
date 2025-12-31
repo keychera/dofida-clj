@@ -26,7 +26,8 @@
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minustwo.anime.pacing :as pacing]))
 
 (def MAX_JOINTS 500)
 
@@ -108,18 +109,27 @@
     (-> world
         (firstperson/insert-player (v/vec3 0.0 17.5 18.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
+        (pacing/insert-timeline
+         ;; hmmm this API is baaad, need more hammock, artifact first, construct later
+         ::silverwolf-pmx
+         [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
+                                                  "にこり" 0.0
+                                                  "にやり3" 0.0}]]]
+          [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 1.2
+                                                  "にこり" 0.5
+                                                  "にやり3" 0.5}]]]
+          [7.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
+                                                  "にこり" 0.0
+                                                  "にやり3" 0.0}]]]])
         (esse ::silverwolf-pmx
               ;; (pose/strike absolute-cinema)
               (pose/anime
                [[0.0 identity identity]
-                [1.0 absolute-cinema identity]
-                [7.0 absolute-cinema identity]
+                [0.5 absolute-cinema identity]
+                [7.5 absolute-cinema identity]
                 [8.0 identity identity]])
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
-                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}
-              #::morph{:active {"笑い1" 1.2
-                                "にこり" 0.5
-                                "にやり3" 0.5}}))))
+                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}))))
 
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
