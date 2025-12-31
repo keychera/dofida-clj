@@ -33,7 +33,7 @@
                {:what
                 (fn [f session new-fact old-fact]
                   (when false #_(not (fact-id-with-frequent-updates (:id new-fact)))
-                    (println (:name rule) "is comparing" (dissoc old-fact :value) "=>" (dissoc new-fact :value)))
+                        (println (:name rule) "is comparing" (dissoc old-fact :value) "=>" (dissoc new-fact :value)))
                   (f session new-fact old-fact))
                 :when
                 (fn [f session match]
@@ -59,14 +59,15 @@
   (if (instance? #?(:clj clojure.lang.Var :cljs Var) v) (deref v) v))
 
 (defn build-systems [system-coll]
-  (let [all-rules  (into []
+  (let [systems    (into [] (map resolve-var) system-coll)
+        all-rules  (into []
                          (comp (distinct)
                                (mapcat resolve-var))
-                         (sp/select [sp/ALL ::rules] system-coll))
-        init-fns   (sp/select [sp/ALL ::init-fn some?] system-coll)
-        before-fns (sp/select [sp/ALL ::before-load-fn some?] system-coll)
-        after-fns  (sp/select [sp/ALL ::after-load-fn some?] system-coll)
-        render-fns (sp/select [sp/ALL ::render-fn some?] system-coll)]
+                         (sp/select [sp/ALL ::rules] systems))
+        init-fns   (sp/select [sp/ALL ::init-fn some?] systems)
+        before-fns (sp/select [sp/ALL ::before-load-fn some?] systems)
+        after-fns  (sp/select [sp/ALL ::after-load-fn some?] systems)
+        render-fns (sp/select [sp/ALL ::render-fn some?] systems)]
     (vars->map all-rules before-fns init-fns after-fns render-fns)))
 
 (defn init-world [world game all-rules before-fns init-fns after-fns]
