@@ -13,16 +13,25 @@
 
 (declare refresh-zone progress-zone error-zone)
 
+(def ANSI-RED "\u001B[31m")
+(def ANSI_RESET "\u001B[0m")
+(defn RED [text] (str ANSI-RED text ANSI_RESET))
+
 (defn init [game]
-  (let [ctx (gl-ctx game)]
-    (gl ctx enable GL_BLEND)
-    (gl ctx enable GL_CULL_FACE))
-  (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
-    (some-> (::game/render-fns* game) (reset! render-fns))
-    (swap! (::world/atom* game)
-           (fn [world]
-             (-> (world/init-world world game all-rules before-fns init-fns after-fns)
-                 (o/fire-rules)))))
+  (try
+    (let [ctx (gl-ctx game)]
+      (gl ctx enable GL_BLEND)
+      (gl ctx enable GL_CULL_FACE))
+    (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
+      (some-> (::game/render-fns* game) (reset! render-fns))
+      (swap! (::world/atom* game)
+             (fn [world]
+               (-> (world/init-world world game all-rules before-fns init-fns after-fns)
+                   (o/fire-rules)))))
+    (catch  #?(:clj Exception :cljs js/Error) err
+      ;; error handling when repl'ing need hammock time
+      (println (RED "[init error]") (or (:via (Throwable->map err))
+                                        (dissoc (Throwable->map err) :trace)))))
   game)
 
 (defn tick [game]
