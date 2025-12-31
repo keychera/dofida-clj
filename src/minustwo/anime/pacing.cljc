@@ -20,7 +20,10 @@
 (s/def ::fact-timeline (s/coll-of ::timed-fact :kind vector?))
 
 (defn set-config [world config]
-  (o/insert world ::world/global ::config config))
+  (o/insert world ::world/global ::config
+            (merge {:max-progress 16.0
+                    :timescale    (/ 1 640)}
+                   config)))
 
 (defn insert-timeline [world esse-id timeline]
   (let [timeline' (into [] (map (fn [[time-inp facts]] [time-inp facts -1])) timeline)]
