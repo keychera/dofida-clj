@@ -152,8 +152,7 @@
                    :scale (v/vec3 24.0)})
       (esse ::rubahperak
             #_(pose/strike pose-rest)
-            (pose/anime 20.0
-                        [[0.0 pose-rest identity]
+            (pose/anime [[0.0 pose-rest identity]
                          [0.3 absolute-cinema identity]
                          [15.5 absolute-cinema identity]
                          [16.0 pose-rest identity]])
