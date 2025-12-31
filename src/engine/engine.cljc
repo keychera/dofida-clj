@@ -5,7 +5,7 @@
    [engine.game :as game :refer [gl-ctx]]
    [engine.refresh :refer [*refresh?]]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE]]
+   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_DEPTH_TEST]]
    [minustwo.systems :as systems]
    [minustwo.zone.loading :refer [loading-zone]]
    [minustwo.zone.render :refer [render-zone]]
@@ -21,7 +21,8 @@
   (try
     (let [ctx (gl-ctx game)]
       (gl ctx enable GL_BLEND)
-      (gl ctx enable GL_CULL_FACE))
+      (gl ctx enable GL_CULL_FACE)
+      (gl ctx enable GL_DEPTH_TEST))
     (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
       (some-> (::game/render-fns* game) (reset! render-fns))
       (swap! (::world/atom* game)
