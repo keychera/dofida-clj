@@ -19,18 +19,12 @@ todo:
         ✔ IK solver @done(25-12-25 00:37) kinda working
         ✘ blender integration  @cancelled(25-12-25 00:32) deferred, more hammock with basilisp later
         ✘ blend shapes @cancelled(25-12-25 00:27) assimp blocker
-        ☐ let's dance!
-        ☐ skybox
-        ☐ prop
-        ☐ audio
-        ☐ shaders, bnpr, czmw_, tsoding, bmtol
-        ☐ multi-mesh, multi-scene
 
-        ☐ fundamental problem and stuff, doing my best to defer and not tackle everything at once
+        ✔ fundamental problem and stuff, doing my best to defer and not tackle everything at once @done(25-12-31 23:50)
             ✘ no morph target/shape keys from assimp pmx, noone to ask (ask assimp creator? ask mr. godot? probably not the latter) @cancelled(25-12-25 00:19)
                 ✘ maybe related https://github.com/assimp/assimp/issues/6361, post issue about .pmx as well? c++ is so daunting... @cancelled(25-12-25 00:19)
                 ✘ the PmxMorph exist but it is not being sent to aiScene @cancelled(25-12-29 17:01)
-                    ☐ no PmxMorph or Morph keyword here https://github.com/assimp/assimp/blob/ae6f4776045c115efdc0b66f78c8895e2d3b782c/code/AssetLib/MMD/MMDImporter.cpp
+                    ✘ no PmxMorph or Morph keyword here https://github.com/assimp/assimp/blob/ae6f4776045c115efdc0b66f78c8895e2d3b782c/code/AssetLib/MMD/MMDImporter.cpp @cancelled(25-12-31 23:52)
                     ✘ patch assimp? maybe let's do it when we Jank! @cancelled(25-12-27 15:18) not interested anymore since we are not afraid of binary no more
                 ✘ the parser have it but where does it go??? @cancelled(25-12-27 15:18)
                     ✘ make our own additional parser? @cancelled(25-12-27 15:18) we parsed the whole thing ourself 💀 bc gloss is just so nice, though with its debuggability and perf warts -> WRONG, no perf issue from gloss, debuggability still fair points tho when repl'ing
@@ -51,16 +45,39 @@ todo:
                             ✔ pmx renderer @done(25-12-29 17:00)
                         ✘ profile parser @cancelled(25-12-27 19:10) did it, not sure if we can do anything about it, mostly gloss bottleneck
                             ✔ actually, 200ms model load times now, it was our bad code instead of gloss, sorry Mr Zach @done(25-12-28 12:24)
-                        ☐ morph shader
-                        ☐ the Anime
-                        ☐ we still dont understand UBO yet, weird stuff when we load more than 1 models
-                        ☐ automatic tex unit counter
-                        ☐ gltf and pmx renderer
-
+                        ✘ morph shader @cancelled(25-12-31 23:50) cpu morph it is
+                        ✔ the Anime @done(25-12-31 23:50)
+          
                     ✘ try assimp ourself? @cancelled(25-12-25 00:25)
-                        ☐ jank exploration?
+                       
             ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
                 
+    ☐ either a dream or a delusion
+        ☐ IK is still wrong I think
+        ☐ anime is still a bad api
+        
+        ☐ let's dance!
+        ☐ particle
+        ☐ skybox or background
+        ☐ arbitrary shapes or graphic animation
+        ☐ prop, many objects
+        ☐ audio
+        ☐ bnpr
+            ☐ czmw_
+            ☐ tsoding
+            ☐ bmtol
+        ☐ multi-mesh, multi-scene
+
+        ☐ we still dont understand UBO yet, weird stuff when we load more than 1 models
+        ☐ automatic tex unit counter
+        ☐ gltf and pmx renderer
+
+        ☐ jank exploration?
+
+    ☐ hello clojure from dofida!
+        ☐ text dialogue
+        ☐ director
+
 
     ☐ it begins
         ✔ reconstruct atlas asset with our current gl knowledge @done(25-11-08 15:07), not atlas yet but good enough
