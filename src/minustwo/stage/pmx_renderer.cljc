@@ -83,10 +83,10 @@
 
 (def absolute-cinema
   (comp
-   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 -4.27 10.0 -6.0))
-   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 -6.0))
-   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 -3.0)
-                      (IK/make-IK-solver2 (v/vec3 -1.0 0.0 0.0)))))
+   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 -4.27 10.0 6.0))
+   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 6.0))
+   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 3.0)
+                      (IK/make-IK-solver2 (v/vec3 1.0 0.0 0.0)))))
 
 (defn init-fn [world game]
   (-> world
@@ -113,7 +113,7 @@
         (esse ::silverwolf-pmx
               (pose/strike absolute-cinema)
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
-                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 180))}
+                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}
               {::morph-target "笑い"
                ::interpolate 1.0}))))
 
