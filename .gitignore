@@ -17,6 +17,7 @@ node_modules/
 .shadow-cljs
 
 imgui.ini
+config.edn
 
 # ignoring .blend files for now
 resources/blender/*

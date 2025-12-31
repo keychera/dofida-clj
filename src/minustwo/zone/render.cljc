@@ -2,21 +2,21 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
-   [engine.world :as world]
    [engine.game :as game]
+   [engine.utils :as utils]
+   [engine.world :as world]
    [minustwo.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
-   [minustwo.gl.gl-system :as gl-system]
-   [odoyle.rules :as o]
    [minustwo.systems.time :as time]
-   [engine.utils :as utils]))
+   [minustwo.systems.view.room :as room]
+   [odoyle.rules :as o]))
 
 (defn render-zone [game]
   (let [total-time             (:total-time game)
         delta-time             (:delta-time game)
         world                  (swap! (::world/atom* game)
                                       (fn [world] (-> world (time/insert total-time delta-time) (o/fire-rules))))
-        {:keys [ctx window]}   (utils/query-one world ::gl-system/data)
+        {:keys [ctx window]}   (utils/query-one world ::room/data)
         {:keys [width height]} window]
     (when ctx
       (gl ctx blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)

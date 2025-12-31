@@ -22,7 +22,7 @@
     [_ :r]
     (if (= keystate ::keyup)
       (-> session
-          ;; firstperson/player-reset
+          firstperson/player-reset
           arcball/reset-rot)
       session)
 

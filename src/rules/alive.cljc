@@ -1,20 +1,22 @@
 (ns rules.alive
   (:require
-   #?(:clj  [play-cljc.macros-java :refer [gl]]
-      :cljs [play-cljc.macros-js :refer-macros [gl]])
-   [rules.asset :as asset :refer [asset]]
-   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
-   [minustwo.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA GL_ZERO GL_ONE GL_FLOAT GL_ARRAY_BUFFER GL_FRAMEBUFFER GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
-   [minustwo.gl.texture :as texture]
+   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s-> vars->map]]
    [engine.utils :as utils]
    [engine.world :as world]
    [iglu.core :as iglu]
-   [odoyle.rules :as o]
-   [play-cljc.gl.utils :as gl-utils]
-   [play-cljc.math :as m]
+   [minustwo.gl.cljgl :as cljgl]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_BUFFER_BIT GL_FLOAT
+                                  GL_FRAMEBUFFER GL_ONE GL_ONE_MINUS_SRC_ALPHA
+                                  GL_SRC_ALPHA GL_STATIC_DRAW GL_TEXTURE0
+                                  GL_TEXTURE_2D GL_TRIANGLES GL_ZERO]]
+   [minustwo.gl.texture :as texture]
    [minustwo.systems.input :as input]
+   [odoyle.rules :as o]
+   [rules.asset :as asset :refer [asset]]
+   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
    [rules.window :as window]))
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
@@ -53,14 +55,14 @@
         right        [(Math/sin (- horiz-angle (/ Math/PI 2)))
                       0.0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
-        up           (#'m/cross right direction)
+        up           (#'#_PLACEHOLDER-cross vector right direction)
 
-        look-at      (m/look-at-matrix-3d position (mapv + position direction) up)
-        view         (m/inverse-matrix-3d look-at)
+        look-at      (#_PLACEHOLDER-look-at-matrix-3d vector position (mapv + position direction) up)
+        view         (#_PLACEHOLDER-inverse-matrix-3d vector look-at)
 
         ;; rotation is part of m
-        rotation     (m/z-rotation-matrix-3d (m/deg->rad 180))]
-    (m/multiply-matrices-3d rotation view)))
+        rotation     (#_PLACEHOLDER-z-rotation-matrix-3d vector (#_PLACEHOLDER-deg->rad vector 180))]
+    (#_PLACEHOLDER-multiply-matrices-3d vector rotation view)))
 
 (s/def ::metadata-loaded? boolean?)
 (defonce db* (atom {}))
@@ -72,10 +74,10 @@
                          (filter #(= (:filename %) frame-name))
                          (first) :frame)
         {:keys [x y w h]} frame-crop
-        scale3d-matrix (m/scaling-matrix-3d (/ w width) (/ h height) 1.0)
-        crop-matrix    (m/multiply-matrices
-                        (m/scaling-matrix (/ w width) (/ h height))
-                        (m/translation-matrix (/ x width) (/ y height)))]
+        scale3d-matrix (#_PLACEHOLDER-scaling-matrix-3d vector (/ w width) (/ h height) 1.0)
+        crop-matrix    (#_PLACEHOLDER-multiply-matrices vector
+                        (#_PLACEHOLDER-scaling-matrix vector (/ w width) (/ h height))
+                        (#_PLACEHOLDER-translation-matrix vector (/ x width) (/ y height)))]
     [scale3d-matrix crop-matrix]))
 
 (def system
@@ -83,7 +85,7 @@
    (fn [world game]
      (let [vertex-source   (iglu/iglu->glsl (merge {:version glsl-version} alive-vertex-shader))
            fragment-source (iglu/iglu->glsl (merge {:version glsl-version} alive-fragment-shader))
-           the-program     (gl-utils/create-program game vertex-source fragment-source)
+           the-program     (cljgl/create-program game vertex-source fragment-source)
 
            the-attr-loc    (gl game getAttribLocation the-program "a_pos")
            the-uv-attr-loc (gl game getAttribLocation the-program "a_uv")
@@ -93,11 +95,11 @@
        (swap! db* assoc ::alive-program
               (vars->map the-program the-attr-loc the-uv-attr-loc the-mvp-loc the-crop-loc the-texture-loc)))
 
-     (let [alive-plane-vbo (gl-utils/create-buffer game)
+     (let [alive-plane-vbo (cljgl/create-buffer game)
            _               (gl game bindBuffer GL_ARRAY_BUFFER alive-plane-vbo)
            _               (gl game bufferData GL_ARRAY_BUFFER plane3d-vertices GL_STATIC_DRAW)
 
-           alive-uv-buffer (gl-utils/create-buffer game)
+           alive-uv-buffer (cljgl/create-buffer game)
            _               (gl game bindBuffer GL_ARRAY_BUFFER alive-uv-buffer)
            _               (gl game bufferData GL_ARRAY_BUFFER plane3d-uvs GL_STATIC_DRAW)
            vertex-count    6]
@@ -172,49 +174,49 @@
                pupil-x (/ (- (or mouse-x 0.0) (/ width 10)) (- ratio))
                pupil-y (/ (- (or mouse-y 0.0) (/ height 10)) ratio)
 
-               initial-fov    (m/deg->rad 45)
+               initial-fov    (#_PLACEHOLDER-deg->rad vector 45)
                aspect-ratio   (/ width height)
-               projection     (m/perspective-matrix-3d initial-fov aspect-ratio 0.1 100)
-               v*p            (m/multiply-matrices-3d view-matrix projection)
+               projection     (#_PLACEHOLDER-perspective-matrix-3d vector initial-fov aspect-ratio 0.1 100)
+               v*p            (#_PLACEHOLDER-multiply-matrices-3d vector view-matrix projection)
 
                [sclera-scale sclera-crop] (matrices-from-atlas atlas-metadata "sclera.png")
-               sclera-mvp     (reduce m/multiply-matrices-3d
-                                      [(m/translation-matrix-3d 1.8 0.0 0.0)
-                                       (m/translation-matrix-3d (/ pupil-x 5) (/ pupil-y 5) 0.0)
+               sclera-mvp     (reduce #_PLACEHOLDER-multiply-matrices-3d vector
+                                      [(#_PLACEHOLDER-translation-matrix-3d vector 1.8 0.0 0.0)
+                                       (#_PLACEHOLDER-translation-matrix-3d vector (/ pupil-x 5) (/ pupil-y 5) 0.0)
                                        sclera-scale
                                        v*p])
-               sclera-mvp-r   (reduce m/multiply-matrices-3d
-                                      [(m/translation-matrix-3d 1.8 0.0 0.0)
-                                       (m/translation-matrix-3d (/ pupil-x -5) (/ pupil-y 5) 0.0)
-                                       (m/y-rotation-matrix-3d (m/deg->rad 180))
+               sclera-mvp-r   (reduce #_PLACEHOLDER-multiply-matrices-3d vector
+                                      [(#_PLACEHOLDER-translation-matrix-3d vector 1.8 0.0 0.0)
+                                       (#_PLACEHOLDER-translation-matrix-3d vector (/ pupil-x -5) (/ pupil-y 5) 0.0)
+                                       (#_PLACEHOLDER-y-rotation-matrix-3d vector (#_PLACEHOLDER-deg->rad vector 180))
                                        sclera-scale
                                        v*p])
 
                [pupil-scale pupil-crop] (matrices-from-atlas atlas-metadata "pupil.png")
-               pupil-mvp     (reduce m/multiply-matrices-3d
-                                     [(m/translation-matrix-3d 3.11 0.0 0.0)
-                                      (m/translation-matrix-3d pupil-x pupil-y 0.0)
+               pupil-mvp     (reduce #_PLACEHOLDER-multiply-matrices-3d vector
+                                     [(#_PLACEHOLDER-translation-matrix-3d vector 3.11 0.0 0.0)
+                                      (#_PLACEHOLDER-translation-matrix-3d vector pupil-x pupil-y 0.0)
                                       pupil-scale
                                       v*p])
-               pupil-mvp-r   (reduce m/multiply-matrices-3d
-                                     [(m/translation-matrix-3d 3.11 0.0 0.0)
-                                      (m/translation-matrix-3d (- pupil-x) pupil-y 0.0)
-                                      (m/y-rotation-matrix-3d (m/deg->rad 180))
+               pupil-mvp-r   (reduce #_PLACEHOLDER-multiply-matrices-3d vector
+                                     [(#_PLACEHOLDER-translation-matrix-3d vector 3.11 0.0 0.0)
+                                      (#_PLACEHOLDER-translation-matrix-3d vector (- pupil-x) pupil-y 0.0)
+                                      (#_PLACEHOLDER-y-rotation-matrix-3d vector (#_PLACEHOLDER-deg->rad vector 180))
                                       pupil-scale
                                       v*p])
 
                [lashes-scale lashes-crop] (matrices-from-atlas atlas-metadata "lashes.png")
-               lashes-mvp     (reduce m/multiply-matrices-3d
-                                      [(m/translation-matrix-3d 1.4 0.0 0.0)
-                                       (m/translation-matrix-3d (+ 0.18 (/ pupil-x 5))
+               lashes-mvp     (reduce #_PLACEHOLDER-multiply-matrices-3d vector
+                                      [(#_PLACEHOLDER-translation-matrix-3d vector 1.4 0.0 0.0)
+                                       (#_PLACEHOLDER-translation-matrix-3d vector (+ 0.18 (/ pupil-x 5))
                                                                 (+ -0.5 (/ pupil-y 5)) 0.0)
                                        lashes-scale
                                        v*p])
-               lashes-mvp-r   (reduce m/multiply-matrices-3d
-                                      [(m/translation-matrix-3d 1.4 0.0 0.0)
-                                       (m/translation-matrix-3d (+ 0.18 (/ pupil-x -5))
+               lashes-mvp-r   (reduce #_PLACEHOLDER-multiply-matrices-3d vector
+                                      [(#_PLACEHOLDER-translation-matrix-3d vector 1.4 0.0 0.0)
+                                       (#_PLACEHOLDER-translation-matrix-3d vector (+ 0.18 (/ pupil-x -5))
                                                                 (+ -0.5 (/ pupil-y 5)) 0.0)
-                                       (m/y-rotation-matrix-3d (m/deg->rad 180))
+                                       (#_PLACEHOLDER-y-rotation-matrix-3d vector (#_PLACEHOLDER-deg->rad vector 180))
                                        lashes-scale
                                        v*p])]
            ;; dear god, https://stackoverflow.com/a/49665354/8812880
@@ -278,12 +280,12 @@
           (gl game useProgram the-program)
 
           (gl game uniformMatrix4fv the-mvp-loc false
-              #?(:clj (float-array (m/identity-matrix 4))
-                 :cljs (m/identity-matrix 4)))
+              #?(:clj (float-array (#_PLACEHOLDER-identity-matrix vector 4))
+                 :cljs (#_PLACEHOLDER-identity-matrix vector 4)))
 
           (gl game uniformMatrix3fv the-crop-loc false
-              #?(:clj (float-array (m/identity-matrix 3))
-                 :cljs (m/identity-matrix 3)))
+              #?(:clj (float-array (#_PLACEHOLDER-identity-matrix vector 3))
+                 :cljs (#_PLACEHOLDER-identity-matrix vector 3)))
 
           (gl game activeTexture (+ GL_TEXTURE0 fbo-tex-unit))
           (gl game bindTexture GL_TEXTURE_2D fbo-tex)

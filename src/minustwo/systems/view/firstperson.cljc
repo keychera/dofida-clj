@@ -21,14 +21,20 @@
 (s/def ::pitch float?) ;; radians
 
 (def up (v/vec3 0.0 1.0 0.0)) ; y points towards the sky
+(defonce reset-pos* (atom []))
 
 (defn insert-player
-  ([world position front]
-   (o/insert world ::player
-             {::position position
-              ::front front
-              ::yaw (* -0.5 Math/PI)
-              ::pitch 0.0})))
+  [world position front]
+  (reset! reset-pos* [position front])
+  (o/insert world ::player
+            {::position position
+             ::front front
+             ::yaw (* -0.5 Math/PI)
+             ::pitch 0.0}))
+
+(defn player-reset [world] 
+  (let [[position front] @reset-pos*]
+    (insert-player world position front)))
 
 (def rules
   (o/ruleset

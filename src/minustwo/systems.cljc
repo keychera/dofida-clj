@@ -1,34 +1,53 @@
 (ns minustwo.systems
   (:require
-   #?(:clj  [minustwo.model.assimp-lwjgl :as assimp-jvm]
-      :cljs [minustwo.model.assimp-js :as assimp-js])
-   [minustwo.systems.view.firstperson :as firstperson]
-   [minustwo.anime.anime :as anime]
+   [minustwo.anime.anime-gltf :as anime-gltf]
+   [minustwo.anime.morph :as morph]
+   [minustwo.anime.pacing :as pacing]
+   [minustwo.anime.pose :as pose]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.texture :as texture]
-   [minustwo.stage.hidup :as hidup]
-   [minustwo.systems.transform3d :as t3d]
-   [minustwo.systems.view.projection :as projection]
-   [minustwo.systems.window :as window]
+   [minustwo.gl.vao :as vao]
+   [minustwo.model.assimp :as assimp]
+   [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.gltf-renderer :as gltf-renderer]
+   [minustwo.stage.pmx-renderer :as pmx-renderer]
+   [minustwo.stage.wirecube :as wirecube]
+   [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
-   [minustwo.systems.time :as time]))
+   [minustwo.systems.time :as time]
+   [minustwo.systems.transform3d :as t3d]
+   [minustwo.systems.view.firstperson :as firstperson]
+   [minustwo.systems.view.projection :as projection]
+   [minustwo.systems.view.room :as room]
+   [minustwo.systems.window :as window]))
 
 (def all
   [time/system
-   
+
    window/system
    projection/system
    firstperson/system
    input/system
 
-   #?(:clj  assimp-jvm/system
-      :cljs assimp-js/system)
+   assimp/system
    texture/system
 
    gl-system/system
    gl-magic/system
-   anime/system
-   
+   vao/system
+   anime-gltf/system
+   pacing/system
+   morph/system
+
+   room/system
+   perspective-grid/system
    t3d/system
-   hidup/system])
+
+   ;;  hidup/system
+   pmx-model/system
+   pmx-renderer/system
+   gltf-renderer/system
+
+   wirecube/system
+   pose/system])

@@ -5,6 +5,7 @@
              [cheshire.core :as json]])
    [clojure.edn :as edn]
    [engine.macros :refer [vars->map]]
+   [engine.sugar :refer [f32-arr]]
    [odoyle.rules :as o]
    [thi.ng.geom.matrix :as mat])
   #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
@@ -15,23 +16,19 @@
            [org.lwjgl.system MemoryUtil])))
 
 (defn get-image [fname callback]
-  #?(:clj  (let [is (io/input-stream (io/resource (str "public/" fname)))
-                 ^bytes barray (with-open [out (java.io.ByteArrayOutputStream.)]
+  #?(:clj  (let [^bytes barray (with-open [is  (io/input-stream (io/file fname))
+                                           out (java.io.ByteArrayOutputStream.)]
                                  (io/copy is out)
                                  (.toByteArray out))
-                 *width (MemoryUtil/memAllocInt 1)
-                 *height (MemoryUtil/memAllocInt 1)
-                 *components (MemoryUtil/memAllocInt 1)
-                 direct-buffer (doto ^ByteBuffer (ByteBuffer/allocateDirect (alength barray))
-                                 (.put barray)
-                                 (.flip))
-                 _ (STBImage/stbi_set_flip_vertically_on_load true)
+                 *width        (MemoryUtil/memAllocInt 1)
+                 *height       (MemoryUtil/memAllocInt 1)
+                 *components   (MemoryUtil/memAllocInt 1)
+                 direct-buffer (doto ^ByteBuffer (ByteBuffer/allocateDirect (alength barray)) (.put barray) (.flip))
+                 _             (STBImage/stbi_set_flip_vertically_on_load false)
                  decoded-image (STBImage/stbi_load_from_memory
                                 direct-buffer *width *height *components
                                 STBImage/STBI_rgb_alpha)
-                 image {:data decoded-image
-                        :width (.get *width)
-                        :height (.get *height)}]
+                 image         {:data   decoded-image :width (.get *width) :height (.get *height)}]
              (MemoryUtil/memFree *width)
              (MemoryUtil/memFree *height)
              (MemoryUtil/memFree *components)
@@ -46,7 +43,7 @@
 (defn get-size [game]
   #?(:clj  (let [*width (MemoryUtil/memAllocInt 1)
                  *height (MemoryUtil/memAllocInt 1)
-                 _ (GLFW/glfwGetFramebufferSize ^long (:glfw-window game) *width *height)
+                 _ (GLFW/glfwGetFramebufferSize ^long (-> game :glfw-window :handle) *width *height)
                  w (.get *width)
                  h (.get *height)]
              (MemoryUtil/memFree *width)
@@ -122,9 +119,9 @@
         vertex-count  (count faces)]
     (loop [i 0
            [[v-i uv-i n-i] & remains] faces
-           vertices   (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 3))
-           uvs        (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 2))
-           normals    (#?(:clj float-array :cljs #(js/Float32Array. %)) (* vertex-count 3))]
+           vertices   (f32-arr (* vertex-count 3))
+           uvs        (f32-arr (* vertex-count 2))
+           normals    (f32-arr (* vertex-count 3))]
       (if (some? v-i)
         (let [[^float v1 ^float v2 ^float v3] (nth all-vertices (dec v-i))
               [^float uv1 ^float uv2] (nth all-uvs (dec uv-i))
@@ -158,13 +155,20 @@
 (defn f32s->get-mat4
   "Return a 4x4 matrix from a float-array / Float32Array `f32s`.
   `idx` is the start index (optional, defaults to 0)."
-  [^floats f32s idx]
-  (let [i (* (or idx 0) 16)]
-    (mat/matrix44
-     (aget f32s i)  (aget f32s (+ i 1))  (aget f32s (+ i 2))  (aget f32s (+ i 3))
-     (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))
-     (aget f32s (+ i 8))  (aget f32s (+ i 9))  (aget f32s (+ i 10)) (aget f32s (+ i 11))
-     (aget f32s (+ i 12)) (aget f32s (+ i 13)) (aget f32s (+ i 14)) (aget f32s (+ i 15)))))
+  #?(:clj ([^java.nio.FloatBuffer fb idx]
+           (let [i (* (or idx 0) 16)]
+             (mat/matrix44
+              (.get fb i)       (.get fb (+ i 1))  (.get fb (+ i 2))  (.get fb (+ i 3))
+              (.get fb (+ i 4)) (.get fb (+ i 5))  (.get fb (+ i 6))  (.get fb (+ i 7))
+              (.get fb (+ i 8)) (.get fb (+ i 9))  (.get fb (+ i 10)) (.get fb (+ i 11))
+              (.get fb (+ i 12)) (.get fb (+ i 13)) (.get fb (+ i 14)) (.get fb (+ i 15)))))
+     :cljs ([^floats f32s idx]
+            (let [i (* (or idx 0) 16)]
+              (mat/matrix44
+               (aget f32s i)  (aget f32s (+ i 1))  (aget f32s (+ i 2))  (aget f32s (+ i 3))
+               (aget f32s (+ i 4))  (aget f32s (+ i 5))  (aget f32s (+ i 6))  (aget f32s (+ i 7))
+               (aget f32s (+ i 8))  (aget f32s (+ i 9))  (aget f32s (+ i 10)) (aget f32s (+ i 11))
+               (aget f32s (+ i 12)) (aget f32s (+ i 13)) (aget f32s (+ i 14)) (aget f32s (+ i 15)))))))
 
 (defn query-one [world rule-name]
   (first (o/query-all world rule-name)))
@@ -190,3 +194,14 @@
                       height (.-height bitmap)]
                   (println "blob:" data-type "count" (.-length uint8-arr))
                   (callback (vars->map bitmap width height))))))))
+
+(comment
+
+  ;; for debugging
+  (def counter (atom 0))
+  (defn print-mat4-until [args end]
+    (let [cnt (swap! counter inc)]
+      (when (< cnt end)
+        (println (vec args)))))
+
+  :-)

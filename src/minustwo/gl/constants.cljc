@@ -21,8 +21,10 @@
 
 ;; Buffer types
 (def ^:const GL_STATIC_DRAW 35044)
+(def ^:const GL_DYNAMIC_DRAW 35048)
 (def ^:const GL_ARRAY_BUFFER 34962)
 (def ^:const GL_ELEMENT_ARRAY_BUFFER 34963)
+(def ^:const GL_UNIFORM_BUFFER 35345)
 
 ;; Texture types and units
 (def ^:const GL_TEXTURE_2D 3553)
@@ -31,6 +33,11 @@
 ;; Render states
 (def ^:const GL_DEPTH_TEST 2929)
 (def ^:const GL_BLEND 3042)
+(def ^:const GL_CULL_FACE 2884)
+(def ^:const GL_FRONT 1028)
+(def ^:const GL_BACK 1029)
+(def ^:const GL_FRONT_AND_BACK 1032)
+
 
 ;; Blend functions
 (def ^:const GL_SRC_ALPHA 770)

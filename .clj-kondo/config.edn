@@ -4,8 +4,5 @@
            com.rpl.specter/defnav clojure.core/defn
            com.rpl.specter/defrichnav clojure.core/defn
            engine.macros/s-> clojure.core/->
-           engine.world/system clojure.core/def}
- :hooks
- {:analyze-call {play-cljc.macros-java/gl hooks/gl-hook
-                 play-cljc.macros-js/gl hooks/gl-hook}}
+           gloss.core/defcodec clojure.core/def}
  :config-paths ["../resources/clj-kondo.exports/chera/dofida"]}

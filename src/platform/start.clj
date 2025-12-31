@@ -3,7 +3,9 @@
    [engine.world :as world]
    [engine.engine :as engine]
    [engine.game :as game]
-   [minustwo.systems.input :as input])
+   [minustwo.systems.input :as input]
+   [clojure.edn :as edn]
+   [clojure.java.io :as io])
   (:import
    [org.lwjgl.glfw
     Callbacks
@@ -143,7 +145,7 @@
                                   (MemoryUtil/memFree *window-width)
                                   (MemoryUtil/memFree *window-height)
                                   (GLFW/glfwSetCursorPos window half-w half-h)
-                                      ;; GLFW_CURSOR_HIDDEN doesn't work somehow
+                                  ;; GLFW_CURSOR_HIDDEN doesn't work somehow
                                   (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
                               (reset! mouse-locked?* true))
 
@@ -224,25 +226,39 @@
        (invoke [_this _window]
          (System/exit 0))))))
 
+;; dev only for now
+(defn get-config []
+  (let [default {:window [1024 768 500 500]}
+        config "config.edn"]
+    (try (with-open [rdr (io/reader (io/input-stream config))]
+           (edn/read (java.io.PushbackReader. rdr)))
+         (catch java.io.FileNotFoundException _
+           (spit config default)))))
+
 (defn ->window
   ([] (->window false))
   ([floating?]
    (when-not (GLFW/glfwInit)
      (throw (Exception. "Unable to initialize GLFW")))
-   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
-   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
-   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
-   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
-   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL33/GL_TRUE)
-   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
-   (if-let [window (GLFW/glfwCreateWindow 1024 768 "Hello, dofida!" 0 0)]
-     (do
-       (GLFW/glfwMakeContextCurrent window)
-       (GLFW/glfwSwapInterval 1)
-       (GL/createCapabilities)
-       (when floating? (GLFW/glfwSetWindowAttrib window GLFW/GLFW_FLOATING GLFW/GLFW_TRUE))
-       (->Window window))
-     (throw (Exception. "Failed to create window")))))
+   (let [config    (get-config)
+         [w h x y] (:window config)]
+     (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
+     (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
+     (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
+     (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
+     (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL33/GL_TRUE)
+     (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
+     (if-let [window (GLFW/glfwCreateWindow w h "Hello, dofida!" 0 0)]
+       (do
+         (GLFW/glfwSetWindowPos window x, y)
+         (GLFW/glfwMakeContextCurrent window)
+         (GLFW/glfwSwapInterval 1)
+         (GL/createCapabilities)
+         (when floating? (GLFW/glfwSetWindowAttrib window GLFW/GLFW_FLOATING GLFW/GLFW_TRUE))
+         (->Window window))
+       (throw (Exception. "Failed to create window"))))))
+
+
 
 (defn start
   ([game window] (start game window nil))
@@ -278,5 +294,5 @@
 
 (defn -main [& _args]
   (let [window (->window)]
-    (start (game/->game (:handle window)) window)))
+    (start (game/->game {:glfw-window window}) window)))
 

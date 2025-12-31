@@ -1,0 +1,277 @@
+(ns minustwo.stage.pmx-renderer
+  (:require
+   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [engine.game :refer [gl-ctx]]
+   [engine.macros :refer [insert! s->]]
+   [engine.sugar :refer [f32-arr vec->f32-arr]]
+   [engine.utils :as utils]
+   [engine.world :as world :refer [esse]]
+   [minustwo.anime.IK :as IK]
+   [minustwo.anime.morph :as morph]
+   [minustwo.anime.pose :as pose]
+   [minustwo.gl.cljgl :as cljgl]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
+                                  GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
+                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER
+                                  GL_UNSIGNED_INT]]
+   [minustwo.gl.geom :as geom]
+   [minustwo.gl.gl-magic :as gl-magic]
+   [minustwo.gl.shader :as shader]
+   [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.systems.time :as time]
+   [minustwo.systems.transform3d :as t3d]
+   [minustwo.systems.view.firstperson :as firstperson]
+   [minustwo.systems.view.room :as room]
+   [odoyle.rules :as o]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m]
+   [minustwo.anime.pacing :as pacing]))
+
+(def MAX_JOINTS 500)
+
+(def pmx-vert
+  (str cljgl/version-str
+       "
+ precision mediump float;
+ 
+ in vec3 POSITION;
+ in vec3 NORMAL;
+ in vec2 TEXCOORD;
+ in vec4 WEIGHTS;
+ in uvec4 JOINTS;
+
+ uniform mat4 u_model;
+ uniform mat4 u_view;
+ uniform mat4 u_projection;
+ layout(std140) uniform Skinning {
+   mat4[" MAX_JOINTS "] u_joint_mats;
+ };
+ 
+ out vec3 Normal;
+ out vec2 TexCoord;
+
+ void main() {
+   vec4 pos;
+   pos = vec4(POSITION, 1.0);
+   mat4 skin = (WEIGHTS.x * u_joint_mats[JOINTS.x]) 
+             + (WEIGHTS.y * u_joint_mats[JOINTS.y]) 
+             + (WEIGHTS.z * u_joint_mats[JOINTS.z])
+             + (WEIGHTS.w * u_joint_mats[JOINTS.w]);
+   gl_Position = u_projection * u_view * u_model * skin * (pos);
+   Normal = NORMAL;
+   TexCoord = TEXCOORD;
+ }
+"))
+
+(def pmx-frag
+  (str cljgl/version-str
+       "
+ precision mediump float;
+ 
+ in vec3 Normal;
+ in vec2 TexCoord;
+ 
+ uniform sampler2D u_mat_diffuse;
+ 
+ out vec4 o_color;
+
+ void main() {
+   o_color = vec4(texture(u_mat_diffuse, TexCoord).rgb, 1.0); 
+ }
+"))
+
+(def absolute-cinema
+  (comp
+   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 -4.27 10.0 6.0))
+   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 6.0))
+   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 3.0)
+                      (IK/make-IK-solver2 (v/vec3 1.0 0.0 0.0)))))
+
+(defn init-fn [world game]
+  (-> world
+      (esse ::skinning-ubo
+            (let [ctx (gl-ctx game)
+                  ubo (cljgl/create-buffer ctx)]
+              (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
+              (gl ctx bufferData GL_UNIFORM_BUFFER (* MAX_JOINTS 16 4) GL_DYNAMIC_DRAW)
+              (gl ctx bindBufferBase GL_UNIFORM_BUFFER 0 ubo)
+              (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+              {::shader/ubo ubo}))
+      (esse ::silverwolf-pmx
+            #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
+            #::shader{:use ::pmx-shader}
+            t3d/default)))
+
+(defn after-load-fn [world game]
+  (let [ctx (gl-ctx game)]
+    (-> world
+        (firstperson/insert-player (v/vec3 0.0 17.5 18.0) (v/vec3 0.0 0.0 -1.0))
+        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
+        (pacing/insert-timeline
+         ;; hmmm this API is baaad, need more hammock, artifact first, construct later
+         ::silverwolf-pmx
+         [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
+                                                  "にこり" 0.0
+                                                  "にやり3" 0.0}]]]
+          [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 1.2
+                                                  "にこり" 0.5
+                                                  "にやり3" 0.5}]]]
+          [7.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
+                                                  "にこり" 0.0
+                                                  "にやり3" 0.0}]]]])
+        (esse ::silverwolf-pmx
+              ;; (pose/strike absolute-cinema)
+              (pose/anime
+               [[0.0 identity identity]
+                [0.5 absolute-cinema identity]
+                [7.5 absolute-cinema identity]
+                [8.0 identity identity]])
+              #::t3d{:translation (v/vec3 0.0 0.0 0.0)
+                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}))))
+
+(defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
+  (let [textures (:textures data)]
+    (->> [{:bind-vao esse-id}
+          {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
+          {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
+
+          {:buffer-data (:WEIGHTS data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'WEIGHTS :use-shader ::pmx-shader :count 4 :component-type GL_FLOAT}
+          {:buffer-data (:JOINTS data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
+
+          (eduction
+           (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
+                                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) idx)}))
+           textures)
+
+          {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+          {:unbind-vao true}]
+         flatten (into []))))
+
+(def rules
+  (o/ruleset
+   {::I-cast-pmx-magic!
+    [:what
+     [esse-id ::pmx-model/data data]
+     [::pmx-shader ::shader/program-info _]
+     [esse-id ::gl-magic/casted? :pending]
+     :then
+     (println esse-id "got" (keys data) "!")
+     (let [spell  (pmx-spell data {:esse-id esse-id})
+           pos!   (:POSITION data)
+           morphs (into []
+                        (map (fn [morph]
+                               {:morph-name  (:local-name morph)
+                                :offset-coll (or (some-> morph :offsets :offset-data) [])}))
+                        (:morphs data))]
+       (s-> session
+            (o/insert esse-id #::gl-magic{:spell spell})
+            (o/insert esse-id ::morph/position-arr! pos!)
+            (o/insert esse-id ::morph/morph-data morphs)))]
+
+    ::bone-to-pose-tree
+    [:what
+     [esse-id ::gl-magic/casted? true]
+     [esse-id ::pmx-model/data pmx-data {:then false}]
+     :then
+     (println "prep bones!")
+     (insert! esse-id ::geom/transform-tree (:bones pmx-data))]
+
+    ::render-data
+    [:what
+     [esse-id ::pmx-model/data pmx-data {:then false}]
+     [esse-id ::gl-magic/casted? true]
+     [esse-id ::shader/use ::pmx-shader]
+     [::pmx-shader ::shader/program-info program-info]
+     [::skinning-ubo ::shader/ubo skinning-ubo]
+     [esse-id ::t3d/transform transform]
+     [esse-id ::pose/pose-tree pose-tree {:then false}]
+     [:position ::shader/buffer position-buffer]
+     :then
+     (println esse-id "is ready to render!")]
+
+    ::global-transform
+    [:what
+     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/slice 4]
+     [esse-id ::pmx-model/data pmx-data {:then false}]
+     [esse-id ::pose/pose-tree pose-tree {:then false}]
+     :then
+     (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
+       (insert! esse-id ::pose/pose-tree pose-tree))]}))
+
+(defn create-joint-mats-arr [bones]
+  (let [f32s (f32-arr (* 16 (count bones)))]
+    (doseq [{:keys [idx global-transform inv-bind-mat]} bones]
+      (let [joint-mat (m/* global-transform inv-bind-mat)
+            i         (* idx 16)]
+        (dotimes [j 16]
+          (aset f32s (+ i j) (float (nth joint-mat j))))))
+    f32s))
+
+(defn render-fn [world _game]
+  (let [{:keys [ctx project player-view vao-db* texture-db*]}
+        (utils/query-one world ::room/data)]
+    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform pose-tree position-buffer]}
+            (o/query-all world ::render-data)]
+      (let [program    (:program program-info :program)
+            vao        (get @vao-db* esse-id)
+            materials  (:materials pmx-data)
+            ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+            ^floats joint-mats (create-joint-mats-arr pose-tree)]
+        ;; (def err [:err (gl ctx getError)])
+        #_{:clj-kondo/ignore [:inline-def]}
+        (def hmm pmx-data)
+        (gl ctx useProgram program)
+        (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
+        (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
+        (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
+
+        ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
+        (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
+        (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
+
+        (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+        (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+        (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+
+        (gl ctx bindVertexArray vao)
+
+        (doseq [material materials]
+          (let [face-count  (:face-count material)
+                face-offset (* 4 (:face-offset material))
+                tex-idx     (:texture-index material)
+                tex         (get @texture-db* (str "tex-" esse-id "-" tex-idx))]
+            (when-let [{:keys [tex-unit texture]} tex]
+              (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+              (gl ctx bindTexture GL_TEXTURE_2D texture)
+              (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+
+            (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))))
+
+(def system
+  {::world/init-fn #'init-fn
+   ::world/after-load-fn #'after-load-fn
+   ::world/rules #'rules
+   ::world/render-fn #'render-fn})
+
+;; 
+
+(comment
+  (require '[com.phronemophobic.viscous :as viscous])
+
+  ;; err
+  (viscous/inspect hmm)
+
+  (into []
+        (map :local-name)
+        (-> hmm :pmx-data :morphs))
+
+  :-)

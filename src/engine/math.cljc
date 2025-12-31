@@ -56,6 +56,13 @@
     ^thi.ng.geom.matrix.Matrix44 b]
    (m/* a b)))
 
+(defn m44->trans-vec3
+  [^thi.ng.geom.matrix.Matrix44 m]
+  (let [tx    (.-m30 m)
+        ty    (.-m31 m)
+        tz    (.-m32 m)]
+    (v/vec3 tx ty tz)))
+
 (defn ^:vibe decompose-matrix44
   "Return {:translation (v/vec3) :rotation (q/quat) :scale (v/vec3)}"
   [^thi.ng.geom.matrix.Matrix44 m]
@@ -105,3 +112,25 @@
         q2    (if (< dot-p 0.0) (g/scale q2 -1.0) q2)]
     ;; not handling quats that are too close to each other yet
     (m/mix q1 q2 t)))
+
+(defn clamp [value min-val max-val]
+  (max min-val (min value max-val)))
+
+(defn orthogonal [[x y z :as v]]
+  (let [x (Math/abs x)
+        y (Math/abs y)
+        z (Math/abs z)
+        other (if (< x y)
+                (if (< x z)
+                  (v/vec3 1.0 0.0 0.0)
+                  (v/vec3 0.0 0.0 1.0))
+                (if (< y z)
+                  (v/vec3 0.0 1.0 0.0)
+                  (v/vec3 0.0 0.0 1.0)))]
+    (m/cross v other)))
+
+(defn clamped-acos [cos-v]
+  (cond
+    (<= cos-v -1) Math/PI
+    (>= cos-v 1) 0.0
+    :else (Math/acos cos-v)))

@@ -3,13 +3,17 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [engine.math :as m-ext :refer [decompose-matrix44]]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
+   [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
-   [thi.ng.geom.matrix :as mat]
-   [thi.ng.geom.vector :as v]
-   [thi.ng.geom.quaternion :as q]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
+   [minustwo.gl.geom :as geom]
    [thi.ng.geom.core :as g]
-   [thi.ng.math.core :as m]))
+   [thi.ng.geom.matrix :as mat]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m])
+  #?(:clj (:import
+           [java.nio ByteOrder])))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -24,13 +28,12 @@
 (s/def ::bins vector?)
 (s/def ::primitives sequential?)
 (s/def ::joints vector?)
-(s/def ::transform-tree (s/coll-of ::node+transform :kind vector))
 (s/def ::inv-bind-mats vector?)
 
 (defn create-vao-names [prefix]
   (map-indexed
    (fn [idx primitive]
-     (let [vao-name #?(:clj  (format "%s_vao%04d" idx prefix)
+     (let [vao-name #?(:clj  (format "%s_vao%04d" prefix idx)
                        :cljs (str prefix "_vao" (.padStart (str idx) 4 "0")))]
        (assoc primitive :vao-name vao-name)))))
 
@@ -71,7 +74,11 @@
               id-byteOffset (:byteOffset id-bufferView)
               id-byteLength (:byteLength id-bufferView)]
           {:buffer-type GL_ELEMENT_ARRAY_BUFFER
-           :buffer-data #?(:clj  [(count result-bin) id-byteOffset id-byteLength :jvm-not-handled]
+           :buffer-data #?(:clj  (let [slice (doto (.duplicate result-bin)
+                                               (.position id-byteOffset)
+                                               (.limit (+ id-byteLength id-byteOffset)))]
+                                   (doto (.slice slice)
+                                     (.order ByteOrder/LITTLE_ENDIAN)))
                            :cljs (.subarray result-bin id-byteOffset (+ id-byteLength id-byteOffset)))})
         {:unbind-vao true}]))))
 
@@ -93,25 +100,22 @@
           buffer-view   (get buffer-views (:bufferView accessor))
           byteLength    (:byteLength buffer-view)
           byteOffset    (:byteOffset buffer-view)
-          ^ints ibm-u8s #?(:clj  [result-bin byteLength byteOffset] ;; jvm TODO
+          ^ints ibm-u8s #?(:clj  (let [slice (doto (.duplicate result-bin)
+                                               (.position byteOffset)
+                                               (.limit (+ byteOffset byteLength)))]
+                                   (doto (.slice slice)
+                                     (.order ByteOrder/LITTLE_ENDIAN)))
                            :cljs (.subarray result-bin byteOffset (+ byteLength byteOffset)))
-          ibm-f32s      #?(:clj  ibm-u8s ;; jvm TODO
-                           :cljs (js/Float32Array. ibm-u8s.buffer
-                                                   ibm-u8s.byteOffset
-                                                   (/ ibm-u8s.byteLength 4.0)))
+          ibm-f32s      #?(:clj  (.asFloatBuffer ibm-u8s)
+                           :cljs (js/Float32Array. ibm-u8s.buffer ibm-u8s.byteOffset
+                                                   (/ ibm-u8s.byteLength js/Float32Array.BYTES_PER_ELEMENT)))
           inv-bind-mats (into [] (map (fn [i] (utils/f32s->get-mat4 ibm-f32s i))) (range (:count accessor)))]
       inv-bind-mats)))
 
 (defonce debug-data* (atom {}))
 
-(s/def :geom/matrix #(instance? thi.ng.geom.matrix.Matrix44 %))
-(s/def :geom/translation #(instance? thi.ng.geom.vector.Vec3 %))
-(s/def :geom/rotation #(instance? thi.ng.geom.quaternion.Quat4 %))
-(s/def :geom/scale #(instance? thi.ng.geom.vector.Vec3 %))
-(s/def ::node+transform (s/keys :req-un [:geom/matrix :geom/translation :geom/rotation :geom/scale]))
-
 (s/fdef process-as-geom-transform
-  :ret ::node+transform)
+  :ret ::geom/node+transform)
 (defn process-as-geom-transform
   "if node have :matrix, decompose it and attach :translation, :rotation, :scale
    if not, it assumed to have either :translation, :rotation, or :scale, 
@@ -137,24 +141,39 @@
                :rotation (or rot (q/quat))
                :scale (or scale (v/vec3 1.0 1.0 1.0)))))))
 
+(defn reorder-parent-child-id [nodes node-parent-fix]
+  (let [nodes (into [] (map-indexed (fn [idx item] (assoc item :orig-idx idx))) nodes)
+        ;; hardcoded for pmx for now
+        parent-of-all (first (filter #(= (:name %) node-parent-fix) nodes))]
+    (if parent-of-all
+      (let [dfs-tree    (into [] (map-indexed (fn [idx item] (assoc item :idx idx)))
+                              (tree-seq :children
+                                        (fn [{:keys [children]}] (into [] (map (fn [cid] (nth nodes cid))) children))
+                                        parent-of-all))
+            idx-mapping (into {} (map (juxt :orig-idx :idx)) dfs-tree)
+            remapped    (into [] (map (fn [node] (update node :children (fn [children] (into [] (map idx-mapping) children))))) dfs-tree)]
+        remapped)
+      nodes)))
+
 (s/fdef node-transform-tree
-  :ret ::transform-tree)
-(defn node-transform-tree [nodes]
-  (let [tree (tree-seq :children
-                       (fn [parent-node]
-                         (into []
-                               (comp
-                                (map (fn [cid] (nth nodes cid)))
-                                (map process-as-geom-transform))
-                               (:children parent-node)))
-                       (process-as-geom-transform (first nodes)))]
+  :ret ::geom/transform-tree)
+(defn node-transform-tree [nodes node-parent-fix]
+  (let [nodes (if node-parent-fix (reorder-parent-child-id nodes node-parent-fix) nodes)
+        tree  (tree-seq :children
+                        (fn [parent-node]
+                          (into []
+                                (comp
+                                 (map (fn [cid] (nth nodes cid)))
+                                 (map process-as-geom-transform))
+                                (:children parent-node)))
+                        (process-as-geom-transform (first nodes)))]
     ;; this somehow already returns an ordered seq, why? is it an optimization in the assimp part? is it the nature of DFS?
     (assert (apply <= (into [] (map :idx) tree)) "assumption broken: order of resulting seq is not the same as order of :idx")
     tree))
 
 (defn gltf-spell
   "magic to pass to gl-magic/cast-spell"
-  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset]
+  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset node-parent-fix]
                          :or {tex-unit-offset 0}}]
   (let [gltf-dir   (some-> gltf-data :asset :dir)
         _          (assert gltf-dir "no parent dir data in [:asset :dir]")
@@ -188,57 +207,45 @@
                                         (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
                                   primitives)
              nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-data))
-             transform-tree (node-transform-tree nodes)]
+             transform-tree (node-transform-tree nodes node-parent-fix)]
          [[model-id ::primitives primitives]
           [model-id ::joints (or joints [])]
-          [model-id ::transform-tree (vec transform-tree)]
+          [model-id ::geom/transform-tree (vec transform-tree)]
           (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
 
-(defn calc-local-transform [{:keys [translation rotation scale] :as node}]
+(defn calc-local-transform [{:keys [translation rotation scale]}]
   (let [trans-mat    (m-ext/translation-mat translation)
         rot-mat      (g/as-matrix rotation)
         scale-mat    (m-ext/vec3->scaling-mat scale)
         local-trans  (reduce m/* [trans-mat rot-mat scale-mat])]
-    (assoc node :local-transform local-trans)))
+    local-trans))
 
-;; tree-seq transducer hmmm, it makes the games back to around 100 fps
-;; however, if we (st/unstrument), the game goes back to 160 fps!
-;; https://gist.github.com/green-coder/3adf11660b7b0ca83648c5be69de2a3b
-;; https://gist.github.com/cgrand/b5bf4851b0e5e3aeb438eba2298dacb9
-(defn tree-cat [branch? children]
-  (fn [rf]
-    (letfn [(nested [acc x]
-              (let [acc (rf acc x)]
-                (cond
-                  (reduced? acc) (reduced acc)
-                  (branch? x) (let [acc (reduce nested acc (children x))]
-                                (cond-> acc (reduced? acc) reduced))
-                  :else acc)))]
-      (fn
-        ([] (rf))
-        ([acc] (rf acc))
-        ([acc x] (unreduced (nested acc x)))))))
+;; transducer with assumption that parent node will always before child node in a linear seq
+(defn global-transform-xf [rf]
+  (let [parents-global-transform! (volatile! {})]
+    (fn
+      ([] (rf))
+      ([result]
+       (rf result))
+      ([result node]
+       (let [local-trans  (calc-local-transform node)
+             parent-trans (get @parents-global-transform! (:idx node))
+             global-trans (if parent-trans
+                            (m/* parent-trans local-trans)
+                            local-trans)
+             node         (assoc node
+                                 :local-transform local-trans
+                                 :global-transform global-trans
+                                 :parent-transform parent-trans)]
+         (when (:children node)
+           (vswap! parents-global-transform!
+                   into (map (fn [cid] [cid global-trans]))
+                   (:children node)))
+         (rf result node))))))
 
-(s/fdef global-transform-tree
-  :args (s/cat :transform-tree ::transform-tree))
-(defn global-transform-tree [transform-tree]
-  (into []
-        (tree-cat :children
-                  (fn [parent]
-                    (into [] (comp
-                              (map (fn [cid] (calc-local-transform (get transform-tree cid))))
-                              (map (fn [{:keys [local-transform] :as node}]
-                                     (let [global-t (m/* (:global-transform parent) local-transform)]
-                                       (assoc node :global-transform global-t)))))
-                          (:children parent))))
-        [(-> (calc-local-transform (first transform-tree))
-             ((fn [{:keys [local-transform] :as node}]
-                (assoc node :global-transform local-transform))))]))
-
-(defn create-joint-mats-arr [joints transform-tree inv-bind-mats]
-  (let [f32s      (#?(:clj float-array :cljs #(js/Float32Array. %)) (* 16 (count joints)))
-        global-tt (global-transform-tree transform-tree)]
+(defn create-joint-mats-arr [joints global-tt inv-bind-mats]
+  (let [f32s      (f32-arr (* 16 (count joints)))]
     (doseq [joint joints]
       (let [idx        (get joint 0)
             joint-id   (get joint 1)
@@ -247,32 +254,8 @@
             joint-mat  (m/* global-t inv-bind-m)
             i          (* idx 16)]
         (dotimes [j 16]
-          (aset f32s (+ i j) (nth joint-mat j)))))
+          (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
-
-;; sampler/animation
-(defn resolve-sampler
-  "this needs input with some related data connected (:input. :output -> bufferView, :target)"
-  [gltf-data bin sampler-accessor]
-  (let [bufferViews        (:bufferViews gltf-data)
-        bufferView         (get bufferViews (:bufferView sampler-accessor))
-        byteLength         (:byteLength bufferView)
-        byteOffset         (:byteOffset bufferView)
-        u8s                #?(:clj [bin byteLength byteOffset] ;; jvm TODO
-                              :cljs (.subarray bin byteOffset (+ byteLength byteOffset)))
-        component-size     4.0 ;; assuming all float for now
-        component-per-elem (gltf-type->num-of-component (:type sampler-accessor))
-        buffer             #?(:clj [component-size u8s] ;; jvm TODO
-                              :cljs (vec (js/Float32Array. u8s.buffer u8s.byteOffset (/ u8s.byteLength component-size))))]
-    (if (> component-per-elem 1)
-      (partition component-per-elem buffer)
-      buffer)))
-
-(defn interpret-animation-target [element path]
-  (case path
-    "translation" (apply v/vec3 element)
-    "rotation" (apply q/quat element)
-    "scale" (apply v/vec3 element)))
 
 (comment
   (require '[clojure.spec.test.alpha :as st]
@@ -287,24 +270,13 @@
         nodes     (:nodes gltf-data)
         nodes     (assoc-in nodes [0 :children] [2 1 424]) ;; testing to break the order assumption
         nodes     (map-indexed (fn [idx node] (assoc node :idx idx)) nodes)]
-    (node-transform-tree nodes))
+    (node-transform-tree nodes nil))
 
   (let [gltf-data      (-> @debug-data* :minustwo.stage.hidup/rubahperak :gltf-data)
         nodes          (:nodes gltf-data)
         nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) nodes)
-        transform-tree (vec (node-transform-tree nodes))]
-    (into []
-          (tree-cat :children
-                    (fn [parent]
-                      (into [] (comp
-                                (map (fn [cid] (calc-local-transform (get transform-tree cid))))
-                                (map (fn [{:keys [local-transform] :as node}]
-                                       (let [global-t (m/* (:global-transform parent) local-transform)]
-                                         (assoc node :global-transform global-t)))))
-                            (:children parent))))
-          [(-> (calc-local-transform (first transform-tree))
-               ((fn [{:keys [local-transform] :as node}]
-                  (assoc node :global-transform local-transform))))])
+        transform-tree (vec (node-transform-tree nodes nil))]
+    (into [] global-transform-xf transform-tree)
 
     #_(create-joint-mats-arr (:joints skin) transform-tree inv-bind-mats))
 

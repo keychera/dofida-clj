@@ -1,0 +1,16 @@
+[
+    {
+        "key": "alt+1",
+        "command": "calva.connect"
+    },
+    {
+        "key": "alt+2",
+        "command": "calva.runCustomREPLCommand",
+        "args": "(do (println \"refreshing!\") (start-dev/refresh))"
+    },
+    {
+        "key": "alt+3",
+        "command": "calva.runCustomREPLCommand",
+        "args": "(do (println \"restarting!\") (start-dev/stop))"
+    }
+]

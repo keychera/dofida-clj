@@ -1,7 +1,7 @@
 {
     "calva.replConnectSequences": [
         {
-            "name": "play-cljc js dev",
+            "name": "webgl game dev",
             "projectType": "deps.edn",
             "cljsType": "shadow-cljs",
             "autoSelectForJackIn": true,
@@ -13,7 +13,7 @@
             }
         },
         {
-            "name": "connect to play-cljc jvm repl",
+            "name": "lwjgl game dev",
             "projectType": "generic",
             "cljsType": "none",
             "autoSelectForConnect": true,
@@ -22,5 +22,6 @@
             ]
         }
     ],
-    "html.format.wrapAttributes": "preserve-aligned"
+    "html.format.wrapAttributes": "preserve-aligned",
+    "calva.refreshNssAfterFn": "engine.refresh/set-refresh",
 }

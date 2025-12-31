@@ -22,12 +22,12 @@
   (reset! stop-flag* true))
 
 (defn start []
-  (st/instrument)
+  (st/instrument 'odoyle.rules/insert)
   (reset! stop-flag* false)
   (with-redefs
    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]
     (let [window (start/->window true)
-          game   (game/->game (:glfw-window window))
+          game   (game/->game {:glfw-window window})
           imguiGlfw (ImGuiImplGlfw.)
           imGuiGl3 (ImGuiImplGl3.)
           callback #::start{:init-fn (partial debug-ui/init imguiGlfw imGuiGl3)
@@ -46,5 +46,8 @@
 (comment
   (refresh)
   (stop) ;; game won't load properly on the second start
+  
+  (st/instrument) 
+  (st/unstrument)
 
   ::waiting-for-something-to-happen?)
