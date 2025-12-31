@@ -7,7 +7,7 @@
    [thi.ng.math.core :as m]))
 
 ;; https://stackoverflow.com/a/11741520/8812880
-(defn rotatation-of-u->v [u v]
+(defn rotation-of-u->v [u v]
   (let [k-cosθ (m/dot u v)
         k      (Math/sqrt (* (m/mag-squared u) (m/mag-squared v)))]
     (if (= (/ k-cosθ k) -1.0)
@@ -18,7 +18,7 @@
 (defn solve-IK1 [root-t mid-t end-t target-t]
   (let [origin-v     (m/- end-t root-t)
         target-v     (m/- (m/+ target-t end-t) root-t)
-        root-angle   (rotatation-of-u->v origin-v target-v)
+        root-angle   (rotation-of-u->v origin-v target-v)
         [axis angle] (q/as-axis-angle root-angle)
 
         target-r     (g/rotate-around-axis target-t axis angle)
@@ -42,7 +42,7 @@
   (fn [root-t mid-t end-t target-t]
     (let [origin-v     (m/- end-t root-t)
           target-v     (m/- (m/+ target-t end-t) root-t)
-          root-angle   (rotatation-of-u->v origin-v target-v)
+          root-angle   (rotation-of-u->v origin-v target-v)
           [axis angle] (q/as-axis-angle root-angle)
           flip?        (< (m/dot pole axis) 0)
 
