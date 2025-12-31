@@ -1,11 +1,14 @@
 (ns minustwo.systems
   (:require
-   [minustwo.anime.anime :as anime]
+   [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
    [minustwo.gl.texture :as texture]
+   [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
+   [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
@@ -15,10 +18,7 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.projection :as projection]
    [minustwo.systems.view.room :as room]
-   [minustwo.systems.window :as window]
-   [minustwo.model.pmx-model :as pmx-model]
-   [minustwo.gl.vao :as vao]
-   [minustwo.stage.gltf-renderer :as gltf-renderer]))
+   [minustwo.systems.window :as window]))
 
 (def all
   [time/system
@@ -34,7 +34,7 @@
    gl-system/system
    gl-magic/system
    vao/system
-   anime/system
+   anime-gltf/system
 
    room/system
    perspective-grid/system

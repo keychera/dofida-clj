@@ -8,7 +8,7 @@
    [engine.sugar :refer [vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
-   [minustwo.anime.anime :as anime]
+   [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.IK :refer [IK-transducer1]]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
@@ -185,9 +185,9 @@
     [:what
      [::time/now ::time/slice 2]
      [esse-id ::pose/pose-tree pose-tree]
-     [::world/global ::anime/db* anime-db*]
+     [::world/global ::anime-gltf/db* anime-db*]
      :then
-     (let [anime     (get (::anime/interpolated @anime-db*) esse-id)
+     (let [anime     (get (::anime-gltf/interpolated @anime-db*) esse-id)
            pose-tree (if anime
                        (into []
                              (map (fn [{:keys [idx]

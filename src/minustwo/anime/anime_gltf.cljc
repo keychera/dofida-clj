@@ -1,4 +1,4 @@
-(ns minustwo.anime.anime
+(ns minustwo.anime.anime-gltf
   (:require
    [clojure.spec.alpha :as s]
    [com.rpl.specter :as sp]
