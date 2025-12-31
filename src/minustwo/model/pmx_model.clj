@@ -59,6 +59,10 @@
          (doto JOINTS (aset i b1) (aset (+ 1 i) b2) (aset (+ 2 i) b3) (aset (+ 3 i) b4)))
        (inc counter)))))
 
+(defn pmx-coord->opengl-coord [[x y z]] [x y (- z)])
+(defn ccw-face [faces]
+  (into [] (comp (partition-all 3) (map (fn [[i0 i1 i2]] [i0 i2 i1])) cat) faces))
+
 (defn resolve-pmx-bones
   "current understanding: pmx bones only have global translation each bones
    this fn will resolve the value of local translation, rotation, invert bind matrix, etc.
@@ -71,7 +75,8 @@
       ([] (rf))
       ([result] (rf result))
       ([result {:keys [idx parent-bone-idx position] :as bone}]
-       (let [parent       (get @parents-pos! parent-bone-idx)
+       (let [position     (pmx-coord->opengl-coord position)
+             parent       (get @parents-pos! parent-bone-idx)
              local-pos    (if parent
                             (v/vec3 (mapv - position (:position parent)))
                             (v/vec3))
@@ -115,15 +120,15 @@
   (let [res-path      (str "public" java.io.File/separator model-path)
         pmx-data      (time (parse-pmx res-path))
         vertices      (:vertices pmx-data)
-        POSITION      (float-array (into [] (mapcat :position) vertices))
-        NORMAL        (float-array (into [] (mapcat :normal) vertices))
+        POSITION      (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
+        NORMAL        (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
         TEXCOORD      (float-array (into [] (mapcat :uv) vertices))
         vert-wj       (transduce (map :weight)
                                  (reduce-to-WEIGHTS-and-JOINTS (count vertices))
                                  vertices)
         WEIGHTS       (:WEIGHTS vert-wj)
         JOINTS        (:JOINTS vert-wj)
-        INDICES       (int-array (into [] (:faces pmx-data)))
+        INDICES       (int-array (ccw-face (:faces pmx-data)))
         parent        (:parent-dir pmx-data)
         textures      (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
         materials     (into [] accumulate-face-count (:materials pmx-data))
@@ -151,8 +156,6 @@
 (comment
   (require '[com.phronemophobic.viscous :as viscous])
 
-  (viscous/inspect (-> @debug-data*
-                       :minustwo.stage.pmx-renderer/silverwolf-pmx
-                       :pmx-data))
+  (viscous/inspect @debug-data*)
 
   :-)
