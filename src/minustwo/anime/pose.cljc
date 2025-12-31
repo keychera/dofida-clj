@@ -13,7 +13,7 @@
 (s/def ::pose-xform fn?)
 (s/def ::pose-tree ::geom/transform-tree)
 
-(s/def ::point-in-time (s/cat :time-inp ::keyframe/inp 
+(s/def ::point-in-time (s/cat :time-inp ::keyframe/inp
                               :pose-fn ::pose-xform
                               :anime-fn fn?))
 (s/def ::timeline (s/coll-of ::point-in-time :kind vector?))
@@ -43,11 +43,11 @@
                      scale-b    (:scale bone-b)
                      int-trans  (m/mix trans-a trans-b t)
                      int-rotate (m-ext/quat-mix rotate-a rotate-b t)
-                     int-scale  (m/mix scale-a scale-b t)]
-                 (assoc bone-b
-                        :translation int-trans
-                        :rotation int-rotate
-                        :scale int-scale))))
+                     int-scale  (when scale-a (m/mix scale-a scale-b t))]
+                 (cond-> (assoc bone-b
+                                :translation int-trans
+                                :rotation int-rotate)
+                   int-scale (assoc :scale int-scale)))))
         (map vector pose-a pose-b)))
 
 (def rules

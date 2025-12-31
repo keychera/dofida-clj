@@ -101,16 +101,21 @@
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-shader}
-            pose/default
             t3d/default)))
 
 (defn after-load-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
-        (firstperson/insert-player (v/vec3 0.0 17.5 6.0) (v/vec3 0.0 0.0 -1.0))
+        (firstperson/insert-player (v/vec3 0.0 17.5 18.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
         (esse ::silverwolf-pmx
-              (pose/strike absolute-cinema)
+              ;; (pose/strike absolute-cinema)
+              (pose/anime
+               16.0
+               [[0.0 identity identity]
+                [1.0 absolute-cinema identity]
+                [7.0 absolute-cinema identity]
+                [8.0 identity identity]])
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                      :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}
               #::morph{:active {"笑い1" 1.2
@@ -258,6 +263,6 @@
 
   (into []
         (map :local-name)
-        (-> hmm :pmx-data :morphs)) 
+        (-> hmm :pmx-data :morphs))
 
   :-)
