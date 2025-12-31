@@ -117,28 +117,29 @@
          (rf result updated-bone))))))
 
 (defn load-pmx-model [model-path]
-  (let [res-path      (str "public" java.io.File/separator model-path)
-        pmx-data      (time (parse-pmx res-path))
-        vertices      (:vertices pmx-data)
-        POSITION      (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
-        NORMAL        (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
-        TEXCOORD      (float-array (into [] (mapcat :uv) vertices))
-        vert-wj       (transduce (map :weight)
-                                 (reduce-to-WEIGHTS-and-JOINTS (count vertices))
-                                 vertices)
-        WEIGHTS       (:WEIGHTS vert-wj)
-        JOINTS        (:JOINTS vert-wj)
-        INDICES       (int-array (ccw-face (:faces pmx-data)))
-        parent        (:parent-dir pmx-data)
-        textures      (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
-        materials     (into [] accumulate-face-count (:materials pmx-data))
-        bones         (into []
-                            (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
-                                  resolve-pmx-bones)
-                            (:bones pmx-data))]
+  (let [res-path  (str "public" java.io.File/separator model-path)
+        pmx-data  (time (parse-pmx res-path))
+        vertices  (:vertices pmx-data)
+        POSITION  (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
+        NORMAL    (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
+        TEXCOORD  (float-array (into [] (mapcat :uv) vertices))
+        vert-wj   (transduce (map :weight)
+                             (reduce-to-WEIGHTS-and-JOINTS (count vertices))
+                             vertices)
+        WEIGHTS   (:WEIGHTS vert-wj)
+        JOINTS    (:JOINTS vert-wj)
+        INDICES   (int-array (ccw-face (:faces pmx-data)))
+        parent    (:parent-dir pmx-data)
+        textures  (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
+        materials (into [] accumulate-face-count (:materials pmx-data))
+        bones     (into []
+                        (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
+                              resolve-pmx-bones)
+                        (:bones pmx-data))
+        morphs    (:morphs pmx-data)]
     (vars->map pmx-data
                POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
-               textures materials bones)))
+               textures materials bones morphs)))
 
 (defn load-models-from-world*
   [models-to-load world*]
@@ -157,5 +158,10 @@
   (require '[com.phronemophobic.viscous :as viscous])
 
   (viscous/inspect @debug-data*)
+
+  (into []
+        (comp (drop 3) (take 3))
+        (-> @debug-data* first second
+            :pmx-data :morphs))
 
   :-)

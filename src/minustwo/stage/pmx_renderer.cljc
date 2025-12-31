@@ -2,13 +2,13 @@
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
-   [clojure.spec.alpha :as s]
    [engine.game :refer [gl-ctx]]
    [engine.macros :refer [insert! s->]]
    [engine.sugar :refer [f32-arr vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.anime.IK :as IK]
+   [minustwo.anime.morph :as morph]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
@@ -90,7 +90,6 @@
 
 (defn init-fn [world game]
   (-> world
-      (firstperson/insert-player (v/vec3 0.0 17.5 15.0) (v/vec3 0.0 0.0 -1.0))
       (esse ::skinning-ubo
             (let [ctx (gl-ctx game)
                   ubo (cljgl/create-buffer ctx)]
@@ -102,20 +101,21 @@
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-shader}
-            {::morph-bucket {}}
             pose/default
             t3d/default)))
 
 (defn after-load-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
+        (firstperson/insert-player (v/vec3 0.0 17.5 6.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
         (esse ::silverwolf-pmx
               (pose/strike absolute-cinema)
               #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                      :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}
-              {::morph-target "笑い"
-               ::interpolate 1.0}))))
+              #::morph{:active {"笑い1" 1.2
+                                "にこり" 0.5
+                                "にやり3" 0.5}}))))
 
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
@@ -141,10 +141,6 @@
           {:unbind-vao true}]
          flatten (into []))))
 
-(s/def ::morph-target string?)
-(s/def ::morph-bucket map?)
-(s/def ::interpolate number?)
-
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
@@ -154,8 +150,17 @@
      [esse-id ::gl-magic/casted? :pending]
      :then
      (println esse-id "got" (keys data) "!")
-     (let [spell (pmx-spell data {:esse-id esse-id})]
-       (insert! esse-id #::gl-magic{:spell spell}))]
+     (let [spell  (pmx-spell data {:esse-id esse-id})
+           pos!   (:POSITION data)
+           morphs (into []
+                        (map (fn [morph]
+                               {:morph-name  (:local-name morph)
+                                :offset-coll (or (some-> morph :offsets :offset-data) [])}))
+                        (:morphs data))]
+       (s-> session
+            (o/insert esse-id #::gl-magic{:spell spell})
+            (o/insert esse-id ::morph/position-arr! pos!)
+            (o/insert esse-id ::morph/morph-data morphs)))]
 
     ::bone-to-pose-tree
     [:what
@@ -177,34 +182,6 @@
      [:position ::shader/buffer position-buffer]
      :then
      (println esse-id "is ready to render!")]
-
-    ::cpu-morph
-    [:what
-     [::time/now ::time/slice 3]
-     [esse-id ::morph-target morph-target]
-     [esse-id ::pmx-model/data pmx-data {:then false}]
-     [esse-id ::morph-bucket bucket {:then false}]
-     [esse-id ::interpolate interpolate {:then false}]
-     :then
-     (let [morph-data   (-> (into [] (filter #(= (:local-name %) morph-target)) (-> pmx-data :pmx-data :morphs))
-                            first :offsets :offset-data)
-           ^floats pos! (:POSITION pmx-data)
-           bucket'      (reduce
-                         (fn [bucket' {vert-idx :vertex-idx
-                                       trans-v  :translation}]
-                           (let [idx        (* vert-idx 3)
-                                 bucket-v   (get bucket' vert-idx)
-                                 orig-v     (or bucket-v [(aget pos! idx) (aget pos! (+ idx 1)) (aget pos! (+ idx 2))])
-                                 bucket'    (cond-> bucket'
-                                              (nil? bucket-v) (assoc vert-idx orig-v))
-                                 [x' y' z'] (mapv (fn [v v'] (+ v (* interpolate v'))) orig-v trans-v)]
-
-                             (aset pos! idx (float x'))
-                             (aset pos! (+ idx 1) (float y'))
-                             (aset pos! (+ idx 2) (float z'))
-                             bucket'))
-                         bucket morph-data)]
-       (s-> session (o/insert esse-id ::morph-bucket bucket')))]
 
     ::global-transform
     [:what
@@ -233,7 +210,7 @@
       (let [program    (:program program-info :program)
             vao        (get @vao-db* esse-id)
             materials  (:materials pmx-data)
-            POSITION   (:POSITION pmx-data)
+            POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
             joint-mats (create-joint-mats-arr pose-tree)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
@@ -279,14 +256,7 @@
   (viscous/inspect hmm)
 
   (into []
-        (comp (filter #(= (:local-name %) "にこり"))
-              (map (comp :offset-data :offsets))
-              (map (fn [os] (take 3 os))))
-        (-> hmm :pmx-data :morphs))
-
-  (aget (-> hmm :POSITION) (* 24279 3))
-  (alength (-> hmm :POSITION))
-
-  (+ 1 1)
+        (map :local-name)
+        (-> hmm :pmx-data :morphs)) 
 
   :-)

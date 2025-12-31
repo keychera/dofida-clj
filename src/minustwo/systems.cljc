@@ -1,6 +1,7 @@
 (ns minustwo.systems
   (:require
    [minustwo.anime.anime-gltf :as anime-gltf]
+   [minustwo.anime.morph :as morph]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
@@ -35,12 +36,13 @@
    gl-magic/system
    vao/system
    anime-gltf/system
+   morph/system
 
    room/system
    perspective-grid/system
    t3d/system
 
-  ;;  hidup/system
+   ;;  hidup/system
    pmx-model/system
    pmx-renderer/system
    gltf-renderer/system
