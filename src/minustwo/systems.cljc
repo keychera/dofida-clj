@@ -2,6 +2,7 @@
   (:require
    [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.morph :as morph]
+   [minustwo.anime.pacing :as pacing]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gl-system :as gl-system]
@@ -36,6 +37,7 @@
    gl-magic/system
    vao/system
    anime-gltf/system
+   pacing/system
    morph/system
 
    room/system

@@ -111,7 +111,6 @@
         (esse ::silverwolf-pmx
               ;; (pose/strike absolute-cinema)
               (pose/anime
-               16.0
                [[0.0 identity identity]
                 [1.0 absolute-cinema identity]
                 [7.0 absolute-cinema identity]

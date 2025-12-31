@@ -5,6 +5,7 @@
    [engine.math :as m-ext]
    [engine.world :as world]
    [minustwo.anime.keyframe :as keyframe]
+   [minustwo.anime.pacing :as pacing]
    [minustwo.gl.geom :as geom]
    [minustwo.systems.time :as time]
    [odoyle.rules :as o]
@@ -17,15 +18,14 @@
                               :pose-fn ::pose-xform
                               :anime-fn fn?))
 (s/def ::timeline (s/coll-of ::point-in-time :kind vector?))
-(s/def ::max-progress number?)
+
 (s/def ::kfs ::keyframe/keyframes)
 
 (def default {::pose-xform identity})
 (defn strike [a-pose] {::pose-xform a-pose})
-(defn anime [max-inp timeline]
+(defn anime [timeline]
   (s/assert ::timeline timeline)
-  {::timeline timeline
-   ::max-progress max-inp})
+  {::timeline timeline})
 
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
 
@@ -80,11 +80,10 @@
      [::time/now ::time/total tt {:then false}]
      [::time/now ::time/slice 1]
      [esse-id ::geom/transform-tree transform-tree]
-     [esse-id ::max-progress max-progress]
+     [::world/global ::pacing/progress progress]
      [::world/global ::db* keyframes-db*]
      :then
      (let [kfs      (get-in @keyframes-db* [esse-id ::kfs])
-           progress (mod (/ tt 640) max-progress)
            running  (eduction
                      (filter (fn [{::keyframe/keys [inp next-inp]}] (and (>= progress inp) (< progress next-inp))))
                      (map (fn [{::keyframe/keys [inp next-inp out next-out anime-fn]}]
