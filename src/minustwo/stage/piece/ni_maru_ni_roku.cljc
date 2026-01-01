@@ -103,7 +103,6 @@
             #::shader{:use ::pmx-renderer/pmx-shader}
             t3d/default)))
 
-
 (defn after-load-fn [world _game]
   (-> world
       (pacing/insert-timeline
@@ -121,18 +120,19 @@
             (pose/anime
              [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
               [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
-              [1.0 (hand-counting {:angka 1 :factor 10.0}) easings/ease-out-expo]
-              [1.4 (hand-counting {:angka 1 :factor 0.0}) easings/ease-out-expo]
-              [2.0 (hand-counting {:angka 2 :factor 10.0}) easings/ease-out-expo]
-              [2.4 (hand-counting {:angka 2 :factor 0.0}) easings/ease-out-expo]
-              [3.0 (hand-counting {:angka 3 :factor 10.0}) easings/ease-out-expo]
-              [3.4 (hand-counting {:angka 3 :factor 0.0}) easings/ease-out-expo]
-              [4.0 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
-              [4.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
-              [5.0 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-              [6.5 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-              [7.5 (hand-counting {:angka 0 :factor -15.0}) easings/ease-out-expo]
-              [8.0 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]])
+              [0.6 (hand-counting {:angka 1 :factor 10.0}) easings/ease-out-expo]
+              [0.4 (hand-counting {:angka 1 :factor 0.0}) easings/ease-out-expo]
+              [0.6 (hand-counting {:angka 2 :factor 10.0}) easings/ease-out-expo]
+              [0.4 (hand-counting {:angka 2 :factor 0.0}) easings/ease-out-expo]
+              [0.6 (hand-counting {:angka 3 :factor 10.0}) easings/ease-out-expo]
+              [0.4 (hand-counting {:angka 3 :factor 0.0}) easings/ease-out-expo]
+              [0.6 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
+              [0.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
+              [0.6 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
+              [1.5 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
+              [1.0 (hand-counting {:angka 0 :factor -15.0}) easings/ease-out-expo]
+              [0.5 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]]
+             {:relative? true})
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                    :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
 

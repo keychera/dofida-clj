@@ -21,11 +21,27 @@
 
 (s/def ::kfs ::keyframe/keyframes)
 
+(defn accumulate-time [rf]
+  (let [acc-time! (volatile! 0)]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result [curr & rest']]
+       (let [time'  (+ curr @acc-time!)
+             input' (apply vector time' rest')]
+         (vreset! acc-time! time')
+         (rf result input'))))))
+
 (def default {::pose-xform identity})
 (defn strike [a-pose] {::pose-xform a-pose})
-(defn anime [timeline]
-  (s/assert ::timeline timeline)
-  {::timeline timeline})
+(defn anime
+  ([timeline] (anime timeline {}))
+  ([timeline {:keys [relative?]}]
+   (let [timeline' (if relative?
+                     (into [] accumulate-time timeline)
+                     timeline)]
+     (s/assert ::timeline timeline')
+     {::timeline timeline'})))
 
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
 
