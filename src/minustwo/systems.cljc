@@ -11,14 +11,15 @@
    [minustwo.model.assimp :as assimp]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
+   [minustwo.stage.piece.ni-maru-ni-roku :as ni-maru-ni-roku]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
-   [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.camera :as camera]
+   [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]))
 
@@ -48,6 +49,8 @@
    pmx-model/system
    pmx-renderer/system
    gltf-renderer/system
+
+   ni-maru-ni-roku/system
 
    wirecube/system
    pose/system])

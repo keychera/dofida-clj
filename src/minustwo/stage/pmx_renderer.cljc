@@ -7,7 +7,6 @@
    [engine.sugar :refer [f32-arr vec->f32-arr]]
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
-   [minustwo.anime.IK :as IK]
    [minustwo.anime.morph :as morph]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
@@ -21,13 +20,9 @@
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
-   [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.geom.quaternion :as q]
-   [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [minustwo.anime.pacing :as pacing]))
+   [thi.ng.math.core :as m]))
 
 (def MAX_JOINTS 500)
 
@@ -82,54 +77,19 @@
  }
 "))
 
-(def absolute-cinema
-  (comp
-   (IK/IK-transducer1 "左腕" "左ひじ" "左手首" (v/vec3 -4.27 10.0 6.0))
-   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 6.0))
-   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 3.0)
-                      (IK/make-IK-solver2 (v/vec3 1.0 0.0 0.0)))))
-
 (defn init-fn [world game]
-  (-> world
-      (esse ::skinning-ubo
-            (let [ctx (gl-ctx game)
-                  ubo (cljgl/create-buffer ctx)]
-              (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
-              (gl ctx bufferData GL_UNIFORM_BUFFER (* MAX_JOINTS 16 4) GL_DYNAMIC_DRAW)
-              (gl ctx bindBufferBase GL_UNIFORM_BUFFER 0 ubo)
-              (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
-              {::shader/ubo ubo}))
-      (esse ::silverwolf-pmx
-            #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
-            #::shader{:use ::pmx-shader}
-            t3d/default)))
-
-(defn after-load-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
-        (firstperson/insert-player (v/vec3 0.0 17.5 18.0) (v/vec3 0.0 0.0 -1.0))
         (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
-        (pacing/insert-timeline
-         ;; hmmm this API is baaad, need more hammock, artifact first, construct later
-         ::silverwolf-pmx
-         [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
-                                                  "にこり" 0.0
-                                                  "にやり3" 0.0}]]]
-          [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 1.2
-                                                  "にこり" 0.5
-                                                  "にやり3" 0.5}]]]
-          [7.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
-                                                  "にこり" 0.0
-                                                  "にやり3" 0.0}]]]])
-        (esse ::silverwolf-pmx
-              ;; (pose/strike absolute-cinema)
-              (pose/anime
-               [[0.0 identity identity]
-                [0.5 absolute-cinema identity]
-                [7.5 absolute-cinema identity]
-                [8.0 identity identity]])
-              #::t3d{:translation (v/vec3 0.0 0.0 0.0)
-                     :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))}))))
+        (esse ::skinning-ubo
+              (let [ubo (cljgl/create-buffer ctx)]
+                (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
+                (gl ctx bufferData GL_UNIFORM_BUFFER (* MAX_JOINTS 16 4) GL_DYNAMIC_DRAW)
+                (gl ctx bindBufferBase GL_UNIFORM_BUFFER 0 ubo)
+                (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+                {::shader/ubo ubo})))))
+
+(defn after-load-fn [world _game] world)
 
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
@@ -181,7 +141,7 @@
      [esse-id ::gl-magic/casted? true]
      [esse-id ::pmx-model/data pmx-data {:then false}]
      :then
-     (println "prep bones!")
+     (println esse-id "prep bones!")
      (insert! esse-id ::geom/transform-tree (:bones pmx-data))]
 
     ::render-data
@@ -206,6 +166,9 @@
      :then
      (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
        (insert! esse-id ::pose/pose-tree pose-tree))]}))
+
+;; perversion, obsession, what motivates you to move forward?
+#_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
 (defn create-joint-mats-arr [bones]
   (let [f32s (f32-arr (* 16 (count bones)))]
@@ -261,8 +224,6 @@
    ::world/after-load-fn #'after-load-fn
    ::world/rules #'rules
    ::world/render-fn #'render-fn})
-
-;; 
 
 (comment
   (require '[com.phronemophobic.viscous :as viscous])
