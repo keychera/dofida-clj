@@ -1,5 +1,8 @@
 (ns minustwo.stage.piece.ni-maru-ni-roku
   (:require
+   [clojure.string :as str]
+   [engine.math :as m-ext]
+   [engine.math.easings :as easings]
    [engine.world :as world :refer [esse]]
    [minustwo.anime.IK :as IK]
    [minustwo.anime.morph :as morph]
@@ -12,9 +15,7 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [engine.math :as m-ext]
-   [clojure.string :as str]))
+   [thi.ng.math.core :as m]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -46,44 +47,47 @@
                    (when z (q/quat-from-axis-angle z-axis-vector (m/radians z)))
                    (when y (q/quat-from-axis-angle y-axis-vector (m/radians y)))])))))
 
-(def absolute-cinema
+(defn hitung [angka]
+  (fn kazoeru-fn [name]
+    (let [[matches? finger level] (re-matches #"左([親人中薬小])指([０１２３])" name)]
+      (when matches?
+        (let [wrist-x-axis (v/vec3 0.771123 -0.635213 0.043293) ;; the finger other than 親 doesn't have local-axis data, manually taken from 左手首
+              wrist-z-axis (v/vec3 -0.033414 0.027528 0.999062)
+              wrist-y-axis (m/cross wrist-x-axis wrist-z-axis)]
+          (if (= "親" finger)
+            {:r-fn (rotate-local-fn (if (= angka 5) {:y -20} {:x 50.0 :z -10.0}))}
+            {:r (cond-> (q/quat)
+                  (= "１" level)
+                  (cond->
+                   (= "薬" finger) (m/* (q/quat-from-axis-angle wrist-y-axis (m/radians 5.0)))
+                   (= "小" finger) (m/* (q/quat-from-axis-angle wrist-y-axis (m/radians 10.0))))
+
+                  (= "２" level)
+                  (cond->
+                   (= "中" finger) (m/* (q/quat-from-axis-angle wrist-x-axis (m/radians -10.0)))
+                   (= "薬" finger) (m/* (q/quat-from-axis-angle wrist-x-axis (m/radians -25.0)))
+                   (= "小" finger) (m/* (q/quat-from-axis-angle wrist-x-axis (m/radians -50.0))))
+
+                  (= "3" level)
+                  (cond->
+                   (= "中" finger) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -10.0)))
+                   (= "薬" finger) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -25.0)))
+                   (= "小" finger) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -50.0))))
+
+                  (str/includes? #_"小" (subs "人中薬小-" (mod angka 6)) finger)
+                  (cond->
+                   (= "１" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -70.0)))
+                   (= "２" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))
+                   (= "３" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))))}))))))
+
+(defn hand-counting [{:keys [angka factor]}]
   (comp
    (do-pose
     (or-fn
      {"左腕"  {:r-fn (rotate-local-fn {:y 25.0 :z -16.0})}
-      "左ひじ" {:r-fn (rotate-local-fn {:x -100.0 :z -110.0})}
-      "左手首" {:r-fn (rotate-local-fn {:y 15.0 :z 10.0})}}
-     (fn kazoeru [name]
-       (let [[matches? finger level] (re-matches #"左([親人中薬小])指([０１２３])" name)]
-         (when matches?
-           (let [wrist-x-axis (v/vec3 0.771123 -0.635213 0.043293) ;; the finger other than 親 doesn't have local-axis data, manually taken from 左手首
-                 wrist-z-axis (v/vec3 -0.033414 0.027528 0.999062)
-                 wrist-y-axis (m/cross wrist-x-axis wrist-z-axis)]
-             (if (= "親" finger)
-               {:r-fn (rotate-local-fn #_{:y -20} {:x 50.0 :z -10.0})}
-               {:r (cond-> (q/quat)
-                     (= "１" level)
-                     (cond->
-                      (= "薬" finger) (m/* (q/quat-from-axis-angle wrist-y-axis (m/radians 5.0)))
-                      (= "小" finger) (m/* (q/quat-from-axis-angle wrist-y-axis (m/radians 30.0))))
-
-                     (= "２" level)
-                     (cond->
-                      (= "中" finger) (m/* (q/quat-from-axis-angle wrist-x-axis (m/radians -10.0)))
-                      (= "薬" finger) (m/* (q/quat-from-axis-angle wrist-x-axis (m/radians -25.0)))
-                      (= "小" finger) (m/* (q/quat-from-axis-angle wrist-x-axis (m/radians -50.0))))
-
-                     (= "3" level)
-                     (cond->
-                      (= "中" finger) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -10.0)))
-                      (= "薬" finger) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -25.0)))
-                      (= "小" finger) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -50.0))))
-
-                     (str/includes? #_"小" "中薬小" finger)
-                     (cond->
-                      (= "１" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -70.0)))
-                      (= "２" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))
-                      (= "３" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))))})))))))
+      "左ひじ" {:r-fn (rotate-local-fn {:x -100.0 :z (+ -110.0 (* 0.22 factor))})}
+      "左手首" {:r-fn (rotate-local-fn {:y 15.0 :z factor})}}
+     (hitung angka)))
    (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 6.0))
    (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 3.0)
                       (IK/make-IK-solver2 (v/vec3 1.0 0.0 0.0)))))
@@ -100,24 +104,32 @@
 (defn after-load-fn [world _game]
   (-> world
       (pacing/insert-timeline
-         ;; hmmm this API is baaad, need more hammock, artifact first, construct later
-         ::silverwolf-pmx
-         [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
-                                                  "にこり" 0.0
-                                                  "にやり3" 0.0}]]]
-          [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 1.2
-                                                  "にこり" 0.5
-                                                  "にやり3" 0.5}]]]
-          [7.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
-                                                  "にこり" 0.0
-                                                  "にやり3" 0.0}]]]])
+       ;; hmmm this API is baaad, need more hammock, artifact first, construct later
+       ::silverwolf-pmx
+       [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
+                                                "にこり" 0.0
+                                                "にやり3" 0.0}]]]
+        [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
+                                                "にこり" 0.0
+                                                "にやり3" 0.0}]]]])
+      (pacing/set-config {:max-progress 8.0})
       (esse ::silverwolf-pmx
-            (pose/strike absolute-cinema)
-            #_(pose/anime
-               [[0.0 identity identity]
-                [0.5 absolute-cinema identity]
-                [7.5 absolute-cinema identity]
-                [8.0 identity identity]])
+            #_(pose/strike hand-counting)
+            (pose/anime
+             [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
+              [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
+              [1.0 (hand-counting {:angka 1 :factor 10.0}) easings/ease-out-expo]
+              [1.4 (hand-counting {:angka 1 :factor 0.0}) easings/ease-out-expo]
+              [2.0 (hand-counting {:angka 2 :factor 10.0}) easings/ease-out-expo]
+              [2.4 (hand-counting {:angka 2 :factor 0.0}) easings/ease-out-expo]
+              [3.0 (hand-counting {:angka 3 :factor 10.0}) easings/ease-out-expo]
+              [3.4 (hand-counting {:angka 3 :factor 0.0}) easings/ease-out-expo]
+              [4.0 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
+              [4.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
+              [5.0 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
+              [6.5 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
+              [7.5 (hand-counting {:angka 0 :factor -15.0}) easings/ease-out-expo]
+              [8.0 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]])
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                    :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
 
