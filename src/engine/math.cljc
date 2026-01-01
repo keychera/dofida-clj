@@ -56,6 +56,13 @@
     ^thi.ng.geom.matrix.Matrix44 b]
    (m/* a b)))
 
+(defn quat-mul-reducer
+  ([] (q/quat))
+  ([result] result)
+  ([^thi.ng.geom.matrix.Matrix44 a
+    ^thi.ng.geom.matrix.Matrix44 b]
+   (m/* a b)))
+
 (defn m44->trans-vec3
   [^thi.ng.geom.matrix.Matrix44 m]
   (let [tx    (.-m30 m)
