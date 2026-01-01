@@ -22,15 +22,12 @@
 (defonce reset-pos* (atom []))
 
 (defn insert-player
-  [world position front]
-  (reset! reset-pos* [position front])
-  (-> world
-      (o/insert ::world/global
-                {::camera/position position})
-      (o/insert ::player
-                {::front front
-                 ::yaw (* -0.5 Math/PI)
-                 ::pitch 0.0})))
+  ([world position front] (insert-player world position front (* -0.5 Math/PI) 0.0))
+  ([world position front yaw pitch]
+   (reset! reset-pos* [position front])
+   (-> world
+       (o/insert ::world/global {::camera/position position})
+       (o/insert ::player {::front front ::yaw yaw ::pitch pitch}))))
 
 (defn player-reset [world]
   (let [[position front] @reset-pos*]
