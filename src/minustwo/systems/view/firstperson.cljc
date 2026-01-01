@@ -24,14 +24,14 @@
 (defn insert-player
   ([world position front] (insert-player world position front (* -0.5 Math/PI) 0.0))
   ([world position front yaw pitch]
-   (reset! reset-pos* [position front])
+   (reset! reset-pos* [position front yaw pitch])
    (-> world
        (o/insert ::world/global {::camera/position position})
        (o/insert ::player {::front front ::yaw yaw ::pitch pitch}))))
 
 (defn player-reset [world]
-  (let [[position front] @reset-pos*]
-    (insert-player world position front)))
+  (let [[position front yaw pitch] @reset-pos*]
+    (insert-player world position front yaw pitch)))
 
 (def rules
   (o/ruleset
