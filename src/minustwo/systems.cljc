@@ -18,7 +18,7 @@
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
-   [minustwo.systems.view.projection :as projection]
+   [minustwo.systems.view.camera :as camera]
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]))
 
@@ -26,7 +26,7 @@
   [time/system
 
    window/system
-   projection/system
+   camera/system
    firstperson/system
    input/system
 
