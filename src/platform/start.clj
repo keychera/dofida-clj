@@ -1,11 +1,12 @@
 (ns platform.start
   (:require
-   [engine.world :as world]
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [clojure.set :refer [difference]]
    [engine.engine :as engine]
    [engine.game :as game]
-   [minustwo.systems.input :as input]
-   [clojure.edn :as edn]
-   [clojure.java.io :as io])
+   [engine.world :as world]
+   [minustwo.systems.input :as input])
   (:import
    [org.lwjgl.glfw
     Callbacks
@@ -21,18 +22,53 @@
    [org.lwjgl.system MemoryUtil])
   (:gen-class))
 
-;; in JS, we can't use queue becaue the different rate between input callback and framerate
-;; I think java can still use queue here because 
-;; the rate of update is the same due to GLFW/PollEvents?
-(defonce world-inputs (atom clojure.lang.PersistentQueue/EMPTY))
+(def world-init-inputs
+  {::pointer-move {:dx 0.0 :dy 0.0}
+   ::pointer-pos  {:x 0.0  :y 0.0}
+   ::keydown      #{}
+   ::prev-keydown #{}})
+
+(defonce world-inputs (atom world-init-inputs))
+
 (defonce mouse-state (atom {::last-mousemove (System/nanoTime) ::stopped? true}))
 (defonce mousestop-threshold-nanos 50000000) ;; 50ms
+(def current-mode (atom ::input/arcball))
 
 (defn update-world [game]
-  (when (seq @world-inputs)
-    (let [world-fn (peek @world-inputs)]
-      (swap! world-inputs pop)
-      (swap! (::world/atom* game) world-fn))))
+  (let [inputs @world-inputs]
+    (case (::flag inputs)
+      ::lockchange
+      (let [new-mode (case @current-mode
+                       ::input/arcball     ::input/firstperson
+                       ::input/firstperson ::input/arcball)]
+        (reset! current-mode new-mode)
+        (swap! (::world/atom* game)
+               (fn [world']
+                 (-> world'
+                     (input/update-mouse-delta 0.0 0.0)
+                     (input/cleanup-input)
+                     (input/set-mode new-mode))))
+        (reset! world-inputs world-init-inputs))
+
+      (let [input-fn (reduce
+                      (fn [prev-fn [input-key input-data]]
+                        (case input-key
+                          ::pointer-pos  (comp (fn pointer-pos [world] (input/update-mouse-pos world (:x input-data) (:y input-data))) prev-fn)
+                          ::pointer-move (comp (fn pointer-move [world]
+                                                 (input/update-mouse-delta world (:dx input-data) (:dy input-data))) prev-fn)
+                          ::keydown   (loop [[k & remains] input-data acc-fn prev-fn]
+                                        (if k
+                                          (recur remains (comp (fn keydown [world] (input/key-on-keydown world k)) acc-fn))
+                                          acc-fn))
+                          prev-fn))
+                      identity inputs)
+            keyups   (difference (::prev-keydown inputs) (::keydown inputs))
+            _        (swap! world-inputs assoc ::prev-keydown (::keydown inputs))
+            input-fn (loop [[k & remains] keyups acc-fn input-fn]
+                       (if k
+                         (recur remains (comp (fn keyup [world] (input/key-on-keyup world k)) acc-fn))
+                         acc-fn))]
+        (swap! (::world/atom* game) input-fn)))))
 
 (defn mousecode->keyword [mousecode]
   (condp = mousecode
@@ -41,14 +77,8 @@
     nil))
 
 (defonce mouse-locked?* (atom false))
-(defn on-lock-change [lock-state]
-  (let [new-mode (if lock-state ::input/firstperson ::input/arcball)]
-    (swap! world-inputs conj
-           (fn [world']
-             (-> world'
-                 (input/update-mouse-delta 0.0 0.0)
-                 (input/cleanup-input)
-                 (input/set-mode new-mode))))))
+(defn on-lock-change [_lock-state]
+  (swap! world-inputs assoc ::flag ::lockchange))
 
 (add-watch mouse-locked?* :watcher
            (fn [_ _ old-state new-state]
@@ -56,8 +86,7 @@
                (on-lock-change new-state))))
 
 (defn on-mouse-stop! []
-  (swap! world-inputs conj
-         (fn mouse-delta [w] (input/update-mouse-delta w 0.0 0.0))))
+  (swap! world-inputs update ::pointer-move (fn [prev] (-> prev (assoc :dx 0.0) (assoc :dy 0.0)))))
 
 (defn on-mouse-move! [window xpos ypos]
   (swap! mouse-state assoc ::last-mousemove (System/nanoTime) ::stopped? false)
@@ -84,11 +113,11 @@
             half-h (/ window-height 2)
             dx (- x half-w)
             dy (- y half-h)]
-        (swap! world-inputs conj
-               (fn mouse-delta [w] (input/update-mouse-delta w dx dy)))
+        (swap! world-inputs update ::pointer-move
+               (fn pointer-delta [prev] (-> prev (assoc :dx dx) (assoc :dy dy))))
         (GLFW/glfwSetCursorPos window half-w half-h))
-      (swap! world-inputs conj
-             (fn mouse-delta [w] (input/update-mouse-pos w x y))))))
+      (swap! world-inputs update ::pointer-pos
+             (fn pointer-pos [prev] (-> prev (assoc :x x) (assoc :y y)))))))
 
 ;; to be injected from debug for now using with-redefs
 (defn is-mouse-blocked? [] false)
@@ -101,10 +130,10 @@
     nil))
 
 (defn on-mouse-click! [_window button action _mods]
-  (when-let [k (mousebutton->keyword button)]
+  (when-let [mouse (mousebutton->keyword button)]
     (condp = action
-      GLFW/GLFW_PRESS   (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
-      GLFW/GLFW_RELEASE (swap! world-inputs conj (fn keydown [w] (input/key-on-keyup w k)))
+      GLFW/GLFW_PRESS   (swap! world-inputs update ::keydown (fn [s] (conj s mouse)))
+      GLFW/GLFW_RELEASE (swap! world-inputs update ::keydown (fn [s] (disj s mouse)))
       nil)))
 
 (defn keycode->keyword [keycode]
@@ -125,15 +154,15 @@
     nil))
 
 (defn on-key! [window keycode _scancode action _mods]
-  (when-let [k (keycode->keyword keycode)]
+  (when-let [keyname (keycode->keyword keycode)]
     (condp = action
       GLFW/GLFW_PRESS   (cond
-                          (= :esc k)
-                          (do (swap! world-inputs conj (fn keydown [w] (input/cleanup-input w)))
+                          (= :esc keyname)
+                          (do (swap! world-inputs update ::keydown (fn [s] (conj s keyname)))
                               (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_NORMAL)
                               (reset! mouse-locked?* false))
 
-                          (= :num1 k)
+                          (= :num1 keyname)
                           (do (when-not @mouse-locked?*
                                 (let [*window-width (MemoryUtil/memAllocInt 1)
                                       *window-height (MemoryUtil/memAllocInt 1)
@@ -149,13 +178,13 @@
                                   (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)))
                               (reset! mouse-locked?* true))
 
-                          (#{:w :a :s :d :r :shift :ctrl} k)
-                          (swap! world-inputs conj (fn keydown [w] (input/key-on-keydown w k)))
+                          (#{:w :a :s :d :r :shift :ctrl} keyname)
+                          (swap! world-inputs update ::keydown (fn [s] (conj s keyname)))
 
                           :else :noop)
       GLFW/GLFW_RELEASE (cond
-                          (#{:w :a :s :d :r :shift :ctrl} k)
-                          (swap! world-inputs conj (fn keyup [w] (input/key-on-keyup w k)))
+                          (#{:w :a :s :d :r :shift :ctrl} keyname)
+                          (swap! world-inputs update ::keydown (fn [s] (disj s keyname)))
 
                           :else :noop)
       nil)))
@@ -264,7 +293,7 @@
   ([game window] (start game window nil))
   ([game window {::keys [init-fn frame-fn destroy-fn stop-flag*]}]
    (let [handle (:handle window)
-         game (assoc game :delta-time 0 :total-time (* (GLFW/glfwGetTime) 1000))]
+         game (assoc game :delta-time 0.0 :total-time (* (GLFW/glfwGetTime) 1000))]
      (GLFW/glfwShowWindow handle)
      (engine/init game)
      (listen-for-events window)
