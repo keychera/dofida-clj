@@ -1,6 +1,7 @@
 (ns minustwo.stage.piece.ni-maru-ni-roku
   (:require
    [clojure.string :as str]
+   [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.math.easings :as easings]
    [engine.world :as world :refer [esse]]
@@ -11,8 +12,10 @@
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
+   [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
+   [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
@@ -112,7 +115,7 @@
         [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
                                                 "にこり" 0.0
                                                 "にやり3" 0.0}]]]])
-      (pacing/set-config {:max-progress 8.0})
+      (pacing/set-config {:max-progress (* Math/PI 4.0)})
       (esse ::silverwolf-pmx
             #_(pose/strike hand-counting)
             (pose/anime
@@ -133,6 +136,42 @@
             #::t3d{:translation (v/vec3 0.0 0.0 0.0)
                    :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
 
+(def rules
+  (o/ruleset
+   {::secondary-anime
+    [:what
+     [::world/global ::pacing/progress progress]
+     [::time/now ::time/slice 3 {:then false}]
+     [::silverwolf-pmx ::pose/pose-tree pose-tree {:then false}]
+     :then
+     (let [pose-tree (into []
+                           (comp
+                            (map (fn [{:keys [name translation original-t] :as node}]
+                                   (if-let [bone-pose (get {"腰" 0.01} name)]
+                                     (let [ampl    bone-pose
+                                           tfactor          (* ampl (Math/cos progress))
+                                           next-translation (v/vec3 tfactor 0.0 (/ tfactor 3.0))]
+                                       (cond-> node
+                                         (nil? original-t) (assoc :original-t translation)
+                                         next-translation (assoc :translation (m/+ (or original-t translation) next-translation))))
+                                     node)))
+                            (map (fn [{:keys [name rotation original-r] :as node}]
+                                   (if-let [bone-pose (get {"HairLA1_JNT" [(v/vec3 0.3 1.0 0.0) 200.0 2.0]
+                                                            "HairLB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]} name)]
+
+                                     (let [[axis-angle offset ampl] bone-pose
+                                           next-rotation (q/quat-from-axis-angle
+                                                          axis-angle
+                                                          (m/radians (* ampl 2.0 (Math/sin (+ (* 2.0 progress) (/ offset 640.0))))))]
+                                       (cond-> node
+                                         (nil? original-r) (assoc :original-r rotation)
+                                         next-rotation (assoc :rotation (m/* (or  original-r rotation) next-rotation))))
+                                     node))))
+                           pose-tree)]
+       (s-> session
+            (o/insert ::silverwolf-pmx ::pose/pose-tree pose-tree)))]}))
+
 (def system
   {::world/init-fn #'init-fn
-   ::world/after-load-fn #'after-load-fn})
+   ::world/after-load-fn #'after-load-fn
+   ::world/rules #'rules})
