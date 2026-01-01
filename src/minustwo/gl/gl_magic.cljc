@@ -51,7 +51,7 @@
 
 (defn cast-spell [world spell-fact]
   (let [{:keys [esse-id spell]}  spell-fact
-        {:keys [ctx all-shaders vao-db*]} (utils/query-one world ::room/data)
+        {:keys [ctx all-shaders vao-db*]} (utils/query-one world ::room/gl-data)
         all-attr-locs             (update-vals all-shaders :attr-locs)]
     (loop [[chant & remaining] spell summons [] state {}]
       (if chant
@@ -68,7 +68,7 @@
                 buffer-data (:buffer-data chant)]
             (gl ctx bindBuffer buffer-type buffer)
             (gl ctx bufferData buffer-type buffer-data GL_STATIC_DRAW)
-            (recur remaining 
+            (recur remaining
                    (if (:buffer-name chant)
                      (conj summons [(:buffer-name chant) ::shader/buffer buffer])
                      summons)

@@ -16,17 +16,17 @@
         models-to-load   (o/query-all world ::assimp/model-to-load)
         pmx-to-load      (o/query-all world ::pmx-model/models-to-load)
         data-uri-to-load (o/query-all world ::texture/uri-to-load)]
-    (when gl-magic-to-cast
+    (when (seq gl-magic-to-cast)
       (doseq [spell-fact gl-magic-to-cast]
         ;; for now cast-spell is still synchronously so we didn't use :loading flag yet
         (let [summons-map (gl-magic/cast-spell world spell-fact)]
           (swap! world* gl-magic/summons->world* summons-map))))
-    (when models-to-load
+    (when (seq models-to-load)
       #?(:clj  (some-> models-to-load (assimp-lwjgl/load-models-from-world* world*))
          :cljs (some-> models-to-load (assimp-js/load-models-from-world* world*))))
-    (when pmx-to-load
+    (when (seq pmx-to-load)
       #?(:clj  (future (some-> pmx-to-load (pmx-model/load-models-from-world* world*)))
          :cljs []))
-    (when data-uri-to-load
+    (when (seq data-uri-to-load)
       (texture/load-texture->world* data-uri-to-load world*)))
   game)
