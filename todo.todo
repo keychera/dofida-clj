@@ -52,7 +52,10 @@ todo:
                        
             ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
                 
-    ☐ either a dream or a delusion
+    ☐ shader delusion, begins
+        ☐ investigate input
+        ☐ arcball
+
         ☐ IK is still wrong I think
         ☐ anime is still a bad api
         
