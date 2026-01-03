@@ -99,6 +99,10 @@
 
 #_("maybe it will (go) away ))( maybe (not). )(( we will (welcome) them with (open) arms")
 
+(defn before-load-fn [world _game]
+  (o/insert world ::world/global ::loop 0))
+
 (def system
-  {::world/init-fn #'init-fn
+  {::world/before-load-fn #'before-load-fn
+   ::world/init-fn #'init-fn
    ::world/rules #'rules})
