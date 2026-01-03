@@ -3,6 +3,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.world :as world]
+   [engine.xform :as xform]
    [minustwo.anime.keyframe :as keyframe]
    [minustwo.anime.pacing :as pacing]
    [minustwo.systems.uuid-instance :as inst :refer [esse-inst]]
@@ -33,7 +34,7 @@
       (s-> (reduce
              (fn [s' [attr anime]]
                (let [timeline (:timeline anime)
-                     kfs      (keyframe/interpolate timeline)]
+                     kfs      (keyframe/interpolate (into [] xform/accumulate-time timeline))]
                  (swap! attr-kfs-db* assoc-in [esse-id attr]
                    {::kfs kfs
                     ::origin-val (:origin-val anime)}))
