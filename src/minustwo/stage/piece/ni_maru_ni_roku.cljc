@@ -24,7 +24,8 @@
    [thi.ng.math.core :as m]
    [minustwo.systems.view.camera :as camera]
    [minustwo.anime.anime :as anime]
-   [thi.ng.geom.core :as g]))
+   [thi.ng.geom.core :as g]
+   [minustwo.systems.view.firstperson :as firstperson]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -45,7 +46,7 @@
            bone))))
 
 (defn rotate-local-fn
-  ([{:keys [x y z alt-x-axis alt-y-axis alt-z-axis]}]
+  ([{:keys [x y z alt-x-axis alt-y-axis alt-z-axis pole]}]
    (fn bone-local-rotate-fn [{:keys [bone-data]}]
      (let [{:keys [x-axis-vector z-axis-vector]} bone-data
            x-axis-vector (or alt-x-axis (some-> x-axis-vector v/vec3))
@@ -56,15 +57,17 @@
           (when z (q/quat-from-axis-angle z-axis-vector (m/radians z)))
           (when y (q/quat-from-axis-angle y-axis-vector (m/radians y)))])))))
 
-(defn hitung [angka]
+(defn hitung [which angka]
   (fn kazoeru-fn [name]
-    (let [[matches? finger level] (re-matches #"左([親人中薬小])指([０１２３])" name)]
+    (let [flipper (case which "左" 1.0 "右" -1.0)
+          [matches? finger level] (re-matches (re-pattern (str which "([親人中薬小])指([０１２３])")) name)]
       (when matches?
-        (let [wrist-x-axis (v/vec3 0.771123 -0.635213 0.043293) ;; the finger other than 親 doesn't have local-axis data, manually taken from 左手首
-              wrist-z-axis (v/vec3 -0.033414 0.027528 0.999062)
+        (let [;; the finger other than 親 doesn't have local-axis data, manually taken from 左手首
+              wrist-x-axis (g/scale (v/vec3 0.771123 -0.635213 0.043293) flipper)
+              wrist-z-axis (g/scale (v/vec3 -0.033414 0.027528 0.999062) flipper)
               wrist-y-axis (m/cross wrist-x-axis wrist-z-axis)]
           (if (= "親" finger)
-            {:r-fn (rotate-local-fn (if (= angka 5) {:y -20} {:x 50.0 :z -10.0}))}
+            {:r-fn (rotate-local-fn (if (= angka 5) {:y -20} {:x (* flipper 70.0) :z (* flipper -10.0)}))}
             {:r (cond-> (q/quat)
                   (= "１" level)
                   (cond->
@@ -89,14 +92,15 @@
                     (= "２" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))
                     (= "３" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))))}))))))
 
-(defn hand-counting [{:keys [angka factor]}]
-  (comp
-    (do-pose
-      (or-fn
-        {"左腕"  {:r-fn (rotate-local-fn {:y 25.0 :z -16.0})}
-         "左ひじ" {:r-fn (rotate-local-fn {:x -100.0 :z (+ -110.0 (* 0.22 factor))})}
-         "左手首" {:r-fn (rotate-local-fn {:y 15.0 :z factor})}}
-        (hitung angka)))))
+(defn hand-counting [{:keys [which angka factor] :or {which "左"}}]
+  (let [flipper (case which "左" 1.0 "右" -1.0)]
+    (comp
+      (do-pose
+        (or-fn
+          {(str which "腕")  {:r-fn (rotate-local-fn {:y 30.0 :z (* flipper -16.0)})}
+           (str which "ひじ") {:r-fn (rotate-local-fn {:x (* flipper -100.0) :z (* flipper (+ -110.0 (* 0.22 factor)))})}
+           (str which "手首") {:r-fn (rotate-local-fn {:y 15.0 :z (* flipper factor)})}}
+          (hitung which angka))))))
 
 (defn default-fx-esse [world model-name-keyword]
   (esse world model-name-keyword
@@ -172,51 +176,57 @@
 (defn after-load-fn [world game]
   (-> world
     (pacing/set-config {:max-progress (* Math/PI 4.0)})
-    (anime/insert ::world/global
-      {::camera/position
-       {:origin-val (v/vec3 3.0 20.5 -3.0)
-        :timeline   [[0.0 (v/vec3) pos-anime-fn]
-                     [4.0 (v/vec3 0.0 0.0 1.0) pos-anime-fn]]}})
     (esse ::fx-text-shader
       #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
-    (pacing/insert-timeline
+    (camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
+    (camera/look-at-target (v/vec3 0.0 17.0 18.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
+    ;; (firstperson/insert-player (v/vec3 0.0 17.0 12.0) (v/vec3 0.0 17.0 3.0))
+    #_(anime/insert ::world/global
+        {::camera/position
+         {:origin-val (v/vec3 3.0 20.5 -3.0)
+          :timeline   [[0.0 (v/vec3) pos-anime-fn]
+                       [4.0 (v/vec3 0.0 0.0 1.0) pos-anime-fn]]}})
+    
+    #_(pacing/insert-timeline
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
-      ::adhoc-facts-timeline
-      [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-       [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num3 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num4 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num5 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.5 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
+        ::adhoc-facts-timeline
+        [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
+         [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num3 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num4 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num5 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [0.5 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
     (esse ::silverwolf-pmx
-      #_(pose/strike hand-counting)
+      (pose/strike (comp
+                     (hand-counting {:angka 0 :factor 10.0})
+                     (hand-counting {:which "右" :angka 0 :factor 10.0})))
       (pose/anime
-        [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
-         [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
-         [0.6 (hand-counting {:angka 1 :factor 10.0}) easings/ease-out-expo]
-         [0.4 (hand-counting {:angka 1 :factor 0.0}) easings/ease-out-expo]
-         [0.6 (hand-counting {:angka 2 :factor 10.0}) easings/ease-out-expo]
-         [0.4 (hand-counting {:angka 2 :factor 0.0}) easings/ease-out-expo]
-         [0.6 (hand-counting {:angka 3 :factor 10.0}) easings/ease-out-expo]
-         [0.4 (hand-counting {:angka 3 :factor 0.0}) easings/ease-out-expo]
-         [0.6 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
-         [0.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
-         [0.6 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-         [1.5 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-         [1.0 (hand-counting {:angka 0 :factor -15.0}) easings/ease-out-expo]
-         [0.5 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]]
-        {:relative? true})
+          [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
+           [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
+           [0.6 (hand-counting {:angka 1 :factor 10.0}) easings/ease-out-expo]
+           [0.4 (hand-counting {:angka 1 :factor 0.0}) easings/ease-out-expo]
+           [0.6 (hand-counting {:angka 2 :factor 10.0}) easings/ease-out-expo]
+           [0.4 (hand-counting {:angka 2 :factor 0.0}) easings/ease-out-expo]
+           [0.6 (hand-counting {:angka 3 :factor 10.0}) easings/ease-out-expo]
+           [0.4 (hand-counting {:angka 3 :factor 0.0}) easings/ease-out-expo]
+           [0.6 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
+           [0.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
+           [0.6 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
+           [1.5 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
+           [1.0 (hand-counting {:angka 0 :factor -15.0}) easings/ease-out-expo]
+           [0.5 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]]
+          {:relative? true})
       #::t3d{:translation (v/vec3 0.0 0.0 0.0)
              :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
 
@@ -241,7 +251,9 @@
                                    node)))
                           (map (fn [{:keys [name rotation original-r] :as node}]
                                  (if-let [bone-pose (get {"HairLA1_JNT" [(v/vec3 0.3 1.0 0.0) 200.0 2.0]
-                                                          "HairLB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]} name)]
+                                                          "HairLB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]
+                                                          "HairRA1_JNT" [(v/vec3 0.3 1.0 0.0) 200.0 2.0]
+                                                          "HairRB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]} name)]
 
                                    (let [[axis-angle offset ampl] bone-pose
                                          next-rotation (q/quat-from-axis-angle
