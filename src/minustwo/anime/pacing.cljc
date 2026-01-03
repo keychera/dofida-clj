@@ -2,6 +2,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
+   [engine.types :as types]
    [engine.world :as world]
    [engine.xform :as xform]
    [minustwo.systems.time :as time]
@@ -14,9 +15,8 @@
 (s/def ::loop int?)
 (s/def ::debug some?)
 
-(s/def ::fact (s/cat :id ::o/id :attr ::o/attr :value ::o/value))
 (s/def ::timed-fact (s/cat :time-inp number?
-                           :facts (s/coll-of ::fact :kind vector?)
+                           :facts (s/coll-of ::types/fact :kind vector?)
                            :loop-fired int?))
 (s/def ::fact-timeline (s/coll-of ::timed-fact :kind vector?))
 
@@ -41,11 +41,7 @@
                    :timescale    (/ 1 640)})
       (o/insert ::world/global
                 {::progress ##Inf
-                 ::loop 0})
-      #_(insert-timeline ::world/global
-                         [[0.0 [["this thing" ::debug 99]]]
-                          [8.0 [["hey2" ::debug 1]
-                                ["hey8" ::debug 100]]]])))
+                 ::loop 0})))
 
 (def rules
   (o/ruleset
