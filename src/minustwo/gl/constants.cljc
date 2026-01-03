@@ -37,6 +37,7 @@
 (def ^:const GL_FRONT 1028)
 (def ^:const GL_BACK 1029)
 (def ^:const GL_FRONT_AND_BACK 1032)
+(def ^:const GL_MULTISAMPLE 32925)
 
 
 ;; Blend functions

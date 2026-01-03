@@ -4,7 +4,8 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :as game :refer [gl-ctx]]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_DEPTH_TEST]]
+   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_DEPTH_TEST
+                                  GL_MULTISAMPLE]]
    [minustwo.systems :as systems]
    [odoyle.rules :as o]))
 
@@ -17,6 +18,7 @@
     (let [ctx (gl-ctx game)]
       (gl ctx enable GL_BLEND)
       (gl ctx enable GL_CULL_FACE)
+      (gl ctx enable GL_MULTISAMPLE)
       (gl ctx enable GL_DEPTH_TEST))
     (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
       (some-> (::game/render-fns* game) (reset! render-fns))
