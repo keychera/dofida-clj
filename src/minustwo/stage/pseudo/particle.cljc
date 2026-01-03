@@ -4,18 +4,20 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
+   [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [engine.types :as types]
    [engine.world :as world]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TRIANGLES]]
    [minustwo.systems.time :as time]
+   [minustwo.systems.uuid-instance :refer [esse-inst remove-esse-inst]]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [engine.math :as m-ext]))
+   [thi.ng.math.core :as m]))
 
+(s/def ::original-id keyword?)
 (s/def ::age-in-step number?)
 (s/def ::physics map?)
 (s/def ::fire (s/keys :req-un [::age-in-step]
@@ -34,33 +36,34 @@
      (let [physic (or (:physics config) {})]
        (s-> session
             (o/retract esse-id ::fire)
-            (o/insert esse-id ::age-in-step (:age-in-step config))
-            (o/insert esse-id ::position (v/vec3)) ;; this is the local position, the global one is controlled by t3d/transform
-            (o/insert esse-id ::velocity (or (:initial-velocity physic) (v/vec3)))))]
+            (esse-inst
+             {::original-id esse-id
+              ::age-in-step (:age-in-step config)
+              ::position (v/vec3) ;; this is the local position, the global one is controlled by t3d/transform
+              ::velocity (or (:initial-velocity physic) (v/vec3))})))]
 
     ::gravity
     [:what
      [::time/now ::time/delta dt]
-     [esse-id ::age-in-step age {:then false}] ;; just to make sure it's alive
-     [esse-id ::position p {:then false}]
-     [esse-id ::velocity v {:then false}]
+     [esse-uuid ::age-in-step age {:then false}] ;; just to make sure it's alive
+     [esse-uuid ::position p {:then false}]
+     [esse-uuid ::velocity v {:then false}]
      :then
      (s-> session
-          (o/insert esse-id ::position (m/+ p (g/scale v dt)))
-          (o/insert esse-id ::velocity (m/+ v (v/vec3 0.0 (* -9.8 dt 1e-6) 0.0))))]
+          (o/insert esse-uuid ::position (m/+ p (g/scale v dt)))
+          (o/insert esse-uuid ::velocity (m/+ v (v/vec3 0.0 (* -9.8 dt 1e-6) 0.0))))]
 
     ::live-particles
     [:what
      [::time/now ::time/step _]
-     [esse-id ::age-in-step age {:then false}]
-     [esse-id ::position position {:then false}]
+     [esse-uuid ::original-id esse-id {:then false}]
+     [esse-uuid ::age-in-step age {:then false}]
+     [esse-uuid ::position position {:then false}]
      :then
      (if (<= age 0)
+       (s-> session (remove-esse-inst esse-uuid))
        (s-> session
-            (o/retract esse-id ::position)
-            (o/retract esse-id ::age-in-step))
-       (s-> session
-            (o/insert esse-id ::age-in-step (dec age))))]}))
+            (o/insert esse-uuid ::age-in-step (dec age))))]}))
 
 ;; this is for gltf-renderer/custom-draw-fn, I wonder if there is a static way to define this, protocol?
 ;; one idea is a protocol that not only define draw element, but also something that can prevent the cost of doing all that data passing before draw

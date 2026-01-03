@@ -19,6 +19,7 @@
    [minustwo.systems.input :as input]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
+   [minustwo.systems.uuid-instance :as uuid-instance]
    [minustwo.systems.view.camera :as camera]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
@@ -45,6 +46,7 @@
    room/system
    perspective-grid/system
    t3d/system
+   uuid-instance/system
 
    ;;  hidup/system
    pmx-model/system

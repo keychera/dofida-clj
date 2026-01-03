@@ -181,7 +181,13 @@
         [1.0 [[::model_num4 ::particle/fire {:age-in-step 20
                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
         [1.0 [[::model_num5 ::particle/fire {:age-in-step 20
-                                             :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
+                                             :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+        [0.5 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+        [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+        [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+        [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+        [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+        [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
       (esse ::silverwolf-pmx
             #_(pose/strike hand-counting)
             (pose/anime
