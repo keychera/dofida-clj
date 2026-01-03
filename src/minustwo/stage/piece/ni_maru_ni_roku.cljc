@@ -172,7 +172,7 @@
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
        ::adhoc-facts-timeline
        [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-        [0.4 [[::model_num1 ::particle/fire {:age-in-step 20
+        [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
         [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
