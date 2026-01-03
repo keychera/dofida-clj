@@ -111,12 +111,6 @@
 
 (defn after-load-fn [world _game]
   (-> world
-      (pacing/insert-timeline
-       ;; hmmm this API is baaad, need more hammock, artifact first, construct later
-       ::silverwolf-pmx
-       [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-        [0.5 [[::bikkuri ::particle/fire {:age-in-step 10}]
-              [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]])
       (pacing/set-config {:max-progress (* Math/PI 4.0)})
       (esse ::bikkuri #::t3d{:translation (v/vec3 0.5 17.0 3.0)
                              :rotation
@@ -125,6 +119,12 @@
                              #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
                                     (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
                              :scale (v/vec3 3.0 0.5 3.0)})
+      (pacing/insert-timeline
+       ;; hmmm this API is baaad, need more hammock, artifact first, construct later
+       ::adhoc-facts-timeline
+       [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
+        [0.5 [[::bikkuri ::particle/fire {:age-in-step 10}]
+              [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]])
       (esse ::silverwolf-pmx
             #_(pose/strike hand-counting)
             (pose/anime
