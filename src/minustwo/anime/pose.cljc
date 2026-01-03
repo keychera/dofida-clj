@@ -65,7 +65,8 @@
      :then
      (let [kfs (keyframe/interpolate timeline)]
        (when (seq kfs)
-         (swap! keyframes-db* assoc-in [esse-id ::kfs] kfs)))]
+         (swap! keyframes-db* assoc-in [esse-id ::kfs] kfs)))
+     (s-> session (o/retract esse-id ::timeline))]
 
     ::pose-for-the-fans!
     [:what
