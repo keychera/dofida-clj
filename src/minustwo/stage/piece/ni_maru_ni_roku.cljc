@@ -102,7 +102,13 @@
         #::shader{:use ::fx-text-shader}
         pose/default
         #::gltf-renderer{:custom-draw-fn particle/draw-fn}
-        t3d/default))
+        #::t3d{:translation (v/vec3 0.5 17.0 3.0)
+               :rotation
+               ;; I want to have quaternion intuition!
+               (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
+               #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
+                      (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
+               :scale (v/vec3 2.0)}))
 
 (def text-fx-vertex-shader
   (str cljgl/version-str
@@ -162,14 +168,6 @@
       (pacing/set-config {:max-progress (* Math/PI 4.0)})
       (esse ::fx-text-shader
             #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
-      (esse ::model_num1
-            #::t3d{:translation (v/vec3 0.5 17.0 3.0)
-                   :rotation
-                   ;; I kinda want to have quaternion intuition
-                   (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
-                   #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
-                          (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
-                   :scale (v/vec3 2.0)})
       (pacing/insert-timeline
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
        ::adhoc-facts-timeline

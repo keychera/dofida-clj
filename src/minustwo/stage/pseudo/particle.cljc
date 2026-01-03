@@ -57,6 +57,7 @@
      :then
      (if (<= age 0)
        (s-> session
+            (o/retract esse-id ::position)
             (o/retract esse-id ::age-in-step))
        (s-> session
             (o/insert esse-id ::age-in-step (dec age))))]}))
@@ -64,7 +65,10 @@
 ;; this is for gltf-renderer/custom-draw-fn, I wonder if there is a static way to define this, protocol?
 ;; one idea is a protocol that not only define draw element, but also something that can prevent the cost of doing all that data passing before draw
 (defn draw-fn [world ctx gltf-model prim]
-  (when-let [particles (seq (o/query-all world ::live-particles))]
+  ;; hmm this cross backward chaining needs hammock time later I feel like
+  (when-let [particles (seq (into []
+                                  (filter #(= (:esse-id %) (:esse-id gltf-model)))
+                                  (o/query-all world ::live-particles)))]
     (let [{:keys [model program-info]} gltf-model
           indices        (:indices prim)
           vert-count     (:count indices)
