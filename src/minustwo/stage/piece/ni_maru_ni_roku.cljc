@@ -67,7 +67,7 @@
               wrist-z-axis (g/scale (v/vec3 -0.033414 0.027528 0.999062) flipper)
               wrist-y-axis (m/cross wrist-x-axis wrist-z-axis)]
           (if (= "親" finger)
-            {:r-fn (rotate-local-fn (if (= angka 5) {:y -20} {:x (* flipper 70.0) :z (* flipper -10.0)}))}
+            {:r-fn (rotate-local-fn (if (>= angka 5) {:y -20} {:x (* flipper 70.0) :z (* flipper -10.0)}))}
             {:r (cond-> (q/quat)
                   (= "１" level)
                   (cond->
@@ -92,15 +92,17 @@
                     (= "２" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))
                     (= "３" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))))}))))))
 
-(defn hand-counting [{:keys [which twist angka factor] :or {which "左" twist 0.0}}]
+(defn hand-counting [{:keys [which twist wrist armpit angka factor] 
+                      :or {which "左" twist 0.0 wrist 15.0 armpit -16.0}}]
   (let [flipper (case which "左" 1.0 "右" -1.0)]
     (comp
       (do-pose
         (or-fn
           {(str which "手捩") {:r-fn (rotate-local-fn {:x (* flipper twist)})}
-           (str which "腕")   {:r-fn (rotate-local-fn {:y 30.0 :z (* flipper -16.0)})}
+           (str which "腕捩") {:r-fn (rotate-local-fn {:z (* flipper twist)})}
+           (str which "腕")   {:r-fn (rotate-local-fn {:y 30.0 :z (* flipper armpit)})}
            (str which "ひじ") {:r-fn (rotate-local-fn {:x (* flipper -100.0)  :z (* flipper (+ -110.0 (* 0.22 factor)))})}
-           (str which "手首") {:r-fn (rotate-local-fn {:x (* flipper twist) :y 15.0 :z (* flipper factor)})}}
+           (str which "手首") {:r-fn (rotate-local-fn {:x (* flipper twist) :y wrist :z (* flipper factor)})}}
           (hitung which angka))))))
 
 (defn default-fx-esse [world model-name-keyword]
@@ -180,7 +182,7 @@
     (esse ::fx-text-shader
       #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
     (camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
-    ;; (camera/look-at-target (v/vec3 0.0 17.0 8.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
+    (camera/look-at-target (v/vec3 0.0 17.0 8.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
     #_(anime/insert ::world/global
         {::camera/position
          {:origin-val (v/vec3 3.0 20.5 -3.0)
@@ -189,28 +191,28 @@
 
     (pacing/insert-timeline
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
-        ::adhoc-facts-timeline
-        [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-         [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
-                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
-                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [1.0 [[::model_num3 ::particle/fire {:age-in-step 20
-                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [1.0 [[::model_num4 ::particle/fire {:age-in-step 20
-                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [1.0 [[::model_num5 ::particle/fire {:age-in-step 20
-                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [0.5 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
+      ::adhoc-facts-timeline
+      [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
+       [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
+                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
+                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [1.0 [[::model_num3 ::particle/fire {:age-in-step 20
+                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [1.0 [[::model_num4 ::particle/fire {:age-in-step 20
+                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [1.0 [[::model_num5 ::particle/fire {:age-in-step 20
+                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [0.5 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
     (esse ::silverwolf-pmx
-      #_(pose/strike (comp
-                     (hand-counting {:angka 2 :factor 10.0 :twist 90})
-                     (hand-counting {:which "右" :angka 0 :twist 90 :factor 10.0})))
+      (pose/strike (comp
+                     (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
+                     (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})))
       (pose/anime
         [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
          [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
