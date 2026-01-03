@@ -5,16 +5,25 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.sugar :refer [vec->f32-arr]]
+   [engine.types :as types]
    [engine.world :as world]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TRIANGLES]]
    [minustwo.systems.time :as time]
    [odoyle.rules :as o]
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.vector :as v]
-   [thi.ng.geom.core :as g]))
+   [thi.ng.math.core :as m]
+   [engine.math :as m-ext]))
 
 (s/def ::age-in-step number?)
-(s/def ::fire (s/keys :req-un [::age-in-step]))
+(s/def ::physics map?)
+(s/def ::fire (s/keys :req-un [::age-in-step]
+                      :opt-un [::physics]))
+
+;; pseudo gravity
+(s/def ::position ::types/vec3)
+(s/def ::velocity ::types/vec3)
 
 (def rules
   (o/ruleset
@@ -22,14 +31,29 @@
     [:what
      [esse-id ::fire config]
      :then
+     (let [physic (or (:physics config) {})]
+       (s-> session
+            (o/retract esse-id ::fire)
+            (o/insert esse-id ::age-in-step (:age-in-step config))
+            (o/insert esse-id ::position (v/vec3)) ;; this is the local position, the global one is controlled by t3d/transform
+            (o/insert esse-id ::velocity (or (:initial-velocity physic) (v/vec3)))))]
+
+    ::gravity
+    [:what
+     [::time/now ::time/delta dt]
+     [esse-id ::age-in-step age {:then false}] ;; just to make sure it's alive
+     [esse-id ::position p {:then false}]
+     [esse-id ::velocity v {:then false}]
+     :then
      (s-> session
-          (o/retract esse-id ::fire)
-          (o/insert esse-id ::age-in-step (:age-in-step config)))]
+          (o/insert esse-id ::position (m/+ p (g/scale v dt)))
+          (o/insert esse-id ::velocity (m/+ v (v/vec3 0.0 (* -9.8 dt 1e-6) 0.0))))]
 
     ::live-particles
     [:what
      [::time/now ::time/step _]
      [esse-id ::age-in-step age {:then false}]
+     [esse-id ::position position {:then false}]
      :then
      (if (<= age 0)
        (s-> session
@@ -45,8 +69,8 @@
           indices        (:indices prim)
           vert-count     (:count indices)
           component-type (:componentType indices)]
-      (doseq [particle particles]
-        (let [particle-trans (or (g/transform-vector model (v/vec3)) particle)]
+      (doseq [{:keys [position]} particles]
+        (let [particle-trans (m/* (m-ext/translation-mat position) model)]
           (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec particle-trans)))
           (gl ctx drawElements GL_TRIANGLES vert-count component-type 0))))))
 

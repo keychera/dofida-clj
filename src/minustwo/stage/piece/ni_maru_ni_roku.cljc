@@ -123,7 +123,8 @@
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
        ::adhoc-facts-timeline
        [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-        [0.5 [[::bikkuri ::particle/fire {:age-in-step 10}]
+        [0.5 [[::bikkuri ::particle/fire {:age-in-step 20
+                                          :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]
               [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]])
       (esse ::silverwolf-pmx
             #_(pose/strike hand-counting)
