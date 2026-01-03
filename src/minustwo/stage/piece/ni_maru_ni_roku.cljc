@@ -20,7 +20,8 @@
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minustwo.stage.pseudo.particle :as particle]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -94,8 +95,6 @@
       "左手首" {:r-fn (rotate-local-fn {:y 15.0 :z factor})}}
      (hitung angka)))))
 
-(q/as-axis-angle *1)
-
 (defn init-fn [world _game]
   (-> world
       (firstperson/insert-player (v/vec3 3.0 20.5 -3.0) (v/vec3 0.0 0.0 -1.0) (m/radians 110.0) (m/radians -35))
@@ -107,7 +106,7 @@
             #::assimp{:model-to-load ["assets/models/fx/model_bikkuri.glb"] :config {:tex-unit-offset 1}}
             #::shader{:use ::wirecube/simpleshader}
             pose/default
-            gltf-renderer/normal-draw
+            #::gltf-renderer{:custom-draw-fn particle/draw-fn}
             t3d/default)))
 
 (defn after-load-fn [world _game]
@@ -115,12 +114,9 @@
       (pacing/insert-timeline
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
        ::silverwolf-pmx
-       [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
-                                                "にこり" 0.0
-                                                "にやり3" 0.0}]]]
-        [0.5 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0
-                                                "にこり" 0.0
-                                                "にやり3" 0.0}]]]])
+       [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
+        [0.5 [[::bikkuri ::particle/fire {:age-in-step 10}]
+              [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]])
       (pacing/set-config {:max-progress (* Math/PI 4.0)})
       (esse ::bikkuri #::t3d{:translation (v/vec3 0.5 17.0 3.0)
                              :rotation

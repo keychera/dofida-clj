@@ -76,7 +76,7 @@
 
           (doseq [prim (:gltf-primitives gltf-model)]
             (let [indices        (:indices prim)
-                  count          (:count indices)
+                  vert-count     (:count indices)
                   component-type (:componentType indices)
                   vao            (get @vao-db* (:vao-name prim))
                   tex            (get @texture-db* (:tex-name prim))]
@@ -89,9 +89,9 @@
 
                 (condp = draw-fn
                   :normal-draw
-                  (gl ctx drawElements GL_TRIANGLES count component-type 0)
+                  (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
 
-                  (draw-fn ctx gltf-model prim))
+                  (draw-fn world ctx gltf-model prim))
 
                 (gl ctx bindVertexArray #?(:clj 0 :cljs nil))))))))))
 

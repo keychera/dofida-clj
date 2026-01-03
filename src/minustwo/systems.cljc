@@ -13,6 +13,7 @@
    [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.piece.ni-maru-ni-roku :as ni-maru-ni-roku]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
+   [minustwo.stage.pseudo.particle :as particle]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
@@ -50,6 +51,7 @@
    pmx-renderer/system
    gltf-renderer/system
 
+   particle/system
    ni-maru-ni-roku/system
 
    wirecube/system
