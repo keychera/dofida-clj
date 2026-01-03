@@ -19,7 +19,8 @@
      [::world/global ::shader/all all-shaders]
      [::world/global ::window/dimension window]
      [::world/global ::camera/projection-matrix project]
-     [::world/global ::camera/view-matrix player-view]
+     [::world/global ::camera/active cam-id]
+     [cam-id ::camera/view-matrix player-view]
      [::world/global ::camera/position player-pos]]
 
     ::gl-data
