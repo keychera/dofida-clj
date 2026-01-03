@@ -25,7 +25,8 @@
    [minustwo.systems.view.camera :as camera]
    [minustwo.anime.anime :as anime]
    [thi.ng.geom.core :as g]
-   [minustwo.systems.view.firstperson :as firstperson]))
+   [minustwo.systems.view.firstperson :as firstperson]
+   [minustwo.stage.piece.ni-maru-ni-roku :as ni-maru-ni-roku]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -92,7 +93,7 @@
                     (= "２" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))
                     (= "３" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))))}))))))
 
-(defn hand-counting [{:keys [which twist wrist armpit angka factor] 
+(defn hand-counting [{:keys [which twist wrist armpit angka factor]
                       :or {which "左" twist 0.0 wrist 15.0 armpit -16.0}}]
   (let [flipper (case which "左" 1.0 "右" -1.0)]
     (comp
@@ -105,19 +106,24 @@
            (str which "手首") {:r-fn (rotate-local-fn {:x (* flipper twist) :y wrist :z (* flipper factor)})}}
           (hitung which angka))))))
 
-(defn default-fx-esse [world model-name-keyword]
-  (esse world model-name-keyword
-    #::assimp{:model-to-load [(str "assets/models/fx/" (name model-name-keyword) ".glb")] :config {:tex-unit-offset 1}}
-    #::shader{:use ::fx-text-shader}
-    pose/default
-    #::gltf-renderer{:custom-draw-fn particle/draw-fn}
-    #::t3d{:translation (v/vec3 0.5 17.0 3.0)
-           :rotation
-               ;; I want to have quaternion intuition!
-           (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
-           #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
-               (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
-           :scale (v/vec3 2.0)}))
+(def default-fx-t3d
+  #::t3d{:translation (v/vec3 0.5 17.0 3.0)
+         :rotation
+                ;; I want to have quaternion intuition!
+         (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
+         #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
+             (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
+         :scale (v/vec3 2.0 0.5 2.0)})
+
+(defn default-fx-esse
+  ([world model-name-keyword] (default-fx-esse world model-name-keyword (name model-name-keyword)))
+  ([world model-name-keyword model-file]
+   (esse world model-name-keyword
+     #::assimp{:model-to-load [(str "assets/models/fx/" model-file ".glb")] :config {:tex-unit-offset 1}}
+     #::shader{:use ::fx-text-shader}
+     pose/default
+     #::gltf-renderer{:custom-draw-fn particle/draw-fn}
+     default-fx-t3d)))
 
 (def text-fx-vertex-shader
   (str cljgl/version-str
@@ -152,13 +158,15 @@
      out vec4 o_color;
 
      void main() {
-        o_color = vec4(0.9, 0.9, 0.9, 0.5); 
+        o_color = vec4(0.5, 0.75, 0.85, 1.0); 
      }
     "))
 
-(defn pos-anime-fn [t origin-v cur-v next-v]
-  (let [interpolated (m/+ cur-v (g/scale next-v t))]
-    (m/+ origin-v interpolated)))
+(defn make-anime [easing-fn]
+  (fn pos-anime-fn [t origin-v cur-v next-v]
+    (let [t (easing-fn t)
+          interpolated (m/+ cur-v (g/scale next-v t))]
+      (m/+ origin-v interpolated))))
 
 (defn init-fn [world _game]
   (-> world
@@ -169,8 +177,10 @@
       t3d/default)
     (default-fx-esse ::model_bikkuri)
     (default-fx-esse ::model_num0)
+    (default-fx-esse ::model_num0-2 "model_num0")
     (default-fx-esse ::model_num1)
     (default-fx-esse ::model_num2)
+    (default-fx-esse ::model_num2-2 "model_num2")
     (default-fx-esse ::model_num3)
     (default-fx-esse ::model_num4)
     (default-fx-esse ::model_num5)
@@ -182,37 +192,50 @@
     (esse ::fx-text-shader
       #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
     (camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
-    (camera/look-at-target (v/vec3 0.0 17.0 8.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
-    #_(anime/insert ::world/global
+    #_(camera/look-at-target (v/vec3 0.0 17.0 8.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
+    (anime/insert ::world/global
+      (let [ident-fn (make-anime identity)]
         {::camera/position
          {:origin-val (v/vec3 3.0 20.5 -3.0)
-          :timeline   [[0.0 (v/vec3) pos-anime-fn]
-                       [4.0 (v/vec3 0.0 0.0 1.0) pos-anime-fn]]}})
+          :timeline   [[0.0 (v/vec3) ident-fn]
+                       [5.0 (v/vec3 0.0 0.0 1.0) ident-fn]
+                       [1.0 (v/vec3 -3.0 -3.5 11.0) ident-fn]]}
+         ::camera/look-at-target
+         {:origin-val (v/vec3 0.5 17.0 3.0)
+          :timeline   [[0.0 (v/vec3) ident-fn]
+                       [5.0 (v/vec3) ident-fn]
+                       [1.0 (v/vec3 -0.5 0.0 0.0) ident-fn]]}}))
 
     (pacing/insert-timeline
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
       ::adhoc-facts-timeline
-      [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-       [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num3 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num4 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [1.0 [[::model_num5 ::particle/fire {:age-in-step 20
-                                            :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.5 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_bikkuri ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-       [0.1 [[::model_num6 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]])
+      (let [ni-maru-ni-roku-size #::t3d{:rotation (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0)) :scale (v/vec3 1.5 0.5 1.5)}
+            slow-particle {::particle/fire {:age-in-step 120 :physics {:initial-velocity (v/vec3 0.0 1e-4 0.0)
+                                                                       :gravity (v/vec3 1e-7 -1e-6 1e-6)}}}]
+        [[0.0 [[::model_num2 default-fx-t3d]
+               [::model_num2-2 default-fx-t3d]
+               [::model_num6 default-fx-t3d]
+               [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
+         [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num2 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num3 ::particle/fire {:age-in-step 20
+                                              :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num4 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [1.0 [[::model_num5 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
+         [2.5 [[::model_num2 (merge #::t3d{:translation (v/vec3 -1.0 16.5 4.0)} ni-maru-ni-roku-size)]
+               [::model_num2 slow-particle]
+               [::model_num0 (merge #::t3d{:translation (v/vec3 -0.35 16.5 4.0)} ni-maru-ni-roku-size)]
+               [::model_num0 slow-particle]
+               [::model_num2-2 (merge #::t3d{:translation (v/vec3 0.35 16.5 4.0)} ni-maru-ni-roku-size)]
+               [::model_num2-2 slow-particle]
+               [::model_num6 (merge #::t3d{:translation (v/vec3 1.0 16.5 4.0)} ni-maru-ni-roku-size)]
+               [::model_num6 slow-particle]]]]))
     (esse ::silverwolf-pmx
-      (pose/strike (comp
-                     (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
-                     (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})))
+      #_(pose/strike (comp
+                       (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
+                       (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})))
       (pose/anime
         [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
          [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
@@ -225,9 +248,15 @@
          [0.6 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
          [0.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
          [0.6 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-         [1.5 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-         [1.0 (hand-counting {:angka 0 :factor -15.0}) easings/ease-out-expo]
-         [0.5 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]]
+         [0.4 (hand-counting {:angka 5 :factor 0.0}) easings/ease-out-expo]
+         [0.6 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]
+         [0.4 (comp
+                (hand-counting {:angka 0 :factor 10.0})
+                (hand-counting {:angka 0 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})) easings/ease-out-expo]
+
+         [2.0 (comp
+                (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
+                (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 0.0})) easings/ease-out-expo]]
         {:relative? true})
       #::t3d{:translation (v/vec3 0.0 0.0 0.0)
              :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
@@ -246,7 +275,7 @@
                                  (if-let [bone-pose (get {"腰" 0.01} name)]
                                    (let [ampl    bone-pose
                                          tfactor          (* ampl (Math/cos progress))
-                                         next-translation (v/vec3 tfactor 0.0 (/ tfactor 3.0))]
+                                         next-translation (v/vec3 0.0 tfactor (/ tfactor 3.0))]
                                      (cond-> node
                                        (nil? original-t) (assoc :original-t translation)
                                        next-translation (assoc :translation (m/+ (or original-t translation) next-translation))))
@@ -255,7 +284,10 @@
                                  (if-let [bone-pose (get {"HairLA1_JNT" [(v/vec3 0.3 1.0 0.0) 200.0 2.0]
                                                           "HairLB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]
                                                           "HairRA1_JNT" [(v/vec3 0.3 1.0 0.0) 200.0 2.0]
-                                                          "HairRB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]} name)]
+                                                          "HairRB1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]
+                                                          "HairFA1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]
+                                                          "HairFB1_JNT" [(v/vec3 0.3 1.0 0.0) 200.0 3.0]
+                                                          "HairFC1_JNT" [(v/vec3 0.3 1.0 0.0) -200.0 3.0]} name)]
 
                                    (let [[axis-angle offset ampl] bone-pose
                                          next-rotation (q/quat-from-axis-angle
