@@ -24,12 +24,21 @@
   (o/insert world ::world/global ::config
     (merge {:max-progress 16.0 :timescale (/ 1 640)} config)))
 
+(defn resolve-facts [facts]
+  (into []
+    (mapcat (fn [[id attr :as fact]]
+              (if (map? attr)
+                (into [] (map (fn [[a v]] [id a v])) attr)
+                [fact])))
+    facts))
+
 ;; default to relative for now
 (defn insert-timeline [world esse-id timeline]
   (let [timeline' (into []
                     (comp
                       xform/accumulate-time
-                      (map (fn [[time-inp facts]] [time-inp facts -1])))
+                      (map (fn [[time-inp facts]]
+                             [time-inp (resolve-facts facts) -1])))
                     timeline)]
     (o/insert world esse-id ::fact-timeline timeline')))
 
