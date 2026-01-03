@@ -93,15 +93,15 @@
                     (= "２" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))
                     (= "３" level) (m/* (q/quat-from-axis-angle wrist-z-axis (m/radians -90.0)))))}))))))
 
-(defn hand-counting [{:keys [which twist wrist armpit angka factor]
-                      :or {which "左" twist 0.0 wrist 15.0 armpit -16.0}}]
+(defn hand-counting [{:keys [which twist wrist armpit angka factor factor2]
+                      :or {which "左" twist 0.0 wrist 15.0 armpit -16.0 factor2 0.0}}]
   (let [flipper (case which "左" 1.0 "右" -1.0)]
     (comp
       (do-pose
         (or-fn
           {(str which "手捩") {:r-fn (rotate-local-fn {:x (* flipper twist)})}
            (str which "腕捩") {:r-fn (rotate-local-fn {:z (* flipper twist)})}
-           (str which "腕")   {:r-fn (rotate-local-fn {:y 30.0 :z (* flipper armpit)})}
+           (str which "腕")   {:r-fn (rotate-local-fn {:y (+ 30.0 factor2) :z (* flipper armpit)})}
            (str which "ひじ") {:r-fn (rotate-local-fn {:x (* flipper -100.0)  :z (* flipper (+ -110.0 (* 0.22 factor)))})}
            (str which "手首") {:r-fn (rotate-local-fn {:x (* flipper twist) :y wrist :z (* flipper factor)})}}
           (hitung which angka))))))
@@ -158,7 +158,7 @@
      out vec4 o_color;
 
      void main() {
-        o_color = vec4(0.5, 0.75, 0.85, 1.0); 
+        o_color = vec4(0.56, 0.74, 0.95, 1.0); 
      }
     "))
 
@@ -191,8 +191,8 @@
     (pacing/set-config {:max-progress (* Math/PI 4.0)})
     (esse ::fx-text-shader
       #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
-    (camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
-    #_(camera/look-at-target (v/vec3 0.0 17.0 8.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
+    #_(camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
+    (camera/look-at-target (v/vec3 0.0 17.0 8.0) (v/vec3 0.0 17.0 3.0) (v/vec3 0.0 1.0 0.0))
     (anime/insert ::world/global
       (let [ident-fn (make-anime identity)]
         {::camera/position
@@ -210,7 +210,7 @@
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
       ::adhoc-facts-timeline
       (let [ni-maru-ni-roku-size #::t3d{:rotation (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0)) :scale (v/vec3 1.5 0.5 1.5)}
-            slow-particle {::particle/fire {:age-in-step 120 :physics {:initial-velocity (v/vec3 0.0 1e-4 0.0)
+            slow-particle {::particle/fire {:age-in-step 130 :physics {:initial-velocity (v/vec3 0.0 1e-4 0.0)
                                                                        :gravity (v/vec3 1e-7 -1e-6 1e-6)}}}]
         [[0.0 [[::model_num2 default-fx-t3d]
                [::model_num2-2 default-fx-t3d]
@@ -224,18 +224,20 @@
                                               :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
          [1.0 [[::model_num4 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
          [1.0 [[::model_num5 ::particle/fire {:age-in-step 20 :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]]]
-         [2.5 [[::model_num2 (merge #::t3d{:translation (v/vec3 -1.0 16.5 4.0)} ni-maru-ni-roku-size)]
+         [2.2 [[::model_num2 (merge #::t3d{:translation (v/vec3 -1.0 16.5 4.0)} ni-maru-ni-roku-size)]
                [::model_num2 slow-particle]
                [::model_num0 (merge #::t3d{:translation (v/vec3 -0.35 16.5 4.0)} ni-maru-ni-roku-size)]
                [::model_num0 slow-particle]
                [::model_num2-2 (merge #::t3d{:translation (v/vec3 0.35 16.5 4.0)} ni-maru-ni-roku-size)]
                [::model_num2-2 slow-particle]
                [::model_num6 (merge #::t3d{:translation (v/vec3 1.0 16.5 4.0)} ni-maru-ni-roku-size)]
-               [::model_num6 slow-particle]]]]))
+               [::model_num6 slow-particle]
+               [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 1.0}]]]]))
     (esse ::silverwolf-pmx
-      #_(pose/strike (comp
-                       (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
-                       (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})))
+      #_(pose/strike
+          (comp
+            (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
+            (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})))
       (pose/anime
         [[0.0 (hand-counting {:angka 0 :factor 10.0}) identity]
          [0.4 (hand-counting {:angka 0 :factor 0.0}) easings/ease-out-expo]
@@ -248,15 +250,16 @@
          [0.6 (hand-counting {:angka 4 :factor 10.0}) easings/ease-out-expo]
          [0.4 (hand-counting {:angka 4 :factor 0.0}) easings/ease-out-expo]
          [0.6 (hand-counting {:angka 5 :factor 10.0}) easings/ease-out-expo]
-         [0.4 (hand-counting {:angka 5 :factor 0.0}) easings/ease-out-expo]
-         [0.6 (hand-counting {:angka 0 :factor 10.0}) easings/ease-out-expo]
-         [0.4 (comp
-                (hand-counting {:angka 0 :factor 10.0})
-                (hand-counting {:angka 0 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 20.0})) easings/ease-out-expo]
-
-         [2.0 (comp
-                (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -15 :armpit -24})
-                (hand-counting {:angka 2 :which "右" :twist 60  :wrist -25 :armpit -24 :factor 0.0})) easings/ease-out-expo]]
+        ;;  [0.4 (hand-counting {:angka 5 :factor 0.0}) easings/ease-out-expo]
+         [1.5 (comp
+                (hand-counting {:angka 0 :factor 10.0 :factor2 10.0 :twist 30})
+                (hand-counting {:angka 0 :factor 20.0 :factor2 10.0 :twist 30 :which "右"})) easings/ease-out-expo]
+         [0.7 (comp
+                (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -25 :armpit -24})
+                (hand-counting {:angka 2 :factor 10.0 :twist 60  :wrist -25 :armpit -24 :which "右"})) easings/ease-out-back]
+         [32.0 (comp
+                (hand-counting {:angka 6 :factor 10.0 :factor2 5.0 :twist 60 :wrist -25 :armpit -24})
+                (hand-counting {:angka 2 :factor 20.0 :factor2 5.0 :twist 60  :wrist -25 :armpit -24 :which "右"})) identity]]
         {:relative? true})
       #::t3d{:translation (v/vec3 0.0 0.0 0.0)
              :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
