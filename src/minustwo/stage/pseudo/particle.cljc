@@ -11,13 +11,12 @@
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TRIANGLES]]
    [minustwo.systems.time :as time]
-   [minustwo.systems.uuid-instance :refer [esse-inst remove-esse-inst]]
+   [minustwo.systems.uuid-instance :as inst :refer [esse-inst remove-esse-inst]]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
 
-(s/def ::original-id keyword?)
 (s/def ::age-in-step number?)
 (s/def ::physics map?)
 (s/def ::fire (s/keys :req-un [::age-in-step]
@@ -36,9 +35,8 @@
      (let [physic (or (:physics config) {})]
        (s-> session
             (o/retract esse-id ::fire)
-            (esse-inst
-             {::original-id esse-id
-              ::age-in-step (:age-in-step config)
+            (esse-inst esse-id
+             {::age-in-step (:age-in-step config)
               ::position (v/vec3) ;; this is the local position, the global one is controlled by t3d/transform
               ::velocity (or (:initial-velocity physic) (v/vec3))})))]
 
@@ -56,7 +54,7 @@
     ::live-particles
     [:what
      [::time/now ::time/step _]
-     [esse-uuid ::original-id esse-id {:then false}]
+     [esse-uuid ::inst/origin-id esse-id {:then false}]
      [esse-uuid ::age-in-step age {:then false}]
      [esse-uuid ::position position {:then false}]
      :then

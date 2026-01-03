@@ -7,10 +7,13 @@
    [odoyle.rules :as o]))
 
 (s/def ::is-uuid? boolean?)
+(s/def ::origin-id some?)
 (s/def ::remove boolean?)
 
-(defn esse-inst [world & facts]
-  (o/insert world (random-uuid) (merge {::is-uuid? true} (apply utils/deep-merge facts))))
+(defn esse-inst [world esse-id & facts]
+  (o/insert world (random-uuid)
+            (merge {::is-uuid? true ::origin-id esse-id}
+                   (apply utils/deep-merge facts))))
 
 (defn remove-esse-inst [world esse-uuid]
   (o/insert world esse-uuid ::remove true))
