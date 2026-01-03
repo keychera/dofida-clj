@@ -1,6 +1,7 @@
 (ns minustwo.stage.piece.ni-maru-ni-roku
   (:require
    [clojure.string :as str]
+   [engine.game :refer [gl-ctx]]
    [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.math.easings :as easings]
@@ -8,20 +9,20 @@
    [minustwo.anime.morph :as morph]
    [minustwo.anime.pacing :as pacing]
    [minustwo.anime.pose :as pose]
+   [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
-   [minustwo.stage.wirecube :as wirecube]
+   [minustwo.stage.pseudo.particle :as particle]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
-   [minustwo.stage.pseudo.particle :as particle]))
+   [thi.ng.math.core :as m]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -95,6 +96,51 @@
       "左手首" {:r-fn (rotate-local-fn {:y 15.0 :z factor})}}
      (hitung angka)))))
 
+(defn default-fx-esse [world model-name-keyword]
+  (esse world model-name-keyword
+        #::assimp{:model-to-load [(str "assets/models/fx/" (name model-name-keyword) ".glb")] :config {:tex-unit-offset 1}}
+        #::shader{:use ::fx-text-shader}
+        pose/default
+        #::gltf-renderer{:custom-draw-fn particle/draw-fn}
+        t3d/default))
+
+(def text-fx-vertex-shader
+  (str cljgl/version-str
+    "
+     precision mediump float;
+
+     in vec3 POSITION;
+     in vec3 NORMAL;
+     in vec2 TEXCOORD_0;
+ 
+     uniform mat4 u_model;
+     uniform mat4 u_view;
+     uniform mat4 u_projection;
+     
+     out vec3 Normal;
+     out vec2 TexCoord;
+
+     void main() {
+        gl_Position = u_projection * u_view * u_model * vec4(POSITION, 1.0);
+        Normal = NORMAL;
+        TexCoord = TEXCOORD_0;
+     }"))
+
+(def text-fx-fragment-shader
+  (str cljgl/version-str
+    "
+     precision mediump float;
+     
+     in vec3 Normal;
+     in vec2 TexCoord;
+
+     out vec4 o_color;
+
+     void main() {
+        o_color = vec4(0.9, 0.9, 0.9, 0.5); 
+     }
+    "))
+
 (defn init-fn [world _game]
   (-> world
       (firstperson/insert-player (v/vec3 3.0 20.5 -3.0) (v/vec3 0.0 0.0 -1.0) (m/radians 110.0) (m/radians -35))
@@ -102,29 +148,34 @@
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-renderer/pmx-shader}
             t3d/default)
-      (esse ::bikkuri
-            #::assimp{:model-to-load ["assets/models/fx/model_bikkuri.glb"] :config {:tex-unit-offset 1}}
-            #::shader{:use ::wirecube/simpleshader}
-            pose/default
-            #::gltf-renderer{:custom-draw-fn particle/draw-fn}
-            t3d/default)))
+      (default-fx-esse ::model_bikkuri)
+      (default-fx-esse ::model_num0)
+      (default-fx-esse ::model_num1)
+      (default-fx-esse ::model_num2)
+      (default-fx-esse ::model_num3)
+      (default-fx-esse ::model_num4)
+      (default-fx-esse ::model_num5)
+      (default-fx-esse ::model_num6)))
 
-(defn after-load-fn [world _game]
+(defn after-load-fn [world game]
   (-> world
       (pacing/set-config {:max-progress (* Math/PI 4.0)})
-      (esse ::bikkuri #::t3d{:translation (v/vec3 0.5 17.0 3.0)
-                             :rotation
-                             ;; I kinda want to have quaternion intuition
-                             (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
-                             #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
-                                    (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
-                             :scale (v/vec3 3.0 0.5 3.0)})
+      (esse ::fx-text-shader
+            #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
+      (esse ::model_num1
+            #::t3d{:translation (v/vec3 0.5 17.0 3.0)
+                   :rotation
+                   ;; I kinda want to have quaternion intuition
+                   (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
+                   #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
+                          (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
+                   :scale (v/vec3 2.0)})
       (pacing/insert-timeline
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
        ::adhoc-facts-timeline
        [[0.0 [[::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]
-        [0.5 [[::bikkuri ::particle/fire {:age-in-step 20
-                                          :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]
+        [0.5 [[::model_num1 ::particle/fire {:age-in-step 20
+                                             :physics {:initial-velocity (v/vec3 1.5e-4 1.5e-3 0.0)}}]
               [::silverwolf-pmx ::morph/active {"笑い1" 0.0 "にこり" 0.0 "にやり3" 0.0}]]]])
       (esse ::silverwolf-pmx
             #_(pose/strike hand-counting)
