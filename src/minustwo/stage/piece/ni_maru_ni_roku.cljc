@@ -18,11 +18,11 @@
    [minustwo.stage.pseudo.particle :as particle]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
-   [minustwo.systems.view.firstperson :as firstperson]
    [odoyle.rules :as o]
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [minustwo.systems.view.camera :as camera]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -149,7 +149,7 @@
 
 (defn init-fn [world _game]
   (-> world
-      (firstperson/insert-player (v/vec3 3.0 20.5 -3.0) (v/vec3 0.0 0.0 -1.0) (m/radians 110.0) (m/radians -35))
+      (camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-renderer/pmx-shader}
