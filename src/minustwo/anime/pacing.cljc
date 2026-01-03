@@ -3,6 +3,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.world :as world]
+   [engine.xform :as xform]
    [minustwo.systems.time :as time]
    [odoyle.rules :as o]))
 
@@ -25,8 +26,13 @@
                     :timescale    (/ 1 640)}
                    config)))
 
+;; default to relative for now
 (defn insert-timeline [world esse-id timeline]
-  (let [timeline' (into [] (map (fn [[time-inp facts]] [time-inp facts -1])) timeline)]
+  (let [timeline' (into []
+                        (comp
+                         xform/accumulate-time
+                         (map (fn [[time-inp facts]] [time-inp facts -1])))
+                        timeline)]
     (o/insert world esse-id ::fact-timeline timeline')))
 
 (defn init-fn [world _game]
@@ -88,7 +94,6 @@
        (s-> session
             ((fn [s'] (reduce (fn [a b] (o/insert a b)) s' facts)))
             (o/insert esse-id ::fact-timeline timeline')))]}))
-
 
 #_("maybe it will (go) away ))( maybe (not). )(( we will (welcome) them with (open) arms")
 
