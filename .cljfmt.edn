@@ -1,2 +1,2 @@
-{:extra-indents
- {str [[:block 1]]}}
+
+{:indents {#re ".*" [[:inner 0]]}}
