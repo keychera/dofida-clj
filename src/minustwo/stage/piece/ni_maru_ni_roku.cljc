@@ -5,13 +5,15 @@
    [engine.math :as m-ext]
    [engine.math.easings :as easings]
    [engine.world :as world :refer [esse]]
-   [minustwo.anime.IK :as IK]
    [minustwo.anime.morph :as morph]
    [minustwo.anime.pacing :as pacing]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.shader :as shader]
+   [minustwo.model.assimp :as assimp]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
+   [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.firstperson :as firstperson]
@@ -90,10 +92,9 @@
      {"左腕"  {:r-fn (rotate-local-fn {:y 25.0 :z -16.0})}
       "左ひじ" {:r-fn (rotate-local-fn {:x -100.0 :z (+ -110.0 (* 0.22 factor))})}
       "左手首" {:r-fn (rotate-local-fn {:y 15.0 :z factor})}}
-     (hitung angka)))
-   (IK/IK-transducer1 "右腕" "右ひじ" "右手首" (v/vec3 4.27 10.0 6.0))
-   (IK/IK-transducer1 "左足D" "左ひざD" "左足首" (v/vec3 0.0 1.0 3.0)
-                      (IK/make-IK-solver2 (v/vec3 1.0 0.0 0.0)))))
+     (hitung angka)))))
+
+(q/as-axis-angle *1)
 
 (defn init-fn [world _game]
   (-> world
@@ -101,6 +102,12 @@
       (esse ::silverwolf-pmx
             #::pmx-model{:model-path "assets/models/SilverWolf/SilverWolf.pmx"}
             #::shader{:use ::pmx-renderer/pmx-shader}
+            t3d/default)
+      (esse ::bikkuri
+            #::assimp{:model-to-load ["assets/models/fx/model_bikkuri.glb"] :config {:tex-unit-offset 1}}
+            #::shader{:use ::wirecube/simpleshader}
+            pose/default
+            gltf-renderer/normal-draw
             t3d/default)))
 
 (defn after-load-fn [world _game]
@@ -115,6 +122,13 @@
                                                 "にこり" 0.0
                                                 "にやり3" 0.0}]]]])
       (pacing/set-config {:max-progress (* Math/PI 4.0)})
+      (esse ::bikkuri #::t3d{:translation (v/vec3 0.5 17.0 3.0)
+                             :rotation
+                             ;; I kinda want to have quaternion intuition
+                             (q/quat-from-axis-angle (v/vec3 0.0 -1.0 0.6) (m/radians 220.0))
+                             #_(m/* (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0))
+                                    (q/quat-from-axis-angle (v/vec3 0.0 0.0 1.0) (m/radians 180.0)))
+                             :scale (v/vec3 3.0 0.5 3.0)})
       (esse ::silverwolf-pmx
             #_(pose/strike hand-counting)
             (pose/anime
