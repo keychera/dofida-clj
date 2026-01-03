@@ -210,7 +210,7 @@
        ;; hmmm this API is baaad, need more hammock, artifact first, construct later
       ::adhoc-facts-timeline
       (let [ni-maru-ni-roku-size #::t3d{:rotation (q/quat-from-axis-angle (v/vec3 1.0 0.0 0.0) (m/radians 90.0)) :scale (v/vec3 1.5 0.5 1.5)}
-            slow-particle {::particle/fire {:age-in-step 130 :physics {:initial-velocity (v/vec3 0.0 1e-4 0.0)
+            slow-particle {::particle/fire {:age-in-step 120 :physics {:initial-velocity (v/vec3 0.0 1e-4 0.0)
                                                                        :gravity (v/vec3 1e-7 -1e-6 1e-6)}}}]
         [[0.0 [[::model_num2 default-fx-t3d]
                [::model_num2-2 default-fx-t3d]
