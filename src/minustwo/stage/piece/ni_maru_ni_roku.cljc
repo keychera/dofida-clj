@@ -22,7 +22,9 @@
    [thi.ng.geom.quaternion :as q]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]
-   [minustwo.systems.view.camera :as camera]))
+   [minustwo.systems.view.camera :as camera]
+   [minustwo.anime.anime :as anime]
+   [thi.ng.geom.core :as g]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -147,6 +149,10 @@
      }
     "))
 
+(defn pos-anime-fn [t origin-v cur-v next-v]
+  (let [interpolated (m/+ cur-v (g/scale next-v t))]
+    (m/+ origin-v interpolated)))
+
 (defn init-fn [world _game]
   (-> world
     (camera/look-at-target (v/vec3 3.0 20.5 -3.0) (v/vec3 0.5 17.0 3.0) (v/vec3 0.0 1.0 0.0))
@@ -166,6 +172,11 @@
 (defn after-load-fn [world game]
   (-> world
     (pacing/set-config {:max-progress (* Math/PI 4.0)})
+    (anime/insert ::world/global
+      {::camera/position
+       {:origin-val (v/vec3 3.0 20.5 -3.0)
+        :timeline   [[0.0 (v/vec3) pos-anime-fn]
+                     [4.0 (v/vec3 0.0 0.0 1.0) pos-anime-fn]]}})
     (esse ::fx-text-shader
       #::shader{:program-info (cljgl/create-program-info-from-source (gl-ctx game) text-fx-vertex-shader text-fx-fragment-shader)})
     (pacing/insert-timeline

@@ -1,5 +1,6 @@
 (ns minustwo.systems
   (:require
+   [minustwo.anime.anime :as anime]
    [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.morph :as morph]
    [minustwo.anime.pacing :as pacing]
@@ -40,6 +41,7 @@
    gl-magic/system
    vao/system
    anime-gltf/system
+   anime/system
    pacing/system
    morph/system
 
