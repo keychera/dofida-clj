@@ -53,14 +53,16 @@ todo:
             ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
                 
     ☐ shader delusion, begins
-        ☐ investigate input
+        ✔ investigate input @done(26-01-04 15:46) i think the cljs solution works for now, no delayed effects lately
         ☐ arcball
 
         ☐ IK is still wrong I think
         ☐ anime is still a bad api
         
         ☐ let's dance!
-        ☐ particle
+        ☐ LIGHTING
+        ☐ SHADERS
+        ✔ particle @done(26-01-04 15:47) kinda, not efficient yet in the drawcalls
         ☐ skybox or background
         ☐ arbitrary shapes or graphic animation
         ☐ prop, many objects
@@ -90,14 +92,14 @@ todo:
                 ✔ sidestream asset involving texture @done(25-11-08 15:07)
         ✔ alpha clipping, probably need to learn render-to-texture @done(25-11-11 20:31)
 
-        ☐ sidestream: t2d, non-destructive
+        ✘ sidestream: t2d, non-destructive @cancelled(26-01-04 15:46) 3d world baby
             ✔ t3d? @done(25-12-03 01:56)
-            ☐ scene tree, let's use gltf scene structure
+            ✘ scene tree, let's use gltf scene structure @cancelled(26-01-04 15:46) just good ol clojure data structure
             ✔ blender control instead of first-person movement @done(25-11-20 00:03) poorman's arcball
             ✔ the alpha clipping + t3d + atlas/instancing @done(25-11-18 00:12)
-        ☐ sidestream: anime, non destructive
-        ☐ sidestream twod-picking
-            ☐ threed-picking?
+        ✔ sidestream: anime, non destructive @done(26-01-04 15:45)
+        ✘ sidestream twod-picking @cancelled(26-01-04 15:45) gonna cancel this for now, we are not making blender
+            ✘ threed-picking? @cancelled(26-01-04 15:45)
         ✔ load proper mesh @done(25-11-29 02:08)
             ✔ does assimp make sense in clojure? @done(25-11-22 16:22) assimpjs kinda attempted now, seems fine (not integrated yet)
             ✔ load model that is not compile-time for js @done(25-11-22 16:22) assimpjs saikou!
@@ -119,12 +121,13 @@ todo:
                     ☐ from blender, have it be available in gltf, the parse it?
                     ✔ gltf animation section? @done(25-12-15 00:29)
                     ☐ gltf morph target section?
-                    ☐ from MMD? (low prio because we wont be using pmx much in our game)
+                    ✔ from MMD? (low prio because we wont be using pmx much in our game) @done(26-01-04 15:45) how turntables
                 ✔ the bone hierarchy and its parent-child transformation @done(25-12-15 00:29)
-                ☐ does anime-clj integrate with this?? let's find out
+                ✔ does anime-clj integrate with this?? let's find out @done(26-01-04 15:44) IT DOES, it is all just data after all
+                    ☐ the perf characteristic tho, now down to 100fps
                     ✔ the keyframe/pose interpolation @done(25-12-15 00:30)
                     ✔ I also have a inkling of feelings that transducers will fit in all of this, I think, just a feeling @done(25-12-15 00:30) ok tree-seq transducer is a big win
-                        ☐ learn the tree-seq transducer, meld with transducer, profile one, create one, become one
+                        ✔ learn the tree-seq transducer, meld with transducer, profile one, create one, become one @done(26-01-04 15:44) we love transducer
             ✔ understand scene and nodes @done(25-12-15 00:31)
             ✔ check our assumptions about gltf parsing @done(25-12-15 00:31) we spec our way
             ✔ the blender gizmo @done(25-12-06 14:42) we did the perspective grid
@@ -146,8 +149,8 @@ todo:
 
     ☐ we keep wanting to reach the unreachable
         ☐ does box2d make sense in clojure?
-        ☐ clojure basilisp
-            ☐ blender
+        ✔ clojure basilisp @done(26-01-04 15:43)
+            ✔ blender @done(26-01-04 15:43) we will do more clojure blender-ing
         ☐ graalvm
         ☐ understanding performance and profiling tools again
             ☐ the browser's performance tab
@@ -174,10 +177,10 @@ todo:
     ☐ from zero
         ✔ somehow we continued the tutorial (https://www.opengl-tutorial.org/beginners-tutorials) @done(25-11-29 02:10)
             ✔ firstperson movement @done(25-10-13 00:01)
-            ☐ movement with gravity
+            ✔ movement with gravity @done(26-01-04 15:48)
             ✔ jvm control, because it will be wildly different @done(25-10-13 01:46) not that wild apparently
             ✔ input dependency inversion @done(25-10-13 01:46)
-            ☐ model loading, 
+            ✔ model loading, @done(26-01-04 15:43)
                 ✔ cube @done(25-10-13 23:55)
                 ✘ better texture @cancelled(25-11-29 02:09) dunno what this is
                 ✔ use normals, direction lighting and stuff @done(25-11-24 20:33)
@@ -187,10 +190,10 @@ todo:
                 ☐ clicky-clicky (https://x.com/tsoding/status/1975233872221610206)   
                 ☐ play with fire (https://x.com/cmzw_/status/1730593875545477617/video/1)
             ☐ sidestream particle
-            ☐ particle 3d 
-            ☐ text particle
-            ☐ sidestream anime
-            ☐ sidestream scene tree
+            ✔ particle 3d @done(26-01-04 15:43)
+            ✔ text particle @done(26-01-04 15:43) not font rendering, just text meshes, basilisp ftw
+            ✔ sidestream anime @done(26-01-04 15:43)
+            ✔ sidestream scene tree @done(26-01-04 15:43)
             ☐ sidestream asset rules
                 ☐ find a way to structure 3d assets/scenes
                     ☐ using gltf scene?
