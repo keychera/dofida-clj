@@ -61,8 +61,8 @@
      ::mouse
      [:what
       [::global ::mode mode]
-      [::mouse ::x mouse-x]
-      [::mouse ::y mouse-y]
+      [::mouse ::x mouse-x {:then not=}]
+      [::mouse ::y mouse-y {:then not=}]
       :then
       ;; complecting with query rules kinda not it, ignore for now
       (case mode
@@ -74,8 +74,8 @@
      ::mouse-delta
      [:what
       [::global ::mode mode]
-      [::mouse-delta ::dx mouse-dx]
-      [::mouse-delta ::dy mouse-dy]
+      [::mouse-delta ::dx mouse-dx {:then not=}]
+      [::mouse-delta ::dy mouse-dy {:then not=}]
       :then
       (case mode
         ::firstperson

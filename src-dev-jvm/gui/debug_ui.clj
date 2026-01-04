@@ -1,4 +1,6 @@
 (ns gui.debug-ui
+  (:require
+   [platform.start :as start])
   (:import
    (imgui ImGui ImVec2)
    (imgui.flag ImGuiConfigFlags)
@@ -16,6 +18,10 @@
         (swap! fps-idx #(mod (inc %) (alength buf)))
         (reset! last-sample-time now)))))
 
+(def config (merge {:title "dofida" :text "is grateful"}
+                   (:imgui start/config)))
+
+
 (defn fps-panel!
   []
   (let [fps (.getFramerate (ImGui/getIO))]
@@ -30,15 +36,16 @@
   (doto (ImGui/getIO)
     (.addConfigFlags ImGuiConfigFlags/ViewportsEnable)
     (.addConfigFlags ImGuiConfigFlags/DockingEnable)
-    (.setFontGlobalScale 2.0))
+    (.setFontGlobalScale 1.0))
   (doto imguiGlfw
     (.init (:handle window) true)
     (.setCallbacksChainForAllWindows true))
   (.init imGuiGl3 "#version 300 es"))
 
 (defn layer []
-  (ImGui/begin "Dofida")
-  (ImGui/text "She is beginning to bbelieve")
+  (let [{:keys [title text]} config]
+    (ImGui/begin title)
+    (ImGui/text text))
   (fps-panel!)
   (ImGui/end))
 

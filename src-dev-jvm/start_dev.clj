@@ -6,7 +6,8 @@
    [engine.refresh :as refresh]
    [gui.debug-ui :as debug-ui]
    [nrepl.server :as nrepl-server]
-   [platform.start :as start])
+   [platform.start :as start]
+   [clojure.spec.alpha :as s])
   (:import
    (imgui ImGui)
    (imgui.gl3 ImGuiImplGl3)
@@ -23,6 +24,7 @@
 
 (defn start []
   (st/instrument 'odoyle.rules/insert)
+  (s/check-asserts true)
   (reset! stop-flag* false)
   (with-redefs
    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]

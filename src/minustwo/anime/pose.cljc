@@ -4,6 +4,7 @@
    [engine.macros :refer [insert! s->]]
    [engine.math :as m-ext]
    [engine.world :as world]
+   [engine.xform :as xform]
    [minustwo.anime.keyframe :as keyframe]
    [minustwo.anime.pacing :as pacing]
    [minustwo.gl.geom :as geom]
@@ -23,9 +24,14 @@
 
 (def default {::pose-xform identity})
 (defn strike [a-pose] {::pose-xform a-pose})
-(defn anime [timeline]
-  (s/assert ::timeline timeline)
-  {::timeline timeline})
+(defn anime
+  ([timeline] (anime timeline {}))
+  ([timeline {:keys [relative?]}]
+   (let [timeline' (if relative?
+                     (into [] xform/accumulate-time timeline)
+                     timeline)]
+     (s/assert ::timeline timeline')
+     {::timeline timeline'})))
 
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
 
@@ -59,7 +65,8 @@
      :then
      (let [kfs (keyframe/interpolate timeline)]
        (when (seq kfs)
-         (swap! keyframes-db* assoc-in [esse-id ::kfs] kfs)))]
+         (swap! keyframes-db* assoc-in [esse-id ::kfs] kfs)))
+     (s-> session (o/retract esse-id ::timeline))]
 
     ::pose-for-the-fans!
     [:what

@@ -2,18 +2,16 @@
   (:require
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert!]]
-   [engine.world :as world]
    [engine.types :as types]
-   [odoyle.rules :as o]
+   [engine.world :as world]
    [minustwo.systems.time :as time]
+   [minustwo.systems.view.camera :as camera]
+   [odoyle.rules :as o]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.vector :as v]
    [thi.ng.math.core :as m]))
 
-(s/def ::position ::types/vec3)
 (s/def ::front    ::types/vec3)
-(s/def ::look-at  ::types/mat4)
-
 (s/def ::move-control keyword?)
 (s/def ::view-dx float?)
 (s/def ::view-dy float?)
@@ -24,45 +22,44 @@
 (defonce reset-pos* (atom []))
 
 (defn insert-player
-  [world position front]
-  (reset! reset-pos* [position front])
-  (o/insert world ::player
-            {::position position
-             ::front front
-             ::yaw (* -0.5 Math/PI)
-             ::pitch 0.0}))
+  ([world position front] (insert-player world position front (* -0.5 Math/PI) 0.0))
+  ([world position front yaw pitch]
+   (reset! reset-pos* [position front yaw pitch])
+   (-> world
+       (o/insert ::world/global {::camera/position position})
+       (o/insert ::player {::front front ::yaw yaw ::pitch pitch}))))
 
-(defn player-reset [world] 
-  (let [[position front] @reset-pos*]
-    (insert-player world position front)))
+(defn player-reset [world]
+  (let [[position front yaw pitch] @reset-pos*]
+    (insert-player world position front yaw pitch)))
 
 (def rules
   (o/ruleset
    {::firstperson-view
     [:what
-     [::player ::position position]
+     [::world/global ::camera/position position]
      [::player ::front    front]
      :then
-     (insert! ::player ::look-at (mat/look-at position (m/+ position front) up))]
+     (insert! ::world/global ::camera/view-matrix (mat/look-at position (m/+ position front) up))]
 
     ::movement
     [:what
      [::time/now ::time/delta delta-time]
-     [::player ::position position {:then false}]
+     [::world/global ::camera/position position {:then false}]
      [::player ::front front {:then false}]
      [::player ::move-control control {:then false}]
      :then
      (let [speed   0.05
            right   (m/normalize (m/cross front up))
            [x _ z] (case control
-                    ::forward  (m/* front (* delta-time speed))
-                    ::backward (m/* front (* delta-time speed -1))
-                    ::strafe-l (m/* right (* delta-time speed -1))
-                    ::strafe-r (m/* right (* delta-time speed))
-                    nil)
+                     ::forward  (m/* front (* delta-time speed))
+                     ::backward (m/* front (* delta-time speed -1))
+                     ::strafe-l (m/* right (* delta-time speed -1))
+                     ::strafe-r (m/* right (* delta-time speed))
+                     nil)
            move    (v/vec3 x 0.0 z)]
        (when move
-         (insert! ::player {::position (m/+ position move)})))]
+         (insert! ::world/global {::camera/position (m/+ position move)})))]
 
     ::mouse-camera
     [:what
