@@ -24,9 +24,7 @@
    [thi.ng.math.core :as m]
    [minustwo.systems.view.camera :as camera]
    [minustwo.anime.anime :as anime]
-   [thi.ng.geom.core :as g]
-   [minustwo.systems.view.firstperson :as firstperson]
-   [minustwo.stage.piece.ni-maru-ni-roku :as ni-maru-ni-roku]))
+   [thi.ng.geom.core :as g]))
 
 (defn or-fn [& fns]
   (fn [arg]
@@ -258,8 +256,8 @@
                 (hand-counting {:angka 6 :factor 10.0 :twist 60 :wrist -25 :armpit -24})
                 (hand-counting {:angka 2 :factor 10.0 :twist 60  :wrist -25 :armpit -24 :which "右"})) easings/ease-out-back]
          [32.0 (comp
-                (hand-counting {:angka 6 :factor 10.0 :factor2 5.0 :twist 60 :wrist -25 :armpit -24})
-                (hand-counting {:angka 2 :factor 20.0 :factor2 5.0 :twist 60  :wrist -25 :armpit -24 :which "右"})) identity]]
+                 (hand-counting {:angka 6 :factor 10.0 :factor2 5.0 :twist 60 :wrist -25 :armpit -24})
+                 (hand-counting {:angka 2 :factor 20.0 :factor2 5.0 :twist 60  :wrist -25 :armpit -24 :which "右"})) identity]]
         {:relative? true})
       #::t3d{:translation (v/vec3 0.0 0.0 0.0)
              :rotation (q/quat-from-axis-angle (v/vec3 0.0 1.0 0.0) (m/radians 0.0))})))
