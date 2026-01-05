@@ -49,7 +49,6 @@
    t3d/system
    uuid-instance/system
 
-   ;;  hidup/system
    pmx-model/system
    pmx-renderer/system
    gltf-renderer/system
