@@ -5,9 +5,10 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! s->]]
    [engine.world :as world]
+   [minustwo.systems.view.camera :as camera]
+   [minustwo.systems.view.firstperson :as firstperson]
    [odoyle.rules :as o]
-   [rules.camera.arcball :as arcball]
-   [minustwo.systems.view.firstperson :as firstperson]))
+   [rules.camera.arcball :as arcball]))
 
 (s/def ::mode #{::arcball ::firstperson})
 (s/def ::x number?)
@@ -16,6 +17,7 @@
 (s/def ::dy number?)
 (s/def ::keystate #{::keydown ::keyup})
 
+;; input need hammocks
 (defn keys-event [session mode keyname keystate]
   ;; match macro cannot be inside odoyle/ruleset apparently
   (match [mode keyname]
@@ -46,59 +48,71 @@
 
     :else session))
 
+(defn init-fn [world _game]
+  (o/insert world ::global ::mode ::arcball))
+
+(def rules
+  (o/ruleset
+    {::mode
+     [:what [::global ::mode mode]]
+       ;; kinda a gut feeling
+       ;; having this query rules felt like bad rules engine design
+
+     ::mouse
+     [:what
+      [::global ::mode mode]
+      [::mouse ::x mouse-x {:then not=}]
+      [::mouse ::y mouse-y {:then not=}]
+      :then
+        ;; complecting with query rules kinda not it, ignore for now
+      (case mode
+        ::arcball
+        (s-> session (arcball/send-xy mouse-x mouse-y))
+
+        #_else :noop)]
+
+     ::mouse-delta
+     [:what
+      [::global ::mode mode]
+      [::mouse-delta ::dx mouse-dx {:then not=}]
+      [::mouse-delta ::dy mouse-dy {:then not=}]
+      :then
+      (case mode
+        ::firstperson
+        (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
+
+        #_else
+        (insert! ::firstperson/player #::firstperson{:view-dx 0.0 :view-dy 0.0}))]
+
+     ::active-camera
+     [:what
+      [::global ::mode mode]
+      [::world/global ::camera/active active-cam {:then false}]
+      :then
+      (println mode (= mode ::firstperson) "change!" active-cam)
+      (s-> (condp = mode
+             ::firstperson (camera/activate-cam session ::firstperson/player)
+             #_else (camera/activate-cam session ::world/global)))]
+
+     ::keys
+     [:what
+      [::global ::mode mode]
+      [keyname ::keystate keystate]
+      :then
+      (s-> session
+        (keys-event mode keyname keystate))
+      :then-finally
+      (when-not (seq (eduction
+                       (filter
+                         (fn [{:keys [keyname keystate]}]
+                           (and (#{:w :a :s :d} keyname) (= keystate ::keydown))))
+                       (o/query-all session ::keys)))
+        (when (seq (o/query-all session ::firstperson/movement))
+          (s-> session (o/retract ::firstperson/player ::firstperson/move-control))))]}))
+
 (def system
-  {::world/init-fn
-   (fn [world _game]
-     (o/insert world ::global ::mode ::arcball))
-
-   ::world/rules
-   (o/ruleset
-     {::mode
-      [:what [::global ::mode mode]]
-     ;; kinda a gut feeling
-     ;; having this query rules felt like bad rules engine design
-
-      ::mouse
-      [:what
-       [::global ::mode mode]
-       [::mouse ::x mouse-x {:then not=}]
-       [::mouse ::y mouse-y {:then not=}]
-       :then
-      ;; complecting with query rules kinda not it, ignore for now
-       (case mode
-         ::arcball
-         (s-> session (arcball/send-xy mouse-x mouse-y))
-
-         #_else :noop)]
-
-      ::mouse-delta
-      [:what
-       [::global ::mode mode]
-       [::mouse-delta ::dx mouse-dx {:then not=}]
-       [::mouse-delta ::dy mouse-dy {:then not=}]
-       :then
-       (case mode
-         ::firstperson
-         (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
-
-         #_else
-         (insert! ::firstperson/player #::firstperson{:view-dx 0.0 :view-dy 0.0}))]
-
-      ::keys
-      [:what
-       [::global ::mode mode]
-       [keyname ::keystate keystate]
-       :then
-       (s-> session
-         (keys-event mode keyname keystate))
-       :then-finally
-       (when-not (seq (eduction
-                        (filter
-                          (fn [{:keys [keyname keystate]}]
-                            (and (#{:w :a :s :d} keyname) (= keystate ::keydown))))
-                        (o/query-all session ::keys)))
-         (when (seq (o/query-all session ::firstperson/movement))
-           (s-> session (o/retract ::firstperson/player ::firstperson/move-control))))]})})
+  {::world/init-fn #'init-fn
+   ::world/rules #'rules})
 
 (defn update-mouse-pos [world x y]
   (o/insert world ::mouse {::x x ::y y}))

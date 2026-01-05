@@ -11,6 +11,7 @@
    [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.default :as default]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.particle :as particle]
@@ -53,7 +54,9 @@
    pmx-renderer/system
    gltf-renderer/system
 
-   particle/system
+   particle/system 
+   
+   default/system
 
    wirecube/system
    pose/system])

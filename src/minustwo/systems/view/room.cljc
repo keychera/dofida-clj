@@ -11,23 +11,23 @@
 
 (def rules
   (o/ruleset
-   {::data
-    [:what
-     [::world/global ::gl-system/context ctx]
-     [::world/global ::vao/db* vao-db*]
-     [::world/global ::texture/db* texture-db*]
-     [::world/global ::shader/all all-shaders]
-     [::world/global ::window/dimension window]
-     [::world/global ::camera/projection-matrix project]
-     [::world/global ::camera/active cam-id]
-     [cam-id ::camera/view-matrix player-view]
-     [::world/global ::camera/position player-pos]]
+    {::data
+     [:what
+      [::world/global ::gl-system/context ctx]
+      [::world/global ::vao/db* vao-db*]
+      [::world/global ::texture/db* texture-db*]
+      [::world/global ::shader/all all-shaders]
+      [::world/global ::window/dimension window]
+      [::world/global ::camera/projection-matrix project]
+      [::world/global ::camera/active cam-id]
+      [cam-id ::camera/view-matrix player-view]
+      [cam-id ::camera/position player-pos]]
 
-    ::gl-data
-    [:what
-     [::world/global ::gl-system/context ctx]
-     [::world/global ::vao/db* vao-db*]
-     [::world/global ::shader/all all-shaders]]}))
+     ::gl-data
+     [:what
+      [::world/global ::gl-system/context ctx]
+      [::world/global ::vao/db* vao-db*]
+      [::world/global ::shader/all all-shaders]]}))
 
 (def system
-  {::world/rules rules})
+  {::world/rules #'rules})
