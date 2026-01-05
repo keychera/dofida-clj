@@ -166,13 +166,6 @@
    ::world/rules rules})
 
 (comment
-  ["Survey" "Walk" "Run" "anim"]
 
-  (-> @gltf/debug-data* :minustwo.stage.hidup/simpleskin :gltf-data)
-
-  (tagged-literal 'flare/html {:title "game"
-                               :url (str "http://localhost:9333/" (rand))
-                               :reveal true
-                               :sidebar-panel? true})
 
   :-)
