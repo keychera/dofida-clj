@@ -28,7 +28,7 @@
 
 (def pmx-vert
   (str cljgl/version-str
-       "
+    "
  precision mediump float;
  
  in vec3 POSITION;
@@ -62,7 +62,7 @@
 
 (def pmx-frag
   (str cljgl/version-str
-       "
+    "
  precision mediump float;
  
  in vec3 Normal;
@@ -77,17 +77,24 @@
  }
 "))
 
+(defn pmx-default [model-path]
+  (utils/deep-merge
+    {::pmx-model/model-path model-path}
+    #::shader{:use ::pmx-shader}
+    t3d/default
+    pose/default))
+
 (defn init-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
-        (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
-        (esse ::skinning-ubo
-              (let [ubo (cljgl/create-buffer ctx)]
-                (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
-                (gl ctx bufferData GL_UNIFORM_BUFFER (* MAX_JOINTS 16 4) GL_DYNAMIC_DRAW)
-                (gl ctx bindBufferBase GL_UNIFORM_BUFFER 0 ubo)
-                (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
-                {::shader/ubo ubo})))))
+      (esse ::pmx-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx pmx-vert pmx-frag)})
+      (esse ::skinning-ubo
+        (let [ubo (cljgl/create-buffer ctx)]
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
+          (gl ctx bufferData GL_UNIFORM_BUFFER (* MAX_JOINTS 16 4) GL_DYNAMIC_DRAW)
+          (gl ctx bindBufferBase GL_UNIFORM_BUFFER 0 ubo)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+          {::shader/ubo ubo})))))
 
 (defn after-load-fn [world _game] world)
 
@@ -107,65 +114,65 @@
           {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
 
           (eduction
-           (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
-                                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) idx)}))
-           textures)
+            (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
+                                            :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) idx)}))
+            textures)
 
           {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
           {:unbind-vao true}]
-         flatten (into []))))
+      flatten (into []))))
 
 (def rules
   (o/ruleset
-   {::I-cast-pmx-magic!
-    [:what
-     [esse-id ::pmx-model/data data]
-     [::pmx-shader ::shader/program-info _]
-     [esse-id ::gl-magic/casted? :pending]
-     :then
-     (println esse-id "got" (keys data) "!")
-     (let [spell  (pmx-spell data {:esse-id esse-id})
-           pos!   (:POSITION data)
-           morphs (into []
-                        (map (fn [morph]
-                               {:morph-name  (:local-name morph)
-                                :offset-coll (or (some-> morph :offsets :offset-data) [])}))
-                        (:morphs data))]
-       (s-> session
-            (o/insert esse-id #::gl-magic{:spell spell})
-            (o/insert esse-id ::morph/position-arr! pos!)
-            (o/insert esse-id ::morph/morph-data morphs)))]
+    {::I-cast-pmx-magic!
+     [:what
+      [esse-id ::pmx-model/data data]
+      [::pmx-shader ::shader/program-info _]
+      [esse-id ::gl-magic/casted? :pending]
+      :then
+      (println esse-id "got" (keys data) "!")
+      (let [spell  (pmx-spell data {:esse-id esse-id})
+            pos!   (:POSITION data)
+            morphs (into []
+                     (map (fn [morph]
+                            {:morph-name  (:local-name morph)
+                             :offset-coll (or (some-> morph :offsets :offset-data) [])}))
+                     (:morphs data))]
+        (s-> session
+          (o/insert esse-id #::gl-magic{:spell spell})
+          (o/insert esse-id ::morph/position-arr! pos!)
+          (o/insert esse-id ::morph/morph-data morphs)))]
 
-    ::bone-to-pose-tree
-    [:what
-     [esse-id ::gl-magic/casted? true]
-     [esse-id ::pmx-model/data pmx-data {:then false}]
-     :then
-     (println esse-id "prep bones!")
-     (insert! esse-id ::geom/transform-tree (:bones pmx-data))]
+     ::bone-to-pose-tree
+     [:what
+      [esse-id ::gl-magic/casted? true]
+      [esse-id ::pmx-model/data pmx-data {:then false}]
+      :then
+      (println esse-id "prep bones!")
+      (insert! esse-id ::geom/transform-tree (:bones pmx-data))]
 
-    ::render-data
-    [:what
-     [esse-id ::pmx-model/data pmx-data {:then false}]
-     [esse-id ::gl-magic/casted? true]
-     [esse-id ::shader/use ::pmx-shader]
-     [::pmx-shader ::shader/program-info program-info]
-     [::skinning-ubo ::shader/ubo skinning-ubo]
-     [esse-id ::t3d/transform transform]
-     [esse-id ::pose/pose-tree pose-tree {:then false}]
-     [:position ::shader/buffer position-buffer]
-     :then
-     (println esse-id "is ready to render!")]
+     ::render-data
+     [:what
+      [esse-id ::pmx-model/data pmx-data {:then false}]
+      [esse-id ::gl-magic/casted? true]
+      [esse-id ::shader/use ::pmx-shader]
+      [::pmx-shader ::shader/program-info program-info]
+      [::skinning-ubo ::shader/ubo skinning-ubo]
+      [esse-id ::t3d/transform transform]
+      [esse-id ::pose/pose-tree pose-tree {:then false}]
+      [:position ::shader/buffer position-buffer]
+      :then
+      (println esse-id "is ready to render!")]
 
-    ::global-transform
-    [:what
-     [::time/now ::time/total tt {:then false}]
-     [::time/now ::time/slice 4]
-     [esse-id ::pmx-model/data pmx-data {:then false}]
-     [esse-id ::pose/pose-tree pose-tree {:then false}]
-     :then
-     (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
-       (insert! esse-id ::pose/pose-tree pose-tree))]}))
+     ::global-transform
+     [:what
+      [::time/now ::time/total tt {:then false}]
+      [::time/now ::time/slice 4]
+      [esse-id ::pmx-model/data pmx-data {:then false}]
+      [esse-id ::pose/pose-tree pose-tree {:then false}]
+      :then
+      (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
+        (insert! esse-id ::pose/pose-tree pose-tree))]}))
 
 ;; perversion, obsession, what motivates you to move forward?
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
@@ -230,9 +237,5 @@
 
   ;; err
   (viscous/inspect hmm)
-
-  (into []
-        (map :local-name)
-        (-> hmm :pmx-data :morphs))
 
   :-)
