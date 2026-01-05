@@ -7,8 +7,8 @@
             "command": "clojure -T:build repl",
             "group": "test",
             "presentation": {
-                "reveal": "always",
-                "panel": "new"
+                "reveal": "silent",
+                "panel": "shared"
             },
             "runOptions": {
                 "instanceLimit": 1,
