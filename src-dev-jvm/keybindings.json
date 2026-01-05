@@ -12,5 +12,10 @@
         "key": "alt+3",
         "command": "calva.runCustomREPLCommand",
         "args": "(do (println \"restarting!\") (start-dev/stop))"
+    },
+    {
+        "key": "f5",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Run Build REPL"
     }
 ]

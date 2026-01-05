@@ -11,4 +11,4 @@
     (camera/look-at-target ::world/global (v/vec3 0.0 10.0 0.0) (v/vec3 0.0 10.0 -5.0) (v/vec3 0.0 1.0 0.0))))
 
 (def system
-  {::world/init-fn init-fn})
+  {::world/init-fn #'init-fn})
