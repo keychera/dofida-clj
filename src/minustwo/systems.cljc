@@ -12,7 +12,6 @@
    [minustwo.model.assimp :as assimp]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
-   [minustwo.stage.piece.ni-maru-ni-roku :as ni-maru-ni-roku]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.particle :as particle]
    [minustwo.stage.wirecube :as wirecube]
@@ -56,7 +55,6 @@
    gltf-renderer/system
 
    particle/system
-   ni-maru-ni-roku/system
 
    wirecube/system
    pose/system])
