@@ -7,7 +7,7 @@
             "command": "clojure -T:build repl",
             "group": "test",
             "presentation": {
-                "reveal": "silent",
+                "reveal": "always",
                 "panel": "shared"
             },
             "runOptions": {
