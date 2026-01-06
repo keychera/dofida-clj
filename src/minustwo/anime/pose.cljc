@@ -40,14 +40,20 @@
 
 (defn do-pose [pose-fn]
   (map (fn [{:keys [name] :as bone}]
-         (if-let [bone-pose (pose-fn name)]
-           (let [next-translation (:t bone-pose)
-                 next-rotation    (or (:r bone-pose)
-                                    (when (:r-fn bone-pose) ((:r-fn bone-pose) bone)))]
-             (cond-> bone
-               next-translation (update :translation m/+ next-translation)
-               next-rotation (update :rotation m/* next-rotation)))
-           bone))))
+         (try
+           (if-let [bone-pose (pose-fn name)]
+             (let [next-translation (:t bone-pose)
+                   next-rotation    (or (:r bone-pose)
+                                      (when (:r-fn bone-pose) ((:r-fn bone-pose) bone)))]
+               (cond-> bone
+                 next-translation (update :translation m/+ next-translation)
+                 next-rotation (update :rotation m/* next-rotation)))
+             bone)
+           (catch #?(:clj Exception :cljs js/Error) err
+             (println "[do-pose] error. bones:" bone
+               (or (:via (Throwable->map err))
+                 (dissoc (Throwable->map err) :trace)))
+             bone)))))
 
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
 
