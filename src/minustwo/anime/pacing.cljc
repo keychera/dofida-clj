@@ -70,8 +70,7 @@
 
      ::new-loop
      [:what
-      [::world/global ::loop loop-counter]
-      :then (println "loop #" loop-counter)]
+      [::world/global ::loop loop-counter]]
 
      ::debug
      [:what [any-id ::debug any-val]
