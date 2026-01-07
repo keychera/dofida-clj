@@ -21,7 +21,6 @@
 (def config (merge {:title "dofida" :text "is grateful"}
                    (:imgui start/config)))
 
-
 (defn fps-panel!
   []
   (let [fps (.getFramerate (ImGui/getIO))]

@@ -181,7 +181,6 @@
    :local-axis           0x0800
    :after-physics-deform 0x1000})
 
-
 (defn create-angle-limits-frame []
   (ordered-map :lower vec3_f :upper vec3_f))
 

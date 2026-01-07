@@ -48,8 +48,8 @@
 (comment
   (refresh)
   (stop) ;; game won't load properly on the second start
-  
-  (st/instrument) 
+
+  (st/instrument)
   (st/unstrument)
 
   ::waiting-for-something-to-happen?)

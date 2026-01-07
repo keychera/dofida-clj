@@ -24,8 +24,8 @@
     [_ :r]
     (if (= keystate ::keyup)
       (-> session
-        firstperson/reset-fps-cam
-        arcball/reset-rot)
+          firstperson/reset-fps-cam
+          arcball/reset-rot)
       session)
 
     [::arcball ::mouse-left]
@@ -53,62 +53,62 @@
 
 (def rules
   (o/ruleset
-    {::mode
-     [:what [::global ::mode mode]]
+   {::mode
+    [:what [::global ::mode mode]]
        ;; kinda a gut feeling
        ;; having this query rules felt like bad rules engine design
 
-     ::mouse
-     [:what
-      [::global ::mode mode]
-      [::mouse ::x mouse-x {:then not=}]
-      [::mouse ::y mouse-y {:then not=}]
-      :then
+    ::mouse
+    [:what
+     [::global ::mode mode]
+     [::mouse ::x mouse-x {:then not=}]
+     [::mouse ::y mouse-y {:then not=}]
+     :then
         ;; complecting with query rules kinda not it, ignore for now
-      (case mode
-        ::arcball
-        (s-> session (arcball/send-xy mouse-x mouse-y))
+     (case mode
+       ::arcball
+       (s-> session (arcball/send-xy mouse-x mouse-y))
 
-        #_else :noop)]
+       #_else :noop)]
 
-     ::mouse-delta
-     [:what
-      [::global ::mode mode]
-      [::mouse-delta ::dx mouse-dx {:then not=}]
-      [::mouse-delta ::dy mouse-dy {:then not=}]
-      :then
-      (case mode
-        ::firstperson
-        (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
+    ::mouse-delta
+    [:what
+     [::global ::mode mode]
+     [::mouse-delta ::dx mouse-dx {:then not=}]
+     [::mouse-delta ::dy mouse-dy {:then not=}]
+     :then
+     (case mode
+       ::firstperson
+       (insert! ::firstperson/player #::firstperson{:view-dx mouse-dx :view-dy mouse-dy})
 
-        #_else
-        (insert! ::firstperson/player #::firstperson{:view-dx 0.0 :view-dy 0.0}))]
+       #_else
+       (insert! ::firstperson/player #::firstperson{:view-dx 0.0 :view-dy 0.0}))]
 
-     ::active-camera
-     [:what
-      [::global ::mode mode]
-      [::world/global ::camera/active active-cam {:then false}]
-      :then
-      (println mode (= mode ::firstperson) "change!" active-cam)
-      (s-> (condp = mode
-             ::firstperson (camera/activate-cam session ::firstperson/player)
-             #_else (camera/activate-cam session ::world/global)))]
+    ::active-camera
+    [:what
+     [::global ::mode mode]
+     [::world/global ::camera/active active-cam {:then false}]
+     :then
+     (println mode (= mode ::firstperson) "change!" active-cam)
+     (s-> (condp = mode
+            ::firstperson (camera/activate-cam session ::firstperson/player)
+            #_else (camera/activate-cam session ::world/global)))]
 
-     ::keys
-     [:what
-      [::global ::mode mode]
-      [keyname ::keystate keystate]
-      :then
-      (s-> session
-        (keys-event mode keyname keystate))
-      :then-finally
-      (when-not (seq (eduction
-                       (filter
-                         (fn [{:keys [keyname keystate]}]
-                           (and (#{:w :a :s :d} keyname) (= keystate ::keydown))))
-                       (o/query-all session ::keys)))
-        (when (seq (o/query-all session ::firstperson/movement))
-          (s-> session (o/retract ::firstperson/player ::firstperson/move-control))))]}))
+    ::keys
+    [:what
+     [::global ::mode mode]
+     [keyname ::keystate keystate]
+     :then
+     (s-> session
+          (keys-event mode keyname keystate))
+     :then-finally
+     (when-not (seq (eduction
+                     (filter
+                      (fn [{:keys [keyname keystate]}]
+                        (and (#{:w :a :s :d} keyname) (= keystate ::keydown))))
+                     (o/query-all session ::keys)))
+       (when (seq (o/query-all session ::firstperson/movement))
+         (s-> session (o/retract ::firstperson/player ::firstperson/move-control))))]}))
 
 (def system
   {::world/init-fn #'init-fn
@@ -128,7 +128,7 @@
 
 (defn cleanup-input [world]
   (reduce (fn [w' k] (o/retract w' (:keyname k) ::keystate))
-    world (o/query-all world ::keys)))
+          world (o/query-all world ::keys)))
 
 (defn set-mode [world mode]
   (o/insert world ::global ::mode mode))

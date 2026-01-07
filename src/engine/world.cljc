@@ -31,25 +31,25 @@
 
 (defn rules-debugger-wrap-fn [rule]
   (o/wrap-rule rule
-    {:what
-     (fn [f session new-fact old-fact]
-       (when false #_(not (fact-id-with-frequent-updates (:id new-fact)))
-         (println (:name rule) "is comparing" (dissoc old-fact :value) "=>" (dissoc new-fact :value)))
-       (f session new-fact old-fact))
-     :when
-     (fn [f session match]
-       (when (#{} (:name rule))
-         (println "when" (:name rule)))
-       (f session match))
-     :then
-     (fn [f session match]
-       (when (#{} (:name rule))
-         (println "firing" (:name rule) "for" (keys match)))
-       (f session match))
-     :then-finally
-     (fn [f session]
+               {:what
+                (fn [f session new-fact old-fact]
+                  (when false #_(not (fact-id-with-frequent-updates (:id new-fact)))
+                        (println (:name rule) "is comparing" (dissoc old-fact :value) "=>" (dissoc new-fact :value)))
+                  (f session new-fact old-fact))
+                :when
+                (fn [f session match]
+                  (when (#{} (:name rule))
+                    (println "when" (:name rule)))
+                  (f session match))
+                :then
+                (fn [f session match]
+                  (when (#{} (:name rule))
+                    (println "firing" (:name rule) "for" (keys match)))
+                  (f session match))
+                :then-finally
+                (fn [f session]
                   ;; (println :then-finally (:name rule))
-       (f session))}))
+                  (f session))}))
 
 ;; dev-only
 (defn first-init? [game]
@@ -62,9 +62,9 @@
 (defn build-systems [system-coll]
   (let [systems    (into [] (map resolve-var) system-coll)
         all-rules  (into []
-                     (comp (distinct)
-                       (mapcat resolve-var))
-                     (sp/select [sp/ALL ::rules] systems))
+                         (comp (distinct)
+                               (mapcat resolve-var))
+                         (sp/select [sp/ALL ::rules] systems))
         init-fns   (sp/select [sp/ALL ::init-fn some?] systems)
         before-fns (sp/select [sp/ALL ::before-load-fn some?] systems)
         after-fns  (sp/select [sp/ALL ::after-load-fn some?] systems)
@@ -78,17 +78,17 @@
                        (o/->session)
                        (let [world (reduce (fn [world before-fn] (before-fn world game)) world before-fns)]
                          (->> @prev-rules* ;; dev-only : refresh rules without resetting facts
-                           (map :name)
-                           (reduce o/remove-rule world))))
+                              (map :name)
+                              (reduce o/remove-rule world))))
         _            (reset! prev-rules* all-rules)
         all-facts    (o/query-all before-world)
         init-world   (->> all-rules
-                       (map #'rules-debugger-wrap-fn)
-                       (reduce o/add-rule before-world)
-                       ((fn [world]
-                          (if first-init?
-                            (reduce (fn [w' init-fn] (init-fn w' game)) world init-fns)
-                            (reduce (fn [w' fact] (o/insert w' fact)) world all-facts)))))
+                          (map #'rules-debugger-wrap-fn)
+                          (reduce o/add-rule before-world)
+                          ((fn [world]
+                             (if first-init?
+                               (reduce (fn [w' init-fn] (init-fn w' game)) world init-fns)
+                               (reduce (fn [w' fact] (o/insert w' fact)) world all-facts)))))
         _            (swap! (::init-cnt* game) inc)
         after-world  (reduce (fn [world after-fn] (after-fn world game)) init-world after-fns)]
     after-world))

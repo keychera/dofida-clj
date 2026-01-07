@@ -26,8 +26,8 @@
   ([world position front yaw pitch]
    (reset! reset-pos* [position front yaw pitch])
    (-> world
-     (o/insert ::player {::camera/position position})
-     (o/insert ::player {::front front ::yaw yaw ::pitch pitch}))))
+       (o/insert ::player {::camera/position position})
+       (o/insert ::player {::front front ::yaw yaw ::pitch pitch}))))
 
 (defn reset-fps-cam [world]
   (let [[position front yaw pitch] @reset-pos*]
@@ -35,53 +35,53 @@
 
 (def rules
   (o/ruleset
-    {::firstperson-view
-     [:what
-      [::player ::camera/position position]
-      [::player ::front    front]
-      :then
-      (insert! ::player ::camera/view-matrix (mat/look-at position (m/+ position front) up))]
+   {::firstperson-view
+    [:what
+     [::player ::camera/position position]
+     [::player ::front    front]
+     :then
+     (insert! ::player ::camera/view-matrix (mat/look-at position (m/+ position front) up))]
 
-     ::movement
-     [:what
-      [::time/now ::time/delta delta-time]
-      [::player ::camera/position position {:then false}]
-      [::player ::front front {:then false}]
-      [::player ::move-control control {:then false}]
-      :then
-      (let [speed   0.05
-            right   (m/normalize (m/cross front up))
-            [x _ z] (case control
-                      ::forward  (m/* front (* delta-time speed))
-                      ::backward (m/* front (* delta-time speed -1))
-                      ::strafe-l (m/* right (* delta-time speed -1))
-                      ::strafe-r (m/* right (* delta-time speed))
-                      nil)
-            move    (v/vec3 x 0.0 z)]
-        (when move
-          (insert! ::player {::camera/position (m/+ position move)})))]
+    ::movement
+    [:what
+     [::time/now ::time/delta delta-time]
+     [::player ::camera/position position {:then false}]
+     [::player ::front front {:then false}]
+     [::player ::move-control control {:then false}]
+     :then
+     (let [speed   0.05
+           right   (m/normalize (m/cross front up))
+           [x _ z] (case control
+                     ::forward  (m/* front (* delta-time speed))
+                     ::backward (m/* front (* delta-time speed -1))
+                     ::strafe-l (m/* right (* delta-time speed -1))
+                     ::strafe-r (m/* right (* delta-time speed))
+                     nil)
+           move    (v/vec3 x 0.0 z)]
+       (when move
+         (insert! ::player {::camera/position (m/+ position move)})))]
 
-     ::mouse-camera
-     [:what
-      [::time/now ::time/delta delta-time]
-      [::time/now ::time/slice 1]
-      [::player ::view-dx view-dx]
-      [::player ::view-dy view-dy]
-      [::player ::yaw yaw {:then false}]
-      [::player ::pitch pitch {:then false}]
-      :then
-      (let [speed 0.0033
-            yaw   (+ yaw (* speed (or view-dx 0)))
-            pitch (-> (+ pitch (* speed (or (- view-dy) 0)))
-                    (max (- (/ Math/PI 2)))
-                    (min (/ Math/PI 2)))
-            front (v/vec3 (* (Math/cos yaw) (Math/cos pitch))
-                    (Math/sin pitch)
-                    (* (Math/sin yaw) (Math/cos pitch)))]
-        (insert! ::player
-          {::yaw yaw
-           ::pitch pitch
-           ::front (m/normalize front)}))]}))
+    ::mouse-camera
+    [:what
+     [::time/now ::time/delta delta-time]
+     [::time/now ::time/slice 1]
+     [::player ::view-dx view-dx]
+     [::player ::view-dy view-dy]
+     [::player ::yaw yaw {:then false}]
+     [::player ::pitch pitch {:then false}]
+     :then
+     (let [speed 0.0033
+           yaw   (+ yaw (* speed (or view-dx 0)))
+           pitch (-> (+ pitch (* speed (or (- view-dy) 0)))
+                     (max (- (/ Math/PI 2)))
+                     (min (/ Math/PI 2)))
+           front (v/vec3 (* (Math/cos yaw) (Math/cos pitch))
+                         (Math/sin pitch)
+                         (* (Math/sin yaw) (Math/cos pitch)))]
+       (insert! ::player
+                {::yaw yaw
+                 ::pitch pitch
+                 ::front (m/normalize front)}))]}))
 
 (def system
   {::world/rules rules})

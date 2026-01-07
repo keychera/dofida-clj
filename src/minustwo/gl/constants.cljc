@@ -12,7 +12,6 @@
 (def ^:const GL_COMPILE_STATUS 35713)
 (def ^:const GL_LINK_STATUS 35714)
 
-
 ;; Data types
 (def ^:const GL_UNSIGNED_BYTE 5121)
 (def ^:const GL_UNSIGNED_SHORT 5123)
@@ -38,7 +37,6 @@
 (def ^:const GL_BACK 1029)
 (def ^:const GL_FRONT_AND_BACK 1032)
 (def ^:const GL_MULTISAMPLE 32925)
-
 
 ;; Blend functions
 (def ^:const GL_SRC_ALPHA 770)

@@ -94,7 +94,7 @@
                       0.0
                       (Math/cos (- horiz-angle (/ Math/PI 2)))]
         up           (#_PLACEHOLDER-cross vector right direction)
-        
+
         look-at      (#_PLACEHOLDER-look-at-matrix vector position (mapv + position direction) up)
         view         (#_PLACEHOLDER-inverse-matrix vector look-at)
 

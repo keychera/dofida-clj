@@ -72,7 +72,7 @@ Number = #'[0-9]+'
         tree (insta/transform
               (letfn [(qualify [qualifier member]
                         (assoc member (keyword qualifier) true))
-                      
+
                       (mapify [& nodes] (into {} nodes))]
                 {:TypeSpec           symbol
                  :MemberName         (fn [[_ member-name]] [:member-name (symbol member-name)])
@@ -91,7 +91,7 @@ Number = #'[0-9]+'
                  :Header             (fn [& blocks] (into [] (map second) blocks))})
               tree)]
     (when (insta/failure? tree)
-      (throw (ex-info (pr-str tree) {}))) 
+      (throw (ex-info (pr-str tree) {})))
     tree))
 
 (defn get-header-source [source]
@@ -130,8 +130,7 @@ float main()
   gl_Position = (u_projection * cam_pos);
   Normal = NORMAL;
   TexCoords = TEXCOORD_0;
-}"
-]
- (-> shader get-header-source parse-header))
+}"]
+    (-> shader get-header-source parse-header))
 
   :-)

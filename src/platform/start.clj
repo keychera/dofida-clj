@@ -289,8 +289,6 @@
          (->Window window))
        (throw (Exception. "Failed to create window"))))))
 
-
-
 (defn start
   ([game window] (start game window nil))
   ([game window {::keys [init-fn frame-fn destroy-fn stop-flag*]}]
