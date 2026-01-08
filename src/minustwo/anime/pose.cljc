@@ -21,6 +21,7 @@
 (s/def ::timeline (s/coll-of ::point-in-time :kind vector?))
 (s/def ::stop-anime boolean?)
 
+(s/def ::transform-tree-fn fn?)
 (s/def ::kfs ::keyframe/keyframes)
 
 (def default {::pose-xform identity})
@@ -28,6 +29,9 @@
 (defn strike [a-pose]
   {::stop-anime true
    ::pose-xform a-pose})
+
+(defn mark [transform-tree-fn]
+  {::transform-tree-fn transform-tree-fn})
 
 (defn anime
   ([timeline] (anime timeline {}))
@@ -101,6 +105,15 @@
        (s-> session
             (o/retract esse-id ::pose-xform)
             (o/insert esse-id ::pose-tree pose-tree)))]
+
+    ::mutate-transform-tree
+    [:what
+     [esse-id ::transform-tree-fn transform-tree-fn]
+     [esse-id ::geom/transform-tree transform-tree {:then false}]
+     :then
+     (s-> session
+          (o/insert esse-id ::geom/transform-tree (transform-tree-fn transform-tree))
+          (o/retract esse-id ::transform-tree-fn))]
 
     ::stop-interpolation
     [:what ;; repl heuristic: striking a pose will stop pose-interpolation
