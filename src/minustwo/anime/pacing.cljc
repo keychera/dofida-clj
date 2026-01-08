@@ -9,8 +9,7 @@
    [odoyle.rules :as o]))
 
 (s/def ::max-progress number?)
-(s/def ::timescale number?)
-(s/def ::config (s/keys :req-un [::max-progress ::timescale]))
+(s/def ::config (s/keys :req-un [::max-progress]))
 (s/def ::progress number?)
 (s/def ::loop int?)
 (s/def ::debug some?)
@@ -22,7 +21,7 @@
 
 (defn set-config [world config]
   (o/insert world ::world/global ::config
-            (merge {:max-progress 16.0 :timescale (/ 1 640)} config)))
+            (merge {:max-progress 16.0} config)))
 
 (defn resolve-facts [facts]
   (into []
@@ -44,7 +43,7 @@
 
 (defn init-fn [world _game]
   (-> world
-      (set-config {:max-progress 16.0 :timescale (/ 1 640)})
+      (set-config {:max-progress 16.0})
       (o/insert ::world/global
                 {::progress ##Inf
                  ::loop 0})))
@@ -59,8 +58,8 @@
      [::time/now ::time/slice 1]
      [::world/global ::config config]
      :then
-     (let [{:keys [max-progress timescale]} config
-           progress  (mod (* tt timescale) max-progress)
+     (let [{:keys [max-progress]} config
+           progress  (mod tt max-progress)
            new-loop? (< progress prev-progress)]
        (s-> session
             ((fn [s] (if new-loop?
