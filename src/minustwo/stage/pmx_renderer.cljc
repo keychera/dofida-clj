@@ -22,7 +22,9 @@
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.vector :as v]
+   [engine.math :as m-ext]))
 
 (def MAX_JOINTS 500)
 
@@ -122,6 +124,66 @@
           {:unbind-vao true}]
          flatten (into []))))
 
+(def osc-ps (* Math/PI 2 3.9))
+(def damp-time 2.0)
+(def damp-ratio (/ (- (Math/log 0.5)) (* osc-ps damp-time)))
+
+(defn zero-if-small [n]
+  (if (< (Math/abs n) 1e-3) 0.0 n))
+
+(defonce jiggle* (atom {}))
+
+(defn jiggle [bone dt global-transform]
+  (let [dt            (* dt 1e-3)
+        jiggle!       @jiggle*
+        fk-pos        (m-ext/m44->trans-vec3 global-transform)
+        [tx ty tz]    fk-pos
+        [cx cy cz]    (or (get-in jiggle! [(:idx bone) :jiggle/position]) fk-pos)
+        [vx vy vz]    (or (get-in jiggle! [(:idx bone) :jiggle/velocity]) (v/vec3))
+        a             (* -2.0 dt damp-ratio osc-ps)
+        b             (* dt osc-ps osc-ps)
+        velocity'     (v/vec3 (zero-if-small (+ vx (* a vx) (* b (- tx cx))))
+                              (zero-if-small (+ vy (* a vy) (* b (- ty cy))))
+                              (zero-if-small (+ vz (* a vz) (* b (- tz cz)))))
+        [vx' vy' vz'] velocity'
+        position'     (v/vec3 (+ cx (* dt vx'))
+                              (+ cy (* dt vy'))
+                              (+ cz (* dt vz')))]
+    (swap! jiggle*
+           (fn [j]
+             (assoc j (:idx bone)
+                    {:fk-pos fk-pos
+                     :jiggle/position position'
+                     :jiggle/transform (m-ext/translation-mat position')
+                     :jiggle/velocity velocity'})))
+    (assoc bone :global-transform global-transform)))
+
+(comment 
+  
+  (get @jiggle* 304)
+
+  :-)
+
+(defn bone-transducer [dt]
+  (fn [rf]
+    (let [parents! (volatile! {})]
+      (fn
+        ([] (rf))
+        ([result]
+         (rf result))
+        ([result {:keys [idx parent-bone-idx jiggle?] :as bone}]
+         (let [local-trans  (pmx-model/calc-local-transform bone)
+               parent       (get @parents! parent-bone-idx)
+               parent-gt    (:global-transform parent)
+               global-trans (if parent
+                              (m/* parent-gt local-trans)
+                              local-trans)
+               updated-bone (if jiggle?
+                              (jiggle bone dt global-trans)
+                              (assoc bone :global-transform global-trans))]
+           (vswap! parents! assoc idx updated-bone)
+           (rf result updated-bone)))))))
+
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
@@ -166,12 +228,12 @@
 
     ::global-transform
     [:what
-     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/delta dt {:then false}]
      [::time/now ::time/slice 4]
      [esse-id ::pmx-model/data pmx-data {:then false}]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      :then
-     (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
+     (let [pose-tree (into [] (bone-transducer dt) pose-tree)]
        (insert! esse-id ::pose/pose-tree pose-tree))]}))
 
 ;; perversion, obsession, what motivates you to move forward?
@@ -179,8 +241,10 @@
 
 (defn create-joint-mats-arr [bones]
   (let [f32s (f32-arr (* 16 (count bones)))]
-    (doseq [{:keys [idx global-transform inv-bind-mat]} bones]
-      (let [joint-mat (m/* global-transform inv-bind-mat)
+    (doseq [{:keys [idx global-transform inv-bind-mat jiggle?]} bones]
+      (let [joint-mat (if jiggle?
+                        (m/* (get-in @jiggle* [idx :jiggle/transform]) inv-bind-mat)
+                        (m/* global-transform inv-bind-mat))
             i         (* idx 16)]
         (dotimes [j 16]
           (aset f32s (+ i j) (float (nth joint-mat j))))))
