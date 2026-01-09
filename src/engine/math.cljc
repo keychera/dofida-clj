@@ -141,3 +141,13 @@
     (<= cos-v -1) Math/PI
     (>= cos-v 1) 0.0
     :else (Math/acos cos-v)))
+
+(defn zero-to-one-ease
+  ([ease-fn] (zero-to-one-ease ease-fn 0.0 1.0))
+  ([ease-fn small-val] (zero-to-one-ease ease-fn small-val 1.0))
+  ([ease-fn small-val big-val]
+   (fn [n]
+     (let [sv (ease-fn small-val)
+           r (/ (- (ease-fn n) sv)
+                (- (ease-fn big-val) sv))]
+       (clamp r 0.0 1.0)))))
