@@ -18,13 +18,12 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.pseudo.bones :as bones]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
-   [thi.ng.math.core :as m]
-   [thi.ng.geom.vector :as v]
-   [engine.math :as m-ext]))
+   [thi.ng.math.core :as m]))
 
 (def MAX_JOINTS 500)
 
@@ -124,66 +123,6 @@
           {:unbind-vao true}]
          flatten (into []))))
 
-(def osc-ps (* Math/PI 2 3.9))
-(def damp-time 2.0)
-(def damp-ratio (/ (- (Math/log 0.5)) (* osc-ps damp-time)))
-
-(defn zero-if-small [n]
-  (if (< (Math/abs n) 1e-3) 0.0 n))
-
-(defonce jiggle* (atom {}))
-
-(defn jiggle [bone dt global-transform]
-  (let [dt            (* dt 1e-3)
-        jiggle!       @jiggle*
-        fk-pos        (m-ext/m44->trans-vec3 global-transform)
-        [tx ty tz]    fk-pos
-        [cx cy cz]    (or (get-in jiggle! [(:idx bone) :jiggle/position]) fk-pos)
-        [vx vy vz]    (or (get-in jiggle! [(:idx bone) :jiggle/velocity]) (v/vec3))
-        a             (* -2.0 dt damp-ratio osc-ps)
-        b             (* dt osc-ps osc-ps)
-        velocity'     (v/vec3 (zero-if-small (+ vx (* a vx) (* b (- tx cx))))
-                              (zero-if-small (+ vy (* a vy) (* b (- ty cy))))
-                              (zero-if-small (+ vz (* a vz) (* b (- tz cz)))))
-        [vx' vy' vz'] velocity'
-        position'     (v/vec3 (+ cx (* dt vx'))
-                              (+ cy (* dt vy'))
-                              (+ cz (* dt vz')))]
-    (swap! jiggle*
-           (fn [j]
-             (assoc j (:idx bone)
-                    {:fk-pos fk-pos
-                     :jiggle/position position'
-                     :jiggle/transform (m-ext/translation-mat position')
-                     :jiggle/velocity velocity'})))
-    (assoc bone :global-transform global-transform)))
-
-(comment 
-  
-  (get @jiggle* 304)
-
-  :-)
-
-(defn bone-transducer [dt]
-  (fn [rf]
-    (let [parents! (volatile! {})]
-      (fn
-        ([] (rf))
-        ([result]
-         (rf result))
-        ([result {:keys [idx parent-bone-idx jiggle?] :as bone}]
-         (let [local-trans  (pmx-model/calc-local-transform bone)
-               parent       (get @parents! parent-bone-idx)
-               parent-gt    (:global-transform parent)
-               global-trans (if parent
-                              (m/* parent-gt local-trans)
-                              local-trans)
-               updated-bone (if jiggle?
-                              (jiggle bone dt global-trans)
-                              (assoc bone :global-transform global-trans))]
-           (vswap! parents! assoc idx updated-bone)
-           (rf result updated-bone)))))))
-
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
@@ -223,6 +162,7 @@
      [esse-id ::t3d/transform transform]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      [:position ::shader/buffer position-buffer]
+     [::world/global ::bones/db* bones-db* {:then false}]
      :then
      (println esse-id "is ready to render!")]
 
@@ -232,19 +172,19 @@
      [::time/now ::time/slice 4]
      [esse-id ::pmx-model/data pmx-data {:then false}]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
+     [::world/global ::bones/db* bones-db* {:then false}]
      :then
-     (let [pose-tree (into [] (bone-transducer dt) pose-tree)]
+     (let [pose-tree (into [] (bones/bone-transducer bones-db* dt) pose-tree)]
        (insert! esse-id ::pose/pose-tree pose-tree))]}))
 
 ;; perversion, obsession, what motivates you to move forward?
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
-(defn create-joint-mats-arr [bones]
+(defn create-joint-mats-arr [bones-db* bones]
   (let [f32s (f32-arr (* 16 (count bones)))]
-    (doseq [{:keys [idx global-transform inv-bind-mat jiggle?]} bones]
-      (let [joint-mat (if jiggle?
-                        (m/* (get-in @jiggle* [idx :jiggle/transform]) inv-bind-mat)
-                        (m/* global-transform inv-bind-mat))
+    (doseq [{:keys [idx inv-bind-mat] :as bone} bones]
+      (let [gt        (bones/resolve-gt bones-db* bone)
+            joint-mat (m/* gt inv-bind-mat)
             i         (* idx 16)]
         (dotimes [j 16]
           (aset f32s (+ i j) (float (nth joint-mat j))))))
@@ -253,13 +193,14 @@
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
-    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform pose-tree position-buffer]}
+    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo
+                    transform pose-tree position-buffer bones-db*]}
             (o/query-all world ::render-data)]
       (let [program    (:program program-info :program)
             vao        (get @vao-db* esse-id)
             materials  (:materials pmx-data)
             ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
-            ^floats joint-mats (create-joint-mats-arr pose-tree)]
+            ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
         ;; (def err [:err (gl ctx getError)])
         #_{:clj-kondo/ignore [:inline-def]}
         (def hmm pmx-data)
