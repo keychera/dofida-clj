@@ -44,20 +44,14 @@
 
 (defn do-pose [pose-fn]
   (map (fn [{:keys [name] :as bone}]
-         (try
-           (if-let [bone-pose (pose-fn name)]
-             (let [next-translation (:t bone-pose)
-                   next-rotation    (or (:r bone-pose)
-                                        (when (:r-fn bone-pose) ((:r-fn bone-pose) bone)))]
-               (cond-> bone
-                 next-translation (update :translation m/+ next-translation)
-                 next-rotation (update :rotation m/* next-rotation)))
-             bone)
-           (catch #?(:clj Exception :cljs js/Error) err
-             (println "[do-pose] error. bones:" bone
-                      (or (:via (Throwable->map err))
-                          (dissoc (Throwable->map err) :trace)))
-             bone)))))
+         (if-let [bone-pose (pose-fn name)]
+           (let [next-translation (:t bone-pose)
+                 next-rotation    (or (:r bone-pose)
+                                      (when (:r-fn bone-pose) ((:r-fn bone-pose) bone)))]
+             (cond-> bone
+               next-translation (update :translation m/+ next-translation)
+               next-rotation (update :rotation m/* next-rotation)))
+           bone))))
 
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
 
@@ -108,6 +102,7 @@
 
     ::mutate-transform-tree
     [:what
+     [::time/now ::time/slice 0]
      [esse-id ::transform-tree-fn transform-tree-fn]
      [esse-id ::geom/transform-tree transform-tree {:then false}]
      :then

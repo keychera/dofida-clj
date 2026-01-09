@@ -28,6 +28,6 @@
                    (o/fire-rules)))))
     (catch  #?(:clj Exception :cljs js/Error) err
       ;; error handling when repl'ing need hammock time
-      (println (RED "[init error]") (or (:via (Throwable->map err))
-                                        (dissoc (Throwable->map err) :trace)))))
+      (println (RED "[init error]"))
+      (throw err)))
   game)
