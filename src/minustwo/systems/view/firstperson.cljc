@@ -33,6 +33,9 @@
   (let [[position front yaw pitch] @reset-pos*]
     (insert-fps-cam world position front yaw pitch)))
 
+;; you wrapped me completely, you surrounded me with your warmth
+;; a little bit of motion of love is all you need to conquer me
+
 (def rules
   (o/ruleset
    {::firstperson-view
@@ -44,11 +47,11 @@
 
     ::movement
     [:what
-     [::time/now ::time/delta delta-time]
+     [::time/now ::time/raw-delta delta-time]
      [::player ::camera/position position {:then false}]
      [::player ::front front {:then false}]
      [::player ::move-control control {:then false}]
-     :then
+     :then 
      (let [speed   0.05
            right   (m/normalize (m/cross front up))
            [x _ z] (case control
@@ -57,9 +60,8 @@
                      ::strafe-l (m/* right (* delta-time speed -1))
                      ::strafe-r (m/* right (* delta-time speed))
                      nil)
-           move    (v/vec3 x 0.0 z)]
-       (when move
-         (insert! ::player {::camera/position (m/+ position move)})))]
+           move    (v/vec3 x 0.0 z)] 
+       (insert! ::player ::camera/position (m/+ position move)))]
 
     ::mouse-camera
     [:what
@@ -84,4 +86,4 @@
                  ::front (m/normalize front)}))]}))
 
 (def system
-  {::world/rules rules})
+  {::world/rules #'rules})
