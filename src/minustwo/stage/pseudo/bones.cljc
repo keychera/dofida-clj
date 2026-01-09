@@ -14,17 +14,19 @@
 (defn init-fn [world _game]
   (o/insert world ::world/global ::db* (atom {})))
 
+(defn after-load-fn [world _game]
+  (o/insert world ::world/global ::db* (atom {})))
+
 (def osc-ps (* Math/PI 2 3.9))
-(def damp 0.3)
-(def damp-time 1.0)
+(def damp 1.0)
+(def damp-time 0.5)
 (def damp-ratio (/ (Math/log damp) (* -1 osc-ps damp-time)))
 
 (defn zero-if-small [n]
   (if (< (Math/abs n) 1e-12) 0.0 n))
 
 (defn jiggle [bone bones-db* dt global-transform]
-  (let [dt            dt
-        bones-db      @bones-db*
+  (let [bones-db      @bones-db*
         fk-pos        (m-ext/m44->trans-vec3 global-transform)
         a             (* -2.0 dt damp-ratio osc-ps)
         b             (* dt osc-ps osc-ps)
@@ -35,9 +37,9 @@
                               (zero-if-small (+ vy (* a vy) (* b (- ty cy))))
                               (zero-if-small (+ vz (* a vz) (* b (- tz cz)))))
         [vx' vy' vz'] velocity'
-        position'     (v/vec3 (+ cx (* dt vx'))
-                              (+ cy (* dt vy'))
-                              (+ cz (* dt vz')))]
+        position'     (v/vec3 (zero-if-small (+ cx (* dt vx')))
+                              (zero-if-small (+ cy (* dt vy')))
+                              (zero-if-small (+ cz (* dt vz'))))]
     (swap! bones-db*
            (fn [j]
              (assoc j (:idx bone)
@@ -74,4 +76,5 @@
     (:global-transform bone)))
 
 (def system
-  {::world/init-fn #'init-fn})
+  {::world/init-fn #'init-fn
+   ::world/after-load-fn #'after-load-fn})
