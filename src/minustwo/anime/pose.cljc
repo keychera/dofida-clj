@@ -119,7 +119,7 @@
     ::pose-interpolation
     [:what
      [::time/now ::time/total tt {:then false}]
-     [::time/now ::time/slice 1]
+     [::time/now ::time/slice 2]
      [esse-id ::geom/transform-tree transform-tree]
      [::world/global ::pacing/progress progress]
      [::world/global ::db* keyframes-db*]

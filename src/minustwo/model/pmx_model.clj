@@ -160,8 +160,8 @@
   (viscous/inspect @debug-data*)
 
   (into []
-        (comp (drop 3) (take 3))
+        (comp (drop 160) (take 10))
         (-> @debug-data* first second
-            :pmx-data :morphs))
+            :pmx-data :bones))
 
   :-)

@@ -1,52 +1,84 @@
 (ns minustwo.stage.pseudo.bones
   (:require
    [clojure.spec.alpha :as s]
+   [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.world :as world]
+   [minustwo.gl.geom :as geom]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.systems.time :as time]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]))
+   [thi.ng.math.core :as m]
+   [thi.ng.geom.quaternion :as q]
+   [thi.ng.geom.core :as g]))
 
 ;; inspiration mostly from https://www.youtube.com/watch?v=q18Rhjgwqek
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
+(s/def ::prep-tail? boolean?)
 
 (defn init-fn [world _game]
-  (o/insert world ::world/global ::db* (atom {})))
+  (-> world
+      (o/insert ::world/global ::db* (atom {}))
+      (o/insert ::world/global ::prep-tail? true)))
 
 (defn after-load-fn [world _game]
-  (o/insert world ::world/global ::db* (atom {})))
+  (init-fn world _game))
 
-(def osc-ps (* Math/PI 2 3.9))
-(def damp 1.0)
-(def damp-time 0.5)
+(def osc-ps (* Math/PI 2 3.0))
+(def damp 0.5)
+(def damp-time 0.9)
 (def damp-ratio (/ (Math/log damp) (* -1 osc-ps damp-time)))
 
-(defn zero-if-small [n]
-  (if (< (Math/abs n) 1e-12) 0.0 n))
+(defn jiggle [bone bones-db* dt self-gt]
+  (let [bones-db    @bones-db*
+        decom       (m-ext/decompose-matrix44 self-gt)
+        head-pos    (:translation decom)
+        head-rot    (:rotation decom)
+        target-tail (m/+ (:tail bone) head-pos)
+        curr-tail   (or (get-in bones-db [(:idx bone) :jiggle/curr-tail]) target-tail)
+        tail-vel    (or (get-in bones-db [(:idx bone) :jiggle/tail-vel]) (v/vec3))
 
-(defn jiggle [bone bones-db* dt global-transform]
-  (let [bones-db      @bones-db*
-        fk-pos        (m-ext/m44->trans-vec3 global-transform)
-        a             (* -2.0 dt damp-ratio osc-ps)
-        b             (* dt osc-ps osc-ps)
-        [tx ty tz]    fk-pos
-        [cx cy cz]    (or (get-in bones-db [(:idx bone) :jiggle/position]) fk-pos)
-        [vx vy vz]    (or (get-in bones-db [(:idx bone) :jiggle/velocity]) (v/vec3))
-        velocity'     (v/vec3 (zero-if-small (+ vx (* a vx) (* b (- tx cx))))
-                              (zero-if-small (+ vy (* a vy) (* b (- ty cy))))
-                              (zero-if-small (+ vz (* a vz) (* b (- tz cz)))))
-        [vx' vy' vz'] velocity'
-        position'     (v/vec3 (zero-if-small (+ cx (* dt vx')))
-                              (zero-if-small (+ cy (* dt vy')))
-                              (zero-if-small (+ cz (* dt vz'))))]
+        ;; semi implicit euler
+        a           (* -2.0 dt damp-ratio osc-ps)
+        b           (* dt osc-ps osc-ps)
+        tail-vel'   (m/+ tail-vel (m/+ (m/* tail-vel a) (m/* (m/- target-tail curr-tail) b)))
+        curr-tail'  (m/+ curr-tail (m/* tail-vel' dt))
+
+        ray-tail    (m/- target-tail head-pos)
+        ray-curr    (m/- curr-tail' head-pos)
+        axis        (m/cross ray-tail ray-curr)
+        angle       (Math/atan2 (m/mag axis) (m/dot ray-tail ray-curr))
+        jiggle-quat (q/quat-from-axis-angle axis angle)
+        trans-mat   (m-ext/vec3->trans-mat head-pos)
+        rot-mat     (g/as-matrix (m/* jiggle-quat head-rot))
+        transform'  (m/* trans-mat rot-mat)]
     (swap! bones-db*
            (fn [j]
-             (assoc j (:idx bone)
-                    {:jiggle/position  position'
-                     :jiggle/transform (m-ext/translation-mat position')
-                     :jiggle/velocity  velocity'})))
-    (assoc bone :global-transform global-transform)))
+             (assoc j (:idx bone) {:jiggle/curr-tail curr-tail'
+                                   :jiggle/tail-vel  tail-vel'
+                                   :jiggle/transform transform'})))
+    (assoc bone :global-transform self-gt)))
+
+(defn prep-tails [transform-tree]
+  (->> (rseq transform-tree)
+       (into []
+             (fn [rf]
+               (let [children! (volatile! {})]
+                 (fn
+                   ([] (rf))
+                   ([result] (rf result))
+                   ([result bone]
+                    (vswap! children! assoc (:idx bone) bone)
+                    (if-let [tail (when (:jiggle? bone)
+                                    (or (some-> (get @children! (-> bone :bone-data :connection)) :translation)
+                                        (some-> bone :bone-data :position-offset 
+                                                pmx-model/pmx-coord->opengl-coord
+                                                v/vec3)))]
+                      (rf result (assoc bone :tail tail))
+                      (rf result bone)))))))
+       (rseq)
+       (into [])))
 
 ;; click@ remove# undress$ love me%
 
@@ -75,6 +107,21 @@
     (get-in @bones-db* [(:idx bone) :jiggle/transform])
     (:global-transform bone)))
 
+(def rules
+  (o/ruleset
+   {::set-jiggle-tail
+    [:what
+     [::time/now ::time/slice 1]
+     [::world/global ::prep-tail? true]
+     [esse-id ::geom/transform-tree transform-tree {:then false}]
+     :then
+     (let [transform-tree' (prep-tails transform-tree)]
+       (println "[bones] prepping tails for jiggling")
+       (s-> session
+            (o/retract ::world/global ::prep-tail?)
+            (o/insert esse-id ::geom/transform-tree transform-tree')))]}))
+
 (def system
   {::world/init-fn #'init-fn
-   ::world/after-load-fn #'after-load-fn})
+   ::world/after-load-fn #'after-load-fn
+   ::world/rules #'rules})
