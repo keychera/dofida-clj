@@ -9,7 +9,9 @@
    [odoyle.rules :as o]))
 
 (s/def ::max-progress number?)
-(s/def ::config (s/keys :req-un [::max-progress]))
+(s/def ::seek number?)
+(s/def ::config (s/keys :req-un [::max-progress]
+                        :opt-un [::seek]))
 (s/def ::progress number?)
 (s/def ::loop int?)
 (s/def ::debug some?)
@@ -58,8 +60,8 @@
      [::time/now ::time/slice 1]
      [::world/global ::config config]
      :then
-     (let [{:keys [max-progress]} config
-           progress  (mod tt max-progress)
+     (let [{:keys [max-progress seek]} config
+           progress  (or seek (mod tt max-progress))
            new-loop? (< progress prev-progress)]
        (s-> session
             ((fn [s] (if new-loop?
