@@ -27,7 +27,7 @@
 
 (def osc-ps (* Math/PI 2 3.0))
 (def damp 0.5)
-(def damp-time 0.9)
+(def damp-time 0.05)
 (def damp-ratio (/ (Math/log damp) (* -1 osc-ps damp-time)))
 
 (defn jiggle [bone bones-db* dt self-gt]
@@ -35,8 +35,12 @@
         decom       (m-ext/decompose-matrix44 self-gt)
         head-pos    (:translation decom)
         head-rot    (:rotation decom)
+        tail-fn     (:tail-fn bone)
         target-tail (m/+ (:tail bone) head-pos)
+        target-tail (if tail-fn (tail-fn target-tail) target-tail)
         curr-tail   (or (get-in bones-db [(:idx bone) :jiggle/curr-tail]) target-tail)
+        ;; curr-tail   (if tail-fn (tail-fn curr-tail) target-tail)
+
         tail-vel    (or (get-in bones-db [(:idx bone) :jiggle/tail-vel]) (v/vec3))
 
         ;; semi implicit euler
@@ -51,7 +55,8 @@
         angle       (Math/atan2 (m/mag axis) (m/dot ray-tail ray-curr))
         jiggle-quat (q/quat-from-axis-angle axis angle)
         trans-mat   (m-ext/vec3->trans-mat head-pos)
-        rot-mat     (g/as-matrix (m/* jiggle-quat head-rot))
+        rot-quat    (m/* jiggle-quat head-rot)
+        rot-mat     (g/as-matrix rot-quat)
         transform'  (m/* trans-mat rot-mat)]
     (swap! bones-db*
            (fn [j]
@@ -72,7 +77,7 @@
                     (vswap! children! assoc (:idx bone) bone)
                     (if-let [tail (when (:jiggle? bone)
                                     (or (some-> (get @children! (-> bone :bone-data :connection)) :translation)
-                                        (some-> bone :bone-data :position-offset 
+                                        (some-> bone :bone-data :position-offset
                                                 pmx-model/pmx-coord->opengl-coord
                                                 v/vec3)))]
                       (rf result (assoc bone :tail tail))
