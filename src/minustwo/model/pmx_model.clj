@@ -5,6 +5,7 @@
    [engine.math :as m-ext]
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
+   [minustwo.gl.texture :as texture]
    [minustwo.model.pmx-parser :refer [parse-pmx]]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
@@ -13,6 +14,7 @@
    [thi.ng.math.core :as m]))
 
 (s/def ::model-path string?)
+(s/def ::config (s/keys :req-un [::texture/tex-unit-offset]))
 (s/def ::bones vector?)
 (s/def ::data (s/keys :req-un [::bones]))
 

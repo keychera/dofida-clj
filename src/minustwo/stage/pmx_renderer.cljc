@@ -78,9 +78,10 @@
  }
 "))
 
-(defn pmx-default [model-path]
+(defn pmx-default [model-path config]
   (utils/deep-merge
-   {::pmx-model/model-path model-path}
+   {::pmx-model/model-path model-path
+    ::pmx-model/config config}
    #::shader{:use ::pmx-shader}
    t3d/default
    pose/default))
@@ -128,11 +129,13 @@
    {::I-cast-pmx-magic!
     [:what
      [esse-id ::pmx-model/data data]
+     [esse-id ::pmx-model/config config]
      [::pmx-shader ::shader/program-info _]
      [esse-id ::gl-magic/casted? :pending]
      :then
      (println esse-id "got" (keys data) "!")
-     (let [spell  (pmx-spell data {:esse-id esse-id})
+     (let [spell  (pmx-spell data {:esse-id esse-id 
+                                   :tex-unit-offset (:tex-unit-offset config)})
            pos!   (:POSITION data)
            morphs (into []
                         (map (fn [morph]
