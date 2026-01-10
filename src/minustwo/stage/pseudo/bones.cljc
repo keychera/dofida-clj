@@ -25,22 +25,28 @@
 (defn after-load-fn [world _game]
   (init-fn world _game))
 
-(def osc-ps (* Math/PI 2 3.0))
-(def damp 0.5)
-(def damp-time 0.05)
-(def damp-ratio (/ (Math/log damp) (* -1 osc-ps damp-time)))
+(def default-osc-ps (* Math/PI 2 3.0))
+(def default-damp 0.5)
+(def default-damp-time 0.05)
 
 (defn jiggle [bone bones-db* dt self-gt]
   (let [bones-db    @bones-db*
+        conf        (:jiggle? bone)
+        ;; config
+        osc-ps      (or (:osc-ps conf) default-osc-ps)
+        damp        (or (:damp conf) default-damp)
+        damp-time   (or (:damp-time conf) default-damp-time)
+        damp-ratio  (/ (Math/log damp) (* -1 default-osc-ps damp-time))
+        chain?      (:chain? conf)
+
         decom       (m-ext/decompose-matrix44 self-gt)
         head-pos    (:translation decom)
         head-rot    (:rotation decom)
         tail-fn     (:tail-fn bone)
+
         target-tail (m/+ (:tail bone) head-pos)
         target-tail (if tail-fn (tail-fn target-tail) target-tail)
         curr-tail   (or (get-in bones-db [(:idx bone) :jiggle/curr-tail]) target-tail)
-        ;; curr-tail   (if tail-fn (tail-fn curr-tail) target-tail)
-
         tail-vel    (or (get-in bones-db [(:idx bone) :jiggle/tail-vel]) (v/vec3))
 
         ;; semi implicit euler
@@ -63,7 +69,7 @@
              (assoc j (:idx bone) {:jiggle/curr-tail curr-tail'
                                    :jiggle/tail-vel  tail-vel'
                                    :jiggle/transform transform'})))
-    (assoc bone :global-transform self-gt)))
+    (assoc bone :global-transform (if chain? transform' self-gt))))
 
 (defn prep-tails [transform-tree]
   (->> (rseq transform-tree)
