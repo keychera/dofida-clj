@@ -139,10 +139,10 @@
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
 
-(defn model-gl-context [room model]
+(defn model-gl-context [room model dynamic-data]
   (let [{:keys [ctx project player-view vao-db*]} room
-        {:keys [esse-id pmx-data program-info skinning-ubo
-                transform pose-tree position-buffer bones-db*]} model
+        {:keys [esse-id pmx-data program-info skinning-ubo position-buffer bones-db*]} model
+        {:keys [transform pose-tree]} dynamic-data
         program    (:program program-info :program)
         vao        (get @vao-db* esse-id)
         ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
@@ -162,7 +162,7 @@
 
     (gl ctx bindVertexArray vao)))
 
-(defn render-material [room model material]
+(defn render-material [room model material _dynamic-data]
   (let [{:keys [ctx texture-db*]} room
         {:keys [program-info]} model
         face-count  (:face-count material)
@@ -248,44 +248,44 @@
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
 #_(defn render-fn [world _game]
-  (let [{:keys [ctx project player-view vao-db* texture-db*]}
-        (utils/query-one world ::room/data)]
-    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo
-                    transform pose-tree position-buffer bones-db*]}
-            (o/query-all world ::render-data)]
-      (let [program    (:program program-info :program)
-            vao        (get @vao-db* esse-id)
-            materials  (:materials pmx-data)
-            ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
-            ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
+    (let [{:keys [ctx project player-view vao-db* texture-db*]}
+          (utils/query-one world ::room/data)]
+      (doseq [{:keys [esse-id pmx-data program-info skinning-ubo
+                      transform pose-tree position-buffer bones-db*]}
+              (o/query-all world ::render-data)]
+        (let [program    (:program program-info :program)
+              vao        (get @vao-db* esse-id)
+              materials  (:materials pmx-data)
+              ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+              ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
         ;; (def err [:err (gl ctx getError)])
-        #_{:clj-kondo/ignore [:inline-def]}
-        (def hmm pmx-data)
-        (gl ctx useProgram program)
-        (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-        (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-        (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
+          #_{:clj-kondo/ignore [:inline-def]}
+          (def hmm pmx-data)
+          (gl ctx useProgram program)
+          (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
+          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
+          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
 
         ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
-        (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
-        (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
+          (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
+          (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
 
-        (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
-        (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-        (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
 
-        (gl ctx bindVertexArray vao)
+          (gl ctx bindVertexArray vao)
 
-        (doseq [material materials]
-          (let [face-count  (:face-count material)
-                face-offset (* 4 (:face-offset material))
-                tex         (get @texture-db* (:tex-name material))]
-            (when-let [{:keys [tex-unit texture]} tex]
-              (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
-              (gl ctx bindTexture GL_TEXTURE_2D texture)
-              (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+          (doseq [material materials]
+            (let [face-count  (:face-count material)
+                  face-offset (* 4 (:face-offset material))
+                  tex         (get @texture-db* (:tex-name material))]
+              (when-let [{:keys [tex-unit texture]} tex]
+                (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+                (gl ctx bindTexture GL_TEXTURE_2D texture)
+                (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
 
-            (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))))
+              (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))))
 
 (def system
   {::world/init-fn #'init-fn
