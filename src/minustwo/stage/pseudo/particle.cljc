@@ -79,7 +79,7 @@
           component-type (:componentType indices)]
       (doseq [{:keys [position]} particles]
         (let [particle-trans (m/* (m-ext/translation-mat position) model)]
-          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec particle-trans)))
+          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec particle-trans)))
           (gl ctx drawElements GL_TRIANGLES vert-count component-type 0))))))
 
 (def system

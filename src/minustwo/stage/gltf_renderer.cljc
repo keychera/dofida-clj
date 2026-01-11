@@ -63,9 +63,9 @@
               model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))
-          (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec model)))
+          (cljgl/set-uniform ctx program-info :u_projection (vec->f32-arr (vec project)))
+          (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec player-view)))
+          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec model)))
 
           (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
           (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))

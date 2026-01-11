@@ -62,7 +62,7 @@
                        (get accessors accessor))))
          (map (fn [{:keys [attr-name bufferView byteOffset componentType type]}]
                 (let [bufferView (get bufferViews bufferView)]
-                  {:point-attr (symbol attr-name)
+                  {:point-attr (keyword attr-name)
                    :use-shader use-shader
                    :count (gltf-type->num-of-component type)
                    :component-type componentType

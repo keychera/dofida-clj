@@ -57,13 +57,13 @@
                               (comp (filter :in)
                                     (map (fn [{:keys [member-type member-name]}]
                                            [member-name {:type     member-type
-                                                         :attr-loc (gl ctx getAttribLocation program (str member-name))}])))))
+                                                         :attr-loc (gl ctx getAttribLocation program (name member-name))}])))))
         uni-locs   (->> members
                         (into {}
                               (comp (filter :uniform)
                                     (map (fn [{:keys [member-type member-name]}]
                                            [member-name {:type    member-type
-                                                         :uni-loc (gl ctx getUniformLocation program (str member-name))}])))))]
+                                                         :uni-loc (gl ctx getUniformLocation program (name member-name))}])))))]
     (doseq [uni-block (filter :uniform-block members)]
       (let [{:keys [member-name]} uni-block
             block-index (gl ctx getUniformBlockIndex program (str member-name))]
@@ -83,12 +83,14 @@
   (let [both-shader [iglu-vert-shader iglu-frag-shader]
         attr-locs   (->> (transduce (map :inputs) merge both-shader)
                          (into {} (map (fn [[attr-name attr-type]]
-                                         [attr-name {:type     attr-type
-                                                     :attr-loc (gl ctx getAttribLocation program (str attr-name))}]))))
+                                         [(keyword attr-name)
+                                          {:type     (keyword attr-type)
+                                           :attr-loc (gl ctx getAttribLocation program (str attr-name))}]))))
         uni-locs    (->> (transduce (map :uniforms) merge both-shader)
                          (into {} (map (fn [[uni-name uni-type]]
-                                         [uni-name {:type    uni-type
-                                                    :uni-loc (gl ctx getUniformLocation program (str uni-name))}]))))]
+                                         [(keyword uni-name)
+                                          {:type    (keyword uni-type)
+                                           :uni-loc (gl ctx getUniformLocation program (str uni-name))}]))))]
     (vars->map attr-locs uni-locs)))
 
 (s/fdef create-program-info-from-iglu
@@ -109,31 +111,31 @@
 (s/fdef set-uniform
   :args (s/cat :ctx ::gl-system/context
                :program-info ::shader/program-info
-               :loc-symbol symbol?
+               :loc-keyword keyword?
                :value any?))
-(defn set-uniform [ctx program-info loc-symbol value]
-  (if-let [{:keys [uni-loc type]} (get (:uni-locs program-info) loc-symbol)]
+(defn set-uniform [ctx program-info loc-keyword value]
+  (if-let [{:keys [uni-loc type]} (get (:uni-locs program-info) loc-keyword)]
     (case type
-      float     (gl ctx uniform1f uni-loc value)
-      int       (gl ctx uniform1i uni-loc value)
-      uint      (gl ctx uniform1ui uni-loc value)
-      bool      (gl ctx uniform1i uni-loc (if value 1 0))
-      vec2      (gl ctx uniform2fv uni-loc value)
-      vec3      (gl ctx uniform3fv uni-loc value)
-      vec4      (gl ctx uniform4fv uni-loc value)
-      ivec2     (gl ctx uniform2iv uni-loc value)
-      ivec3     (gl ctx uniform3iv uni-loc value)
-      ivec4     (gl ctx uniform4iv uni-loc value)
-      uvec2     (gl ctx uniform2uiv uni-loc value)
-      uvec3     (gl ctx uniform3uiv uni-loc value)
-      uvec4     (gl ctx uniform4uiv uni-loc value)
-      bvec2     (gl ctx uniform2iv uni-loc (mapv #(if % 1 0) value))
-      bvec3     (gl ctx uniform3iv uni-loc (mapv #(if % 1 0) value))
-      bvec4     (gl ctx uniform4iv uni-loc (mapv #(if % 1 0) value))
-      mat2      (gl ctx uniformMatrix2fv uni-loc false value)
-      mat3      (gl ctx uniformMatrix3fv uni-loc false value)
-      mat4      (gl ctx uniformMatrix4fv uni-loc false value)
-      sampler2D (gl ctx uniform1i uni-loc value)
-      (throw (ex-info (str "Unsupported uniform type: " type) {:type type :loc-symbol loc-symbol})))
-    (throw (ex-info (str "no " loc-symbol " found in program")
+      :float     (gl ctx uniform1f uni-loc value)
+      :int       (gl ctx uniform1i uni-loc value)
+      :uint      (gl ctx uniform1ui uni-loc value)
+      :bool      (gl ctx uniform1i uni-loc (if value 1 0))
+      :vec2      (gl ctx uniform2fv uni-loc value)
+      :vec3      (gl ctx uniform3fv uni-loc value)
+      :vec4      (gl ctx uniform4fv uni-loc value)
+      :ivec2     (gl ctx uniform2iv uni-loc value)
+      :ivec3     (gl ctx uniform3iv uni-loc value)
+      :ivec4     (gl ctx uniform4iv uni-loc value)
+      :uvec2     (gl ctx uniform2uiv uni-loc value)
+      :uvec3     (gl ctx uniform3uiv uni-loc value)
+      :uvec4     (gl ctx uniform4uiv uni-loc value)
+      :bvec2     (gl ctx uniform2iv uni-loc (mapv #(if % 1 0) value))
+      :bvec3     (gl ctx uniform3iv uni-loc (mapv #(if % 1 0) value))
+      :bvec4     (gl ctx uniform4iv uni-loc (mapv #(if % 1 0) value))
+      :mat2      (gl ctx uniformMatrix2fv uni-loc false value)
+      :mat3      (gl ctx uniformMatrix3fv uni-loc false value)
+      :mat4      (gl ctx uniformMatrix4fv uni-loc false value)
+      :sampler2D (gl ctx uniform1i uni-loc value)
+      (throw (ex-info (str "Unsupported uniform type: " type) {:type type :loc-keyword loc-keyword})))
+    (throw (ex-info (str "no " loc-keyword " found in program")
                     {:program-info program-info}))))

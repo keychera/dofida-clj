@@ -108,16 +108,16 @@
   (let [textures (:textures data)]
     (->> [{:bind-vao esse-id}
           {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
-          {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:point-attr :POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
           {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:point-attr :NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
           {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
+          {:point-attr :TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
 
           {:buffer-data (:WEIGHTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'WEIGHTS :use-shader ::pmx-shader :count 4 :component-type GL_FLOAT}
+          {:point-attr :WEIGHTS :use-shader ::pmx-shader :count 4 :component-type GL_FLOAT}
           {:buffer-data (:JOINTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
+          {:point-attr :JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
 
           (eduction
            (map-indexed (fn [tex-idx img-uri]
@@ -148,9 +148,9 @@
         ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
         ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
     (gl ctx useProgram program)
-    (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-    (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-    (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
+    (cljgl/set-uniform ctx program-info :u_projection (vec->f32-arr (vec project)))
+    (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec player-view)))
+    (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec transform)))
 
     ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
     (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
@@ -169,7 +169,7 @@
     (when-let [{:keys [tex-unit texture]} tex]
       (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
       (gl ctx bindTexture GL_TEXTURE_2D texture)
-      (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+      (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
 
     (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
 
@@ -236,7 +236,7 @@
                             :prep-fn model-gl-context
                             :mats-render-fn render-materials
                             :materials (:materials pmx-data)})
-     #_#_:then-finally
+     :then-finally
        (let [models (o/query-all session ::render-data)
              renderplay (into [] (mapcat (fn [{:keys [esse-id]}]
                                            [{:prep-esse esse-id} {:render-esse esse-id}]))
