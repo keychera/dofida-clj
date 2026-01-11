@@ -8,7 +8,8 @@
    [nrepl.server :as nrepl-server]
    [platform.start :as start]
    [com.phronemophobic.viscous :as viscous]
-   [clojure.spec.alpha :as s])
+   [clojure.spec.alpha :as s]
+   [clojure.string :as str])
   (:import
    (imgui ImGui)
    (imgui.gl3 ImGuiImplGl3)
@@ -50,7 +51,7 @@
         (start))
       (catch Throwable e
         (reset! stop* true)
-        (viscous/inspect e))))
+        (viscous/inspect (update (Throwable->map e) :cause str/split-lines)))))
   (shutdown-agents))
 
 (comment
