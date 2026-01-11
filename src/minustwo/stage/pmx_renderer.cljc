@@ -237,12 +237,16 @@
                             :mats-render-fn render-materials
                             :materials (:materials pmx-data)})
      :then-finally
+     (when (not (seq (o/query-all session ::default-renderplay)))
        (let [models (o/query-all session ::render-data)
              renderplay (into [] (mapcat (fn [{:keys [esse-id]}]
                                            [{:prep-esse esse-id} {:render-esse esse-id}]))
                               models)]
          (println "default renderplay!" renderplay)
-         (insert! ::world/global ::esse-model/renderplay renderplay))]
+         (insert! ::world/global ::esse-model/renderplay renderplay)))]
+
+    ::default-renderplay ;; this need mega hammock, todo
+    [:what [::world/global ::esse-model/renderplay renderplay]]
 
     ::global-transform
     [:what
