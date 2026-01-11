@@ -16,11 +16,11 @@
 (s/def ::data map?)
 
 ;;  prep-fn that prepare shared stuff in that model (shader, vao, etc.)
-;;     shape: (fn [room model dynamic-data])
+;;     shape: (fn [room data dynamic-data])
 (s/def ::prep-fn fn?)
 
 ;;  mat-render-fn to, fn that does the render given all model's materials
-;;     shape: (fn [room model materials dynamic-data])
+;;     shape: (fn [room data materials dynamic-data])
 (s/def ::mats-render-fn fn?)
 
 ;;  the materials data
@@ -40,7 +40,8 @@
    ;; :prep-esse that will invoke ::prep-fn of the given esse-id
    :prep-esse   (s/keys :req-un [::prep-esse])
    ;; :render-esse that will invoke ::mat-render-fn of the given esse-id
-   :render-esse (s/keys :req-un [::render-esse])))
+   :render-esse (s/keys :req-un [::render-esse]
+                        :opt-un [::mats-render-fn])))
 
 (s/def ::custom-fn fn?)
 (s/def ::prep-esse some?)
@@ -50,7 +51,7 @@
   (o/ruleset
    {::esse-model-to-render
     [:what
-     [esse-id ::data model]
+     [esse-id ::data data]
      [esse-id ::prep-fn prep-fn]
      [esse-id ::mats-render-fn mats-render-fn]
      [esse-id ::materials materials]
@@ -65,25 +66,27 @@
   (let [room        (utils/query-one world ::room/data)
         models      (o/query-all world ::esse-model-to-render)
         renderplays (o/query-all world ::the-renderplay)]
-    (doseq [renderplay renderplays]
-      (doseq [renderbit (:renderplay renderplay)]
+    (when (and (seq models) (seq renderplays))
+      (doseq [renderplay renderplays]
+        (doseq [renderbit (:renderplay renderplay)]
         ;; hmm this is linear search, need hammock on how to layout static and dynamic data
         ;; maybe atoms for dynamic data like db solution we've been using
-        (or (when-let [custom-fn (:custom-fn renderbit)]
-              (custom-fn)
-              :done)
-            (when-let [esse-id (:prep-esse renderbit)]
-              (let [{:keys [model prep-fn transform pose-tree]}
-                    (some #(when (= (:esse-id %) esse-id) %) models)
-                    dynamic-data (vars->map transform pose-tree)]
-                (prep-fn room model dynamic-data))
-              :done)
-            (when-let [esse-id (:render-esse renderbit)]
-              (let [{:keys [model mats-render-fn materials transform pose-tree]}
-                    (some #(when (= (:esse-id %) esse-id) %) models)
-                    dynamic-data (vars->map transform pose-tree)]
-                (mats-render-fn room model materials dynamic-data))
-              :done))))))
+          (or (when-let [custom-fn (:custom-fn renderbit)]
+                (custom-fn)
+                :done)
+              (when-let [esse-id (:prep-esse renderbit)]
+                (let [{:keys [data prep-fn transform pose-tree]}
+                      (some #(when (= (:esse-id %) esse-id) %) models)
+                      dynamic-data (vars->map transform pose-tree)]
+                  (prep-fn room data dynamic-data))
+                :done)
+              (when-let [esse-id (:render-esse renderbit)]
+                (let [{:keys [data materials transform pose-tree] :as esse-model}
+                      (some #(when (= (:esse-id %) esse-id) %) models)
+                      dynamic-data (vars->map transform pose-tree)
+                      mats-render-fn (or (:mats-render-fn renderbit) (:mats-render-fn esse-model))]
+                  (mats-render-fn room data materials dynamic-data))
+                :done)))))))
 
 (def system
   {::world/rules #'rules

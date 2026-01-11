@@ -162,19 +162,22 @@
 
     (gl ctx bindVertexArray vao)))
 
+(defn render-material [ctx texture-db* program-info material]
+  (let [face-count  (:face-count material)
+        face-offset (* 4 (:face-offset material))
+        tex         (get @texture-db* (:tex-name material))]
+    (when-let [{:keys [tex-unit texture]} tex]
+      (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+      (gl ctx bindTexture GL_TEXTURE_2D texture)
+      (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+
+    (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
+
 (defn render-materials [room model materials _dynamic-data]
   (let [{:keys [ctx texture-db*]} room
         {:keys [program-info]} model]
     (doseq [material materials]
-      (let [face-count  (:face-count material)
-            face-offset (* 4 (:face-offset material))
-            tex         (get @texture-db* (:tex-name material))]
-        (when-let [{:keys [tex-unit texture]} tex]
-          (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
-          (gl ctx bindTexture GL_TEXTURE_2D texture)
-          (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
-
-        (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))
+      (render-material ctx texture-db* program-info material))))
 
 (def rules
   (o/ruleset
@@ -233,13 +236,13 @@
                             :prep-fn model-gl-context
                             :mats-render-fn render-materials
                             :materials (:materials pmx-data)})
-     :then-finally
-     (let [models (o/query-all session ::render-data)
-           renderplay (into [] (mapcat (fn [{:keys [esse-id]}]
-                                         [{:prep-esse esse-id} {:render-esse esse-id}]))
-                            models)]
-       (println "default renderplay!" renderplay)
-       (insert! ::world/global ::esse-model/renderplay renderplay))]
+     #_#_:then-finally
+       (let [models (o/query-all session ::render-data)
+             renderplay (into [] (mapcat (fn [{:keys [esse-id]}]
+                                           [{:prep-esse esse-id} {:render-esse esse-id}]))
+                              models)]
+         (println "default renderplay!" renderplay)
+         (insert! ::world/global ::esse-model/renderplay renderplay))]
 
     ::global-transform
     [:what
@@ -255,49 +258,7 @@
 ;; perversion, obsession, what motivates you to move forward?
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
-#_(defn render-fn [world _game]
-    (let [{:keys [ctx project player-view vao-db* texture-db*]}
-          (utils/query-one world ::room/data)]
-      (doseq [{:keys [esse-id pmx-data program-info skinning-ubo
-                      transform pose-tree position-buffer bones-db*]}
-              (o/query-all world ::render-data)]
-        (let [program    (:program program-info :program)
-              vao        (get @vao-db* esse-id)
-              materials  (:materials pmx-data)
-              ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
-              ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
-        ;; (def err [:err (gl ctx getError)])
-          #_{:clj-kondo/ignore [:inline-def]}
-          (def hmm pmx-data)
-          (gl ctx useProgram program)
-          (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
-
-        ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
-          (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
-          (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
-
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
-          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
-
-          (gl ctx bindVertexArray vao)
-
-          (doseq [material materials]
-            (let [face-count  (:face-count material)
-                  face-offset (* 4 (:face-offset material))
-                  tex         (get @texture-db* (:tex-name material))]
-              (when-let [{:keys [tex-unit texture]} tex]
-                (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
-                (gl ctx bindTexture GL_TEXTURE_2D texture)
-                (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
-
-              (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))))
-
 (def system
   {::world/init-fn #'init-fn
    ::world/after-load-fn #'after-load-fn
-   ::world/rules #'rules
-   #_#_::world/render-fn #'render-fn})
-
+   ::world/rules #'rules})
