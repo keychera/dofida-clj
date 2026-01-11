@@ -1,4 +1,5 @@
-{:lint-as {com.rpl.specter/defcollector clojure.core/defn
+{:linters {:unused-namespace {:level :off}}
+ :lint-as {com.rpl.specter/defcollector clojure.core/defn
            com.rpl.specter/defdynamicnav clojure.core/defn
            com.rpl.specter/defmacroalias clojure.core/def
            com.rpl.specter/defnav clojure.core/defn
