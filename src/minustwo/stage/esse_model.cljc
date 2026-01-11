@@ -9,43 +9,66 @@
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]))
 
-(s/def ::gl-context-fn fn?)
-(s/def ::mat-render-fn fn?)
-(s/def ::material map?)
-(s/def ::materials (s/coll-of ::material))
+;; heuristic for render order control
+;; every model will have these data:
+
+;;  the model data from odoyle's match or anything that the user of this ns provided
 (s/def ::data map?)
 
-;; heuristic for render order control
-;; every model will have these functions:
-;;  1. the model data from odoyle's match or anything that the user of this ns provided
-;;  2. gl-context-fn that prepare shared stuff in that model (shader, vao, etc.)
-;;       shape: (fn [room model dynamic-data])
-;;  3. mat-render-fn to, fn that prep and call render for each materials
-;;       shape: (fn [room model material dynamic-data])
-;;  4. the materials data
+;;  prep-fn that prepare shared stuff in that model (shader, vao, etc.)
+;;     shape: (fn [room model dynamic-data])
+(s/def ::prep-fn fn?)
 
-;; indirection is key
+;;  mat-render-fn to, fn that does the render given all model's materials
+;;     shape: (fn [room model materials dynamic-data])
+(s/def ::mats-render-fn fn?)
+
+;;  the materials data
+(s/def ::material map?)
+(s/def ::materials (s/coll-of ::material))
+
+;; then we defined a way to let user specify the way render is ordered
+;; by defining a renderplay. a word play from screenplay
+(s/def ::renderplay (s/coll-of ::renderbit :kind vector?))
+
+;; renderplay is a coll-of renderbit, that can be either:
+(s/def ::renderbit
+  (s/or
+   ;; custom-fn for custom behaviour
+   ;;    shape of (fn [world ctx])
+   :custom-fn   (s/keys :req-un [::custom-fn])
+   ;; :prep-esse that will invoke ::prep-fn of the given esse-id
+   :prep-esse   (s/keys :req-un [::prep-esse])
+   ;; :render-esse that will invoke ::mat-render-fn of the given esse-id
+   :render-esse (s/keys :req-un [::render-esse])))
+
+(s/def ::custom-fn fn?)
+(s/def ::prep-esse some?)
+(s/def ::render-esse some?)
 
 (def rules
   (o/ruleset
    {::esse-model-to-render
     [:what
      [esse-id ::data model]
-     [esse-id ::gl-context-fn gl-context-fn]
-     [esse-id ::mat-render-fn mat-render-fn]
+     [esse-id ::prep-fn prep-fn]
+     [esse-id ::mats-render-fn mats-render-fn]
      [esse-id ::materials materials]
      [esse-id ::t3d/transform transform]
-     [esse-id ::pose/pose-tree pose-tree]]}))
+     [esse-id ::pose/pose-tree pose-tree]]
+
+    ::render-strat
+    [:what [strat-id ::renderplay strategy]]}))
 
 (defn render-fn [world _game]
   (let [room (utils/query-one world ::room/data)]
-    (doseq [{:keys [model gl-context-fn mat-render-fn materials
+    (doseq [{:keys [model prep-fn mats-render-fn materials
                     transform pose-tree]}
             (o/query-all world ::esse-model-to-render)]
       (let [dynamic-data (vars->map transform pose-tree)]
-        (gl-context-fn room model dynamic-data)
-        (doseq [material materials]
-          (mat-render-fn room model material dynamic-data))))))
+        (prep-fn room model dynamic-data)
+        (mats-render-fn room model materials dynamic-data)))))
+
 
 (def system
   {::world/rules #'rules

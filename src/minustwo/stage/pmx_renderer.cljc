@@ -162,18 +162,19 @@
 
     (gl ctx bindVertexArray vao)))
 
-(defn render-material [room model material _dynamic-data]
+(defn render-materials [room model materials _dynamic-data]
   (let [{:keys [ctx texture-db*]} room
-        {:keys [program-info]} model
-        face-count  (:face-count material)
-        face-offset (* 4 (:face-offset material))
-        tex         (get @texture-db* (:tex-name material))]
-    (when-let [{:keys [tex-unit texture]} tex]
-      (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
-      (gl ctx bindTexture GL_TEXTURE_2D texture)
-      (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+        {:keys [program-info]} model]
+    (doseq [material materials]
+      (let [face-count  (:face-count material)
+            face-offset (* 4 (:face-offset material))
+            tex         (get @texture-db* (:tex-name material))]
+        (when-let [{:keys [tex-unit texture]} tex]
+          (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+          (gl ctx bindTexture GL_TEXTURE_2D texture)
+          (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
 
-    (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
+        (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))
 
 (def rules
   (o/ruleset
@@ -229,8 +230,8 @@
      (println esse-id "is ready to render!")
      (insert! esse-id
               #::esse-model{:data match
-                            :gl-context-fn model-gl-context
-                            :mat-render-fn render-material
+                            :prep-fn model-gl-context
+                            :mats-render-fn render-materials
                             :materials (:materials pmx-data)})]
 
     ::global-transform
