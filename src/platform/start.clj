@@ -294,11 +294,11 @@
   ([game window {::keys [init-fn frame-fn destroy-fn stop-flag*]}]
    (let [handle (:handle window)
          game (assoc game :delta-time 0.0 :total-time (* (GLFW/glfwGetTime) 1000))]
-     (GLFW/glfwShowWindow handle)
-     (engine/init game)
-     (listen-for-events window)
-     (when init-fn (init-fn window))
      (try
+       (GLFW/glfwShowWindow handle)
+       (listen-for-events window)
+       (when init-fn (init-fn window))
+       (engine/init game)
        (loop [game game]
          (when-not (or (GLFW/glfwWindowShouldClose handle)
                        (and (some? stop-flag*) @stop-flag*))
