@@ -52,7 +52,7 @@
      :then
      (s-> session
           (o/insert esse-uuid ::position (m/+ p (g/scale v dt)))
-          (o/insert esse-uuid ::velocity (m/+ v (or (:gravity physics) (v/vec3 0.0 (* -9.8 1e-6 dt) 0.0)))))]
+          (o/insert esse-uuid ::velocity (m/+ v (or (:gravity physics) (v/vec3 0.0 (* -9.8 dt) 0.0)))))]
 
     ::live-particles
     [:what

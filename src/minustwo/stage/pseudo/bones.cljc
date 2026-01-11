@@ -129,7 +129,7 @@
      (let [transform-tree' (prep-tails transform-tree)]
        (println "[bones] prepping tails for jiggling")
        (s-> session
-            (o/retract ::world/global ::prep-tail?)
+            (o/insert ::world/global ::prep-tail? false)
             (o/insert esse-id ::geom/transform-tree transform-tree')))]}))
 
 (def system
