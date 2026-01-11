@@ -100,6 +100,9 @@
 
 (defn after-load-fn [world _game] world)
 
+(defn texture-naming [esse-id tex-idx]
+  (str "tex-" esse-id "-" tex-idx))
+
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
     (->> [{:bind-vao esse-id}
@@ -116,26 +119,44 @@
           {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
 
           (eduction
-           (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
-                                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) idx)}))
+           (map-indexed (fn [tex-idx img-uri]
+                          {:bind-texture (texture-naming esse-id tex-idx)
+                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) tex-idx)}))
            textures)
 
           {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
           {:unbind-vao true}]
          flatten (into []))))
 
+(defn create-joint-mats-arr [bones-db* bones]
+  (let [f32s (f32-arr (* 16 (count bones)))]
+    (doseq [{:keys [idx inv-bind-mat] :as bone} bones]
+      (let [gt        (bones/resolve-gt bones-db* bone)
+            joint-mat (m/* gt inv-bind-mat)
+            i         (* idx 16)]
+        (dotimes [j 16]
+          (aset f32s (+ i j) (float (nth joint-mat j))))))
+    f32s))
+
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
     [:what
-     [esse-id ::pmx-model/data data]
+     [esse-id ::pmx-model/data data {:then false}]
      [esse-id ::pmx-model/config config]
      [::pmx-shader ::shader/program-info _]
      [esse-id ::gl-magic/casted? :pending]
      :then
      (println esse-id "got" (keys data) "!")
-     (let [spell  (pmx-spell data {:esse-id esse-id 
-                                   :tex-unit-offset (:tex-unit-offset config)})
+     (let [data   (update data :materials
+                          (fn [mats]
+                            (into []
+                                  (map (fn [mat]
+                                         (let [tex-idx  (:texture-index mat)
+                                               tex-name (texture-naming esse-id tex-idx)]
+                                           (assoc mat :tex-name tex-name))))
+                                  mats)))
+           spell  (pmx-spell data {:esse-id esse-id :tex-unit-offset (:tex-unit-offset config)})
            pos!   (:POSITION data)
            morphs (into []
                         (map (fn [morph]
@@ -144,6 +165,7 @@
                         (:morphs data))]
        (s-> session
             (o/insert esse-id #::gl-magic{:spell spell})
+            (o/insert esse-id ::pmx-model/data data)
             (o/insert esse-id ::morph/position-arr! pos!)
             (o/insert esse-id ::morph/morph-data morphs)))]
 
@@ -183,16 +205,6 @@
 ;; perversion, obsession, what motivates you to move forward?
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
-(defn create-joint-mats-arr [bones-db* bones]
-  (let [f32s (f32-arr (* 16 (count bones)))]
-    (doseq [{:keys [idx inv-bind-mat] :as bone} bones]
-      (let [gt        (bones/resolve-gt bones-db* bone)
-            joint-mat (m/* gt inv-bind-mat)
-            i         (* idx 16)]
-        (dotimes [j 16]
-          (aset f32s (+ i j) (float (nth joint-mat j))))))
-    f32s))
-
 (defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
@@ -225,8 +237,7 @@
         (doseq [material materials]
           (let [face-count  (:face-count material)
                 face-offset (* 4 (:face-offset material))
-                tex-idx     (:texture-index material)
-                tex         (get @texture-db* (str "tex-" esse-id "-" tex-idx))]
+                tex         (get @texture-db* (:tex-name material))]
             (when-let [{:keys [tex-unit texture]} tex]
               (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
               (gl ctx bindTexture GL_TEXTURE_2D texture)
