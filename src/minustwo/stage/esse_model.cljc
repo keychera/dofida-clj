@@ -57,18 +57,33 @@
      [esse-id ::t3d/transform transform]
      [esse-id ::pose/pose-tree pose-tree]]
 
-    ::render-strat
-    [:what [strat-id ::renderplay strategy]]}))
+    ::the-renderplay
+    [:what [renderplay-id ::renderplay renderplay]
+     :then (println "storing" renderplay-id)]}))
 
 (defn render-fn [world _game]
-  (let [room (utils/query-one world ::room/data)]
-    (doseq [{:keys [model prep-fn mats-render-fn materials
-                    transform pose-tree]}
-            (o/query-all world ::esse-model-to-render)]
-      (let [dynamic-data (vars->map transform pose-tree)]
-        (prep-fn room model dynamic-data)
-        (mats-render-fn room model materials dynamic-data)))))
-
+  (let [room        (utils/query-one world ::room/data)
+        models      (o/query-all world ::esse-model-to-render)
+        renderplays (o/query-all world ::the-renderplay)]
+    (doseq [renderplay renderplays]
+      (doseq [renderbit (:renderplay renderplay)]
+        ;; hmm this is linear search, need hammock on how to layout static and dynamic data
+        ;; maybe atoms for dynamic data like db solution we've been using
+        (or (when-let [custom-fn (:custom-fn renderbit)]
+              (custom-fn)
+              :done)
+            (when-let [esse-id (:prep-esse renderbit)]
+              (let [{:keys [model prep-fn transform pose-tree]}
+                    (some #(when (= (:esse-id %) esse-id) %) models)
+                    dynamic-data (vars->map transform pose-tree)]
+                (prep-fn room model dynamic-data))
+              :done)
+            (when-let [esse-id (:render-esse renderbit)]
+              (let [{:keys [model mats-render-fn materials transform pose-tree]}
+                    (some #(when (= (:esse-id %) esse-id) %) models)
+                    dynamic-data (vars->map transform pose-tree)]
+                (mats-render-fn room model materials dynamic-data))
+              :done))))))
 
 (def system
   {::world/rules #'rules

@@ -139,8 +139,7 @@
                               resolve-pmx-bones)
                         (:bones pmx-data))
         morphs    (:morphs pmx-data)]
-    (vars->map pmx-data
-               POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
+    (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
                textures materials bones morphs)))
 
 (defn load-models-from-world*

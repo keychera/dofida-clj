@@ -232,7 +232,14 @@
               #::esse-model{:data match
                             :prep-fn model-gl-context
                             :mats-render-fn render-materials
-                            :materials (:materials pmx-data)})]
+                            :materials (:materials pmx-data)})
+     :then-finally
+     (let [models (o/query-all session ::render-data)
+           renderplay (into [] (mapcat (fn [{:keys [esse-id]}]
+                                         [{:prep-esse esse-id} {:render-esse esse-id}]))
+                            models)]
+       (println "default renderplay!" renderplay)
+       (insert! ::world/global ::esse-model/renderplay renderplay))]
 
     ::global-transform
     [:what
