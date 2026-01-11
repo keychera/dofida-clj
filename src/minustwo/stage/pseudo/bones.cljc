@@ -44,7 +44,7 @@
         head-rot    (:rotation decom)
         tail-fn     (:tail-fn bone)
 
-        target-tail (m/+ (:tail bone) head-pos)
+        target-tail (m/+ (or (:tail bone) (v/vec3)) head-pos)
         target-tail (if tail-fn (tail-fn target-tail) target-tail)
         curr-tail   (or (get-in bones-db [(:idx bone) :jiggle/curr-tail]) target-tail)
         tail-vel    (or (get-in bones-db [(:idx bone) :jiggle/tail-vel]) (v/vec3))
