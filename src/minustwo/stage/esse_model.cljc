@@ -1,6 +1,7 @@
 (ns minustwo.stage.esse-model
   (:require
    [clojure.spec.alpha :as s]
+   [engine.game :refer [gl-ctx]]
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils]
    [engine.world :as world]
@@ -62,7 +63,7 @@
     [:what [renderplay-id ::renderplay renderplay]
      :then (println "storing" renderplay-id)]}))
 
-(defn render-fn [world _game]
+(defn render-fn [world game]
   (let [room        (utils/query-one world ::room/data)
         models      (o/query-all world ::esse-model-to-render)
         renderplays (o/query-all world ::the-renderplay)]
@@ -72,7 +73,7 @@
         ;; hmm this is linear search, need hammock on how to layout static and dynamic data
         ;; maybe atoms for dynamic data like db solution we've been using
           (or (when-let [custom-fn (:custom-fn renderbit)]
-                (custom-fn)
+                (custom-fn world (gl-ctx game))
                 :done)
               (when-let [esse-id (:prep-esse renderbit)]
                 (let [{:keys [data prep-fn transform pose-tree]}
