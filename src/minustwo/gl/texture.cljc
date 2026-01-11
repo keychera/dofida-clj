@@ -15,7 +15,9 @@
    [minustwo.gl.gl-system :as gl-system]
    [odoyle.rules :as o]))
 
-(defn texture-spell [ctx data width height tex-unit]
+;; want to be a lil more precise here. spell is just data, casting spell is an side-effecting action
+;; differentiating from fn like pmx-spell and gltf-spell
+(defn cast-texture-spell [ctx data width height tex-unit]
   (let [texture (gl ctx #?(:clj genTextures :cljs createTexture))]
     (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
     (gl ctx bindTexture GL_TEXTURE_2D texture)
@@ -35,7 +37,7 @@
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
     (vars->map texture tex-unit)))
 
-(defn fbo-spell [ctx width height tex-unit]
+(defn cast-fbo-spell [ctx width height tex-unit]
   (let [frame-buf (gl ctx #?(:clj genFramebuffers :cljs createFramebuffer))
         _         (gl ctx bindFramebuffer GL_FRAMEBUFFER frame-buf)
         fbo-tex   (gl ctx #?(:clj genTextures :cljs createTexture))]
@@ -64,6 +66,9 @@
     (gl ctx bindFramebuffer GL_FRAMEBUFFER #?(:clj 0 :cljs nil))
 
     (vars->map frame-buf fbo-tex tex-unit)))
+
+;; render me like one of your best-selling doujinshi girl
+;; sample me. simulate me. cull me beyond the abnormal.
 
 (s/def ::fbo map?)
 
@@ -110,7 +115,7 @@
              :cljs (data-uri->ImageBitmap
                     uri
                     (fn [{:keys [bitmap width height]}]
-                      (let [tex-data (texture-spell ctx bitmap width height tex-unit)]
+                      (let [tex-data (cast-texture-spell ctx bitmap width height tex-unit)]
                         (println "[texture] loaded" tex-name tex-data)
                         (swap! texture-db* assoc tex-name tex-data)
                         (swap! world* o/insert tex-name {::loaded? true})))))
@@ -119,7 +124,7 @@
           (utils/get-image
            uri
            (fn on-image-load [{:keys [data width height]}]
-             (let [tex-data (texture-spell ctx data width height tex-unit)]
+             (let [tex-data (cast-texture-spell ctx data width height tex-unit)]
                (swap! texture-db* assoc tex-name (s/conform ::data tex-data))
                (swap! world* o/insert tex-name {::loaded? true}))))
 
