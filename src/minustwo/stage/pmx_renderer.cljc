@@ -18,6 +18,7 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.pseudo.bones :as bones]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
@@ -138,6 +139,42 @@
           (aset f32s (+ i j) (float (nth joint-mat j))))))
     f32s))
 
+(defn model-gl-context [room model]
+  (let [{:keys [ctx project player-view vao-db*]} room
+        {:keys [esse-id pmx-data program-info skinning-ubo
+                transform pose-tree position-buffer bones-db*]} model
+        program    (:program program-info :program)
+        vao        (get @vao-db* esse-id)
+        ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+        ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
+    (gl ctx useProgram program)
+    (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
+    (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
+    (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
+
+    ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
+    (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
+    (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
+
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+    (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+
+    (gl ctx bindVertexArray vao)))
+
+(defn render-material [room model material]
+  (let [{:keys [ctx texture-db*]} room
+        {:keys [program-info]} model
+        face-count  (:face-count material)
+        face-offset (* 4 (:face-offset material))
+        tex         (get @texture-db* (:tex-name material))]
+    (when-let [{:keys [tex-unit texture]} tex]
+      (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+      (gl ctx bindTexture GL_TEXTURE_2D texture)
+      (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
+
+    (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
+
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
@@ -189,7 +226,12 @@
      [:position ::shader/buffer position-buffer]
      [::world/global ::bones/db* bones-db* {:then false}]
      :then
-     (println esse-id "is ready to render!")]
+     (println esse-id "is ready to render!")
+     (insert! esse-id
+              #::esse-model{:data match
+                            :gl-context-fn model-gl-context
+                            :mat-render-fn render-material
+                            :materials (:materials pmx-data)})]
 
     ::global-transform
     [:what
@@ -205,7 +247,7 @@
 ;; perversion, obsession, what motivates you to move forward?
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
-(defn render-fn [world _game]
+#_(defn render-fn [world _game]
   (let [{:keys [ctx project player-view vao-db* texture-db*]}
         (utils/query-one world ::room/data)]
     (doseq [{:keys [esse-id pmx-data program-info skinning-ubo
@@ -249,12 +291,5 @@
   {::world/init-fn #'init-fn
    ::world/after-load-fn #'after-load-fn
    ::world/rules #'rules
-   ::world/render-fn #'render-fn})
+   #_#_::world/render-fn #'render-fn})
 
-(comment
-  (require '[com.phronemophobic.viscous :as viscous])
-
-  ;; err
-  (viscous/inspect hmm)
-
-  :-)

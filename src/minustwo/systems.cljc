@@ -12,6 +12,7 @@
    [minustwo.model.assimp :as assimp]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.default :as default]
+   [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.bones :as bones]
@@ -50,6 +51,7 @@
    perspective-grid/system
    t3d/system
    uuid-instance/system
+   esse-model/system
 
    pmx-model/system
    pmx-renderer/system
