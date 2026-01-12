@@ -264,14 +264,12 @@
          (catch java.io.FileNotFoundException _
            (spit config default)))))
 
-(def config (get-config))
-
 (defn ->window
   ([] (->window false))
   ([floating?]
    (when-not (GLFW/glfwInit)
      (throw (Exception. "Unable to initialize GLFW")))
-   (let [[w h x y] (:window config)]
+   (let [[w h x y] (:window (get-config))]
      (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
      (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
      (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)

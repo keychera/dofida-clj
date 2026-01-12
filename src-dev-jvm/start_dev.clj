@@ -51,7 +51,8 @@
         (start))
       (catch Throwable e
         (reset! stop* true)
-        (viscous/inspect (update (Throwable->map e) :cause str/split-lines)))))
+        (viscous/inspect (update (Throwable->map e) :cause
+                                 (fn [txt] (some-> txt (str/split-lines))))))))
   (shutdown-agents))
 
 (comment
