@@ -56,6 +56,11 @@
 (def ^:const GL_FRAMEBUFFER 36160)
 (def ^:const GL_FRAMEBUFFER_COMPLETE 36053)
 (def ^:const GL_COLOR_ATTACHMENT0 36064)
+(def ^:const GL_COLOR_ATTACHMENT1 36065)
+(def ^:const GL_COLOR_ATTACHMENT2 36066)
+(def ^:const GL_COLOR_ATTACHMENT3 36067)
+(def ^:const GL_COLOR_ATTACHMENT4 36068)
+(def ^:const GL_COLOR_ATTACHMENT5 36069)
 (def ^:const GL_RGBA 6408)
 
 ;; Texture filtering

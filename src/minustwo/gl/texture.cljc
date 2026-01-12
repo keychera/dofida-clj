@@ -40,7 +40,10 @@
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
     (vars->map texture tex-unit)))
 
-(defn cast-fbo-spell [ctx width height tex-unit]
+(defn cast-fbo-spell
+  ([ctx width height tex-unit] (cast-fbo-spell ctx width height tex-unit {}))
+  ([ctx width height tex-unit {:keys [color-attachment] :as conf
+                              :or {color-attachment GL_COLOR_ATTACHMENT0}}]
   (let [fbo       (gl ctx #?(:clj genFramebuffers :cljs createFramebuffer))
         _         (gl ctx bindFramebuffer GL_FRAMEBUFFER fbo)
         fbo-tex   (gl ctx #?(:clj genTextures :cljs createTexture))
@@ -64,7 +67,7 @@
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE)
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE)
     (gl ctx bindTexture GL_TEXTURE_2D #?(:clj 0 :cljs nil))
-    (gl ctx framebufferTexture2D GL_FRAMEBUFFER GL_COLOR_ATTACHMENT0 GL_TEXTURE_2D fbo-tex 0)
+    (gl ctx framebufferTexture2D GL_FRAMEBUFFER color-attachment GL_TEXTURE_2D fbo-tex 0)
 
     ;; attach depth buffer, will parameterize later or never if not needed 
     (gl ctx bindRenderbuffer GL_RENDERBUFFER depth-buf);
@@ -75,7 +78,7 @@
       (println "warning: framebuffer creation incomplete"))
     (gl ctx bindFramebuffer GL_FRAMEBUFFER #?(:clj 0 :cljs nil))
 
-    (vars->map fbo fbo-tex tex-unit)))
+    (merge conf (vars->map fbo fbo-tex tex-unit width height)))))
 
 ;; render me like one of your best-selling doujinshi girl
 ;; sample me. simulate me. cull me beyond the abnormal.
