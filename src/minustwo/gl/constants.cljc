@@ -61,8 +61,11 @@
 ;; Texture filtering
 (def ^:const GL_TEXTURE_MAG_FILTER 10240)
 (def ^:const GL_TEXTURE_MIN_FILTER 10241)
+(def ^:const GL_TEXTURE_WRAP_S 10242)
+(def ^:const GL_TEXTURE_WRAP_T 10243)
 (def ^:const GL_NEAREST 9728)
 (def ^:const GL_LINEAR 9729)
+(def ^:const GL_CLAMP_TO_EDGE 34627)
 
 ;; Texture limits
 (def ^:const GL_MAX_TEXTURE_IMAGE_UNITS 34930)

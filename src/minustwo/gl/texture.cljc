@@ -7,12 +7,14 @@
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils #?@(:cljs [:refer [data-uri->ImageBitmap]])]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_COLOR_ATTACHMENT0 GL_DEPTH_ATTACHMENT
-                                  GL_DEPTH_COMPONENT24 GL_FRAMEBUFFER
-                                  GL_FRAMEBUFFER_COMPLETE GL_NEAREST
-                                  GL_RENDERBUFFER GL_RGBA GL_TEXTURE0
-                                  GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER
-                                  GL_TEXTURE_MIN_FILTER GL_UNSIGNED_BYTE]]
+   [minustwo.gl.constants :refer [GL_CLAMP_TO_EDGE GL_COLOR_ATTACHMENT0
+                                  GL_DEPTH_ATTACHMENT GL_DEPTH_COMPONENT24
+                                  GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE
+                                  GL_NEAREST GL_RENDERBUFFER GL_RGBA
+                                  GL_TEXTURE0 GL_TEXTURE_2D
+                                  GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER
+                                  GL_TEXTURE_WRAP_S GL_TEXTURE_WRAP_T
+                                  GL_UNSIGNED_BYTE]]
    [minustwo.gl.gl-system :as gl-system]
    [odoyle.rules :as o]))
 
@@ -59,6 +61,8 @@
         #?(:clj 0 :cljs nil))
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST)
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
+    (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE)
+    (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE)
     (gl ctx bindTexture GL_TEXTURE_2D #?(:clj 0 :cljs nil))
     (gl ctx framebufferTexture2D GL_FRAMEBUFFER GL_COLOR_ATTACHMENT0 GL_TEXTURE_2D fbo-tex 0)
 
