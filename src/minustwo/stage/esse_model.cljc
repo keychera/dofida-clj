@@ -14,14 +14,14 @@
 ;; every model will have these data:
 
 ;;  the model data from odoyle's match or anything that the user of this ns provided
-(s/def ::data map?)
+(s/def ::model map?)
 
 ;;  prep-fn that prepare shared stuff in that model (shader, vao, etc.)
-;;     shape: (fn [room data dynamic-data])
+;;     shape: (fn [room model dynamic-data])
 (s/def ::prep-fn fn?)
 
 ;;  mat-render-fn to, fn that does the render given all model's materials
-;;     shape: (fn [room data materials dynamic-data])
+;;     shape: (fn [room model materials dynamic-data])
 (s/def ::mats-render-fn fn?)
 
 ;;  the materials data
@@ -39,7 +39,8 @@
    ;;    shape of (fn [world ctx])
    :custom-fn   (s/keys :req-un [::custom-fn])
    ;; :prep-esse that will invoke ::prep-fn of the given esse-id
-   :prep-esse   (s/keys :req-un [::prep-esse])
+   :prep-esse   (s/keys :req-un [::prep-esse]
+                        :opt-un [::prep-fn])
    ;; :render-esse that will invoke ::mat-render-fn of the given esse-id
    :render-esse (s/keys :req-un [::render-esse]
                         :opt-un [::mats-render-fn])))
@@ -52,7 +53,7 @@
   (o/ruleset
    {::esse-model-to-render
     [:what
-     [esse-id ::data data]
+     [esse-id ::model model]
      [esse-id ::prep-fn prep-fn]
      [esse-id ::mats-render-fn mats-render-fn]
      [esse-id ::materials materials]
@@ -76,17 +77,18 @@
                 (custom-fn world (gl-ctx game))
                 :done)
               (when-let [esse-id (:prep-esse renderbit)]
-                (let [{:keys [data prep-fn transform pose-tree]}
+                (let [{:keys [model transform pose-tree] :as esse-model}
                       (some #(when (= (:esse-id %) esse-id) %) models)
-                      dynamic-data (vars->map transform pose-tree)]
-                  (prep-fn room data dynamic-data))
+                      dynamic-data (vars->map transform pose-tree)
+                      prep-fn (or (:prep-fn renderbit) (:prep-fn esse-model))]
+                  (prep-fn room model dynamic-data))
                 :done)
               (when-let [esse-id (:render-esse renderbit)]
-                (let [{:keys [data materials transform pose-tree] :as esse-model}
+                (let [{:keys [model materials transform pose-tree] :as esse-model}
                       (some #(when (= (:esse-id %) esse-id) %) models)
                       dynamic-data (vars->map transform pose-tree)
                       mats-render-fn (or (:mats-render-fn renderbit) (:mats-render-fn esse-model))]
-                  (mats-render-fn room data materials dynamic-data))
+                  (mats-render-fn room model materials dynamic-data))
                 :done)))))))
 
 (def system

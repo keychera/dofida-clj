@@ -232,7 +232,7 @@
      :then
      (println esse-id "is ready to render!")
      (insert! esse-id
-              #::esse-model{:data match
+              #::esse-model{:model match
                             :prep-fn model-gl-context
                             :mats-render-fn render-materials
                             :materials (:materials pmx-data)})
