@@ -6,7 +6,8 @@
    [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_FRAMEBUFFER
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_ATTACHMENT0
+                                  GL_FLOAT GL_FRAMEBUFFER
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
                                   GL_TRIANGLES]]
@@ -75,7 +76,11 @@
     source-program :program-info
     source-tex-unit :tex-unit
     source-fbo-tex :fbo-tex}
-   {target-width :width target-height :height target-fbo :fbo}
+   {target-width :width 
+    target-height :height
+    target-fbo :fbo
+    target-color-attachment :color-attachment
+    :or {target-color-attachment GL_COLOR_ATTACHMENT0}}
    {:keys [translation scale]}]
   (fn [_world ctx]
     (let [model (m/* (m-ext/vec3->trans-mat translation)
@@ -93,4 +98,5 @@
       (cljgl/set-uniform ctx source-program :u_model (vec->f32-arr (vec model)))
       (cljgl/set-uniform ctx source-program :u_tex source-tex-unit)
 
+      (gl ctx drawBuffers (int-array [target-color-attachment]))
       (gl ctx drawArrays GL_TRIANGLES 0 6))))

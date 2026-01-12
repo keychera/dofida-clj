@@ -17,6 +17,7 @@
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.bones :as bones]
    [minustwo.stage.pseudo.particle :as particle]
+   [minustwo.stage.pseudo.studio :as studio]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
@@ -52,6 +53,7 @@
    t3d/system
    uuid-instance/system
    esse-model/system
+   studio/system
 
    pmx-model/system
    pmx-renderer/system
