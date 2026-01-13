@@ -25,6 +25,19 @@
 (defn after-load-fn [world _game]
   (init-fn world _game))
 
+(defn local-rotate 
+  "helper for bone local rotation"
+  ([{:keys [x y z alt-x-axis alt-y-axis alt-z-axis]}]
+   (fn bone-local-rotate-fn [{:keys [bone-data]}]
+     (let [{:keys [x-axis-vector z-axis-vector]} bone-data
+           x-axis-vector (or alt-x-axis (some-> x-axis-vector v/vec3))
+           z-axis-vector (or alt-z-axis (some-> z-axis-vector v/vec3))
+           y-axis-vector (when y (or alt-y-axis (m/cross x-axis-vector z-axis-vector)))]
+       (transduce (filter some?) m-ext/quat-mul-reducer
+                  [(when x (q/quat-from-axis-angle x-axis-vector (m/radians x)))
+                   (when z (q/quat-from-axis-angle z-axis-vector (m/radians z)))
+                   (when y (q/quat-from-axis-angle y-axis-vector (m/radians y)))])))))
+
 (def default-osc-ps (* Math/PI 2 3.0))
 (def default-damp 0.5)
 (def default-damp-time 0.05)
