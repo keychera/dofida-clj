@@ -93,5 +93,13 @@
         after-world  (reduce (fn [world after-fn] (after-fn world game)) init-world after-fns)]
     after-world))
 
-(defn esse [world id & facts]
-  (o/insert world id (apply utils/deep-merge facts)))
+;; esse, short for 'essence', has similar connotation to entity in an entity-component-system
+;; however, this game is built on top of a rules engine, it doesn't actually mean anything inherently
+;; here, an esse is often referring to something that has the same id in the rules engine
+;; (also, I've never used an ecs before so I am not sure if this is actually similar)
+
+(defn esse 
+  "insert an esse given the facts in the shape of maps of attr->value.
+   this fn is merely sugar, spice, and everything nice"
+  [world esse-id & facts]
+  (o/insert world esse-id (apply utils/deep-merge facts)))
