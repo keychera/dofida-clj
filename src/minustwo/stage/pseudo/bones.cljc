@@ -26,7 +26,7 @@
 (defn after-load-fn [world _game]
   (init-fn world _game))
 
-(defn local-rotate 
+(defn local-rotate
   "helper for bone local rotation"
   ([{:keys [x y z alt-x-axis alt-y-axis alt-z-axis]}]
    (fn bone-local-rotate-fn [{:keys [bone-data]}]
@@ -50,8 +50,12 @@
         osc-ps      (or (:osc-ps conf) default-osc-ps)
         damp        (or (:damp conf) default-damp)
         damp-time   (or (:damp-time conf) default-damp-time)
-        damp-ratio  (/ (Math/log damp) (* -1 osc-ps damp-time))
+        dt-fn       (or (:dt-fn conf) identity)
+        damp-ratio  (:damp-ratio conf)
+
+        damp-ratio  (or damp-ratio (/ (Math/log damp) (* -1 osc-ps damp-time)))
         chain?      (:chain? conf)
+        dt          (dt-fn dt)
 
         decom       (m-ext/decompose-matrix44 self-gt)
         head-pos    (:translation decom)
@@ -71,9 +75,7 @@
 
         ray-tail    (m/- target-tail head-pos)
         ray-curr    (m/- curr-tail' head-pos)
-        axis        (m/cross ray-tail ray-curr)
-        angle       (Math/atan2 (m/mag axis) (m/dot ray-tail ray-curr))
-        jiggle-quat (q/quat-from-axis-angle axis angle)
+        jiggle-quat (q/alignment-quat ray-curr ray-tail)
         trans-mat   (m-ext/vec3->trans-mat head-pos)
         rot-quat    (m/* jiggle-quat head-rot)
         rot-mat     (g/as-matrix rot-quat)
