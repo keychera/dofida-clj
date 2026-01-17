@@ -152,6 +152,8 @@
                 (- (ease-fn big-val) sv))]
        (clamp r 0.0 1.0)))))
 
+(defn v [^double x ^double y ^double z] (v/vec3 x y z))
+
 (defn q ^thi.ng.geom.quaternion.Quat4
   ([[^double x ^double y ^double z] ^double a] (q/quat-from-axis-angle (v/vec3 x y z) (m/radians a)))
   ([^double x ^double y ^double z ^double a] (q/quat-from-axis-angle (v/vec3 x y z) (m/radians a))))
