@@ -4,14 +4,15 @@
    [engine.macros :refer [s->]]
    [engine.math :as m-ext]
    [engine.world :as world]
+   [minustwo.anime.pose :as pose]
    [minustwo.gl.geom :as geom]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.systems.time :as time]
    [odoyle.rules :as o]
-   [thi.ng.geom.vector :as v]
-   [thi.ng.math.core :as m]
+   [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
-   [thi.ng.geom.core :as g]))
+   [thi.ng.geom.vector :as v]
+   [thi.ng.math.core :as m]))
 
 ;; inspiration mostly from https://www.youtube.com/watch?v=q18Rhjgwqek
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
@@ -19,8 +20,8 @@
 
 (defn init-fn [world _game]
   (-> world
-      (o/insert ::world/global ::db* (atom {}))
-      (o/insert ::world/global ::prep-tail? true)))
+      (o/insert ::world/global ::prep-tail? true)
+      (o/insert ::world/global ::db* (atom {}))))
 
 (defn after-load-fn [world _game]
   (init-fn world _game))
@@ -49,7 +50,7 @@
         osc-ps      (or (:osc-ps conf) default-osc-ps)
         damp        (or (:damp conf) default-damp)
         damp-time   (or (:damp-time conf) default-damp-time)
-        damp-ratio  (/ (Math/log damp) (* -1 default-osc-ps damp-time))
+        damp-ratio  (/ (Math/log damp) (* -1 osc-ps damp-time))
         chain?      (:chain? conf)
 
         decom       (m-ext/decompose-matrix44 self-gt)
@@ -135,12 +136,12 @@
   (o/ruleset
    {::set-jiggle-tail
     [:what
-     [::time/now ::time/slice 1]
      [::world/global ::prep-tail? true]
+     [esse-id ::pose/mutated? true]
      [esse-id ::geom/transform-tree transform-tree {:then false}]
      :then
      (let [transform-tree' (prep-tails transform-tree)]
-       (println "[bones] prepping tails for jiggling")
+       (println "[bones] prepping tails for jiggling for" esse-id)
        (s-> session
             (o/insert ::world/global ::prep-tail? false)
             (o/insert esse-id ::geom/transform-tree transform-tree')))]}))

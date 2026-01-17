@@ -14,6 +14,7 @@
 
 (s/def ::pose-xform fn?)
 (s/def ::pose-tree ::geom/transform-tree)
+(s/def ::mutated? boolean?)
 
 (s/def ::point-in-time (s/cat :time-inp ::keyframe/inp
                               :pose-fn ::pose-xform
@@ -31,7 +32,8 @@
    ::pose-xform a-pose})
 
 (defn mark [transform-tree-fn]
-  {::transform-tree-fn transform-tree-fn})
+  {::mutated? false
+   ::transform-tree-fn transform-tree-fn})
 
 (defn anime
   ([timeline] (anime timeline {}))
@@ -106,8 +108,10 @@
      [esse-id ::transform-tree-fn transform-tree-fn]
      [esse-id ::geom/transform-tree transform-tree {:then false}]
      :then
+     (println "[pose] prep pose for" esse-id)
      (s-> session
-          (o/insert esse-id ::geom/transform-tree (transform-tree-fn transform-tree))
+          (o/insert esse-id {::geom/transform-tree (transform-tree-fn transform-tree)
+                             ::mutated? true})
           (o/retract esse-id ::transform-tree-fn))]
 
     ::stop-interpolation
