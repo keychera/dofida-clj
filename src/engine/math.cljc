@@ -157,3 +157,6 @@
 (defn q ^thi.ng.geom.quaternion.Quat4
   ([[^double x ^double y ^double z] ^double a] (q/quat-from-axis-angle (v/vec3 x y z) (m/radians a)))
   ([^double x ^double y ^double z ^double a] (q/quat-from-axis-angle (v/vec3 x y z) (m/radians a))))
+
+(defn q* [& b]
+  (transduce (filter some?) quat-mul-reducer b))
