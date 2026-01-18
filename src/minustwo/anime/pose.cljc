@@ -14,16 +14,27 @@
 
 (s/def ::pose-xform fn?)
 (s/def ::pose-tree ::geom/transform-tree)
+(s/def ::mutated? boolean?)
 
 (s/def ::point-in-time (s/cat :time-inp ::keyframe/inp
                               :pose-fn ::pose-xform
                               :anime-fn fn?))
 (s/def ::timeline (s/coll-of ::point-in-time :kind vector?))
+(s/def ::stop-anime boolean?)
 
+(s/def ::transform-tree-fn fn?)
 (s/def ::kfs ::keyframe/keyframes)
 
 (def default {::pose-xform identity})
-(defn strike [a-pose] {::pose-xform a-pose})
+
+(defn strike [a-pose]
+  {::stop-anime true
+   ::pose-xform a-pose})
+
+(defn mark [transform-tree-fn]
+  {::mutated? false
+   ::transform-tree-fn transform-tree-fn})
+
 (defn anime
   ([timeline] (anime timeline {}))
   ([timeline {:keys [relative?]}]
@@ -32,6 +43,17 @@
                      timeline)]
      (s/assert ::timeline timeline')
      {::timeline timeline'})))
+
+(defn do-pose [pose-fn]
+  (map (fn [{:keys [name] :as bone}]
+         (if-let [bone-pose (pose-fn name)]
+           (let [next-translation (:t bone-pose)
+                 next-rotation    (or (:r bone-pose)
+                                      (when (:r-fn bone-pose) ((:r-fn bone-pose) bone)))]
+             (cond-> bone
+               next-translation (update :translation m/+ next-translation)
+               next-rotation (update :rotation m/* next-rotation)))
+           bone))))
 
 (s/def ::db* #(instance? #?(:clj clojure.lang.Atom :cljs Atom) %))
 
@@ -76,16 +98,32 @@
      [::world/global ::db* keyframes-db*]
      :then
      (let [pose-tree (into [] pose-xform transform-tree)]
-       ;; repl heuristic: striking a pose will stop pose-interpolation
-       (swap! keyframes-db* update esse-id dissoc ::kfs)
        (s-> session
             (o/retract esse-id ::pose-xform)
             (o/insert esse-id ::pose-tree pose-tree)))]
 
+    ::mutate-transform-tree
+    [:what
+     [::time/now ::time/slice 0]
+     [esse-id ::transform-tree-fn transform-tree-fn]
+     [esse-id ::geom/transform-tree transform-tree {:then false}]
+     :then
+     (println "[pose] prep pose for" esse-id)
+     (s-> session
+          (o/insert esse-id {::geom/transform-tree (transform-tree-fn transform-tree)
+                             ::mutated? true})
+          (o/retract esse-id ::transform-tree-fn))]
+
+    ::stop-interpolation
+    [:what ;; repl heuristic: striking a pose will stop pose-interpolation
+     [esse-id ::stop-anime true]
+     [::world/global ::db* keyframes-db*]
+     :then (swap! keyframes-db* update esse-id dissoc ::kfs)]
+
     ::pose-interpolation
     [:what
      [::time/now ::time/total tt {:then false}]
-     [::time/now ::time/slice 1]
+     [::time/now ::time/slice 2]
      [esse-id ::geom/transform-tree transform-tree]
      [::world/global ::pacing/progress progress]
      [::world/global ::db* keyframes-db*]
@@ -105,3 +143,5 @@
 
 (def system
   {::world/init-fn init-fn ::world/rules #'rules})
+
+;; smells. 

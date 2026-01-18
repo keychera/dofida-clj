@@ -20,9 +20,7 @@
    [odoyle.rules :as o]
    [thi.ng.math.core :as m]))
 
-(s/def ::custom-draw-fn (s/or :keyword #{:normal-draw}
-                              :draw-fn fn?))
-
+(s/def ::custom-draw-fn (s/or :keyword #{:normal-draw} :draw-fn fn?))
 (def normal-draw {::custom-draw-fn :normal-draw})
 
 (def rules
@@ -39,9 +37,7 @@
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      [esse-id ::custom-draw-fn draw-fn]
      :then
-     (println esse-id " = gltf ready!")
-     (insert! esse-id
-              ::gltf/primitives (into [] (map-indexed (fn [idx prim] (assoc prim :idx idx))) gltf-primitives))]
+     (insert! esse-id ::gltf/primitives (into [] (map-indexed (fn [idx prim] (assoc prim :idx idx))) gltf-primitives))]
 
     ::global-transform
     [:what
@@ -67,9 +63,9 @@
               model      (when node-0 (m/* node-0 model) model)]
 
           (gl ctx useProgram (:program program-info))
-          (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-          (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec model)))
+          (cljgl/set-uniform ctx program-info :u_projection (vec->f32-arr (vec project)))
+          (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec player-view)))
+          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec model)))
 
           (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
           (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))

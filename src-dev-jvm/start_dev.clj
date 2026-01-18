@@ -7,7 +7,9 @@
    [gui.debug-ui :as debug-ui]
    [nrepl.server :as nrepl-server]
    [platform.start :as start]
-   [clojure.spec.alpha :as s])
+   [com.phronemophobic.viscous :as viscous]
+   [clojure.spec.alpha :as s]
+   [clojure.string :as str])
   (:import
    (imgui ImGui)
    (imgui.gl3 ImGuiImplGl3)
@@ -16,16 +18,17 @@
 (defn refresh []
   (refresh/set-refresh))
 
-(defonce stop-flag* (atom false))
+(defonce stop* (atom false))
 
-(defn stop []
-  (println "stopping game...")
-  (reset! stop-flag* true))
+(defn toggle-stop []
+  (if (swap! stop* not)
+    (println "stopping game...")
+    (println "starting game...")))
 
 (defn start []
   (st/instrument 'odoyle.rules/insert)
   (s/check-asserts true)
-  (reset! stop-flag* false)
+  (reset! stop* false)
   (with-redefs
    [start/is-mouse-blocked? (fn [] (.getWantCaptureMouse (ImGui/getIO)))]
     (let [window (start/->window true)
@@ -35,21 +38,28 @@
           callback #::start{:init-fn (partial debug-ui/init imguiGlfw imGuiGl3)
                             :frame-fn (partial debug-ui/frame imguiGlfw imGuiGl3)
                             :destroy-fn (partial debug-ui/destroy imguiGlfw imGuiGl3)
-                            :stop-flag* stop-flag*}]
+                            :stop-flag* stop*}]
       (start/start game window callback))))
 
 (defn -main []
   (let [nrepl-server (nrepl-server/start-server :handler cider-nrepl-handler)]
     (println "game REPL...")
     (spit ".nrepl-port" (:port nrepl-server)))
-  (while true (start)) ;; forever start so after (stop), it will (start) again
+  (while true
+    (try
+      (when (not @stop*)
+        (start))
+      (catch Throwable e
+        (reset! stop* true)
+        (viscous/inspect (update (Throwable->map e) :cause
+                                 (fn [txt] (some-> txt (str/split-lines))))))))
   (shutdown-agents))
 
 (comment
   (refresh)
-  (stop) ;; game won't load properly on the second start
-  
-  (st/instrument) 
+  (toggle-stop)
+
+  (st/instrument)
   (st/unstrument)
 
   ::waiting-for-something-to-happen?)

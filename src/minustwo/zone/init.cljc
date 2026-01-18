@@ -23,11 +23,11 @@
     (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
       (some-> (::game/render-fns* game) (reset! render-fns))
       (swap! (::world/atom* game)
-        (fn [world]
-          (-> (world/init-world world game all-rules before-fns init-fns after-fns)
-            (o/fire-rules)))))
+             (fn [world]
+               (-> (world/init-world world game all-rules before-fns init-fns after-fns)
+                   (o/fire-rules)))))
     (catch  #?(:clj Exception :cljs js/Error) err
       ;; error handling when repl'ing need hammock time
-      (println (RED "[init error]") (or (:via (Throwable->map err))
-                                      (dissoc (Throwable->map err) :trace)))))
+      (println (RED "[init error]"))
+      (throw err)))
   game)

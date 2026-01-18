@@ -5,6 +5,7 @@
    [engine.math :as m-ext]
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
+   [minustwo.gl.texture :as texture]
    [minustwo.model.pmx-parser :refer [parse-pmx]]
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
@@ -13,6 +14,7 @@
    [thi.ng.math.core :as m]))
 
 (s/def ::model-path string?)
+(s/def ::config (s/keys :req-un [::texture/tex-unit-offset]))
 (s/def ::bones vector?)
 (s/def ::data (s/keys :req-un [::bones]))
 
@@ -137,8 +139,7 @@
                               resolve-pmx-bones)
                         (:bones pmx-data))
         morphs    (:morphs pmx-data)]
-    (vars->map pmx-data
-               POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
+    (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
                textures materials bones morphs)))
 
 (defn load-models-from-world*
@@ -160,8 +161,8 @@
   (viscous/inspect @debug-data*)
 
   (into []
-        (comp (drop 3) (take 3))
+        (comp (drop 160) (take 10))
         (-> @debug-data* first second
-            :pmx-data :morphs))
+            :pmx-data :bones))
 
   :-)

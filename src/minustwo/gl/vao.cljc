@@ -1,4 +1,4 @@
-(ns minustwo.gl.vao 
+(ns minustwo.gl.vao
   (:require
    [clojure.spec.alpha :as s]
    [odoyle.rules :as o]

@@ -77,7 +77,7 @@
         scale3d-matrix (#_PLACEHOLDER-scaling-matrix-3d vector (/ w width) (/ h height) 1.0)
         crop-matrix    (#_PLACEHOLDER-multiply-matrices vector
                         (#_PLACEHOLDER-scaling-matrix vector (/ w width) (/ h height))
-                        (#_PLACEHOLDER-translation-matrix vector (/ x width) (/ y height)))]
+                                                        (#_PLACEHOLDER-translation-matrix vector (/ x width) (/ y height)))]
     [scale3d-matrix crop-matrix]))
 
 (def system
@@ -209,13 +209,13 @@
                lashes-mvp     (reduce #_PLACEHOLDER-multiply-matrices-3d vector
                                       [(#_PLACEHOLDER-translation-matrix-3d vector 1.4 0.0 0.0)
                                        (#_PLACEHOLDER-translation-matrix-3d vector (+ 0.18 (/ pupil-x 5))
-                                                                (+ -0.5 (/ pupil-y 5)) 0.0)
+                                                                            (+ -0.5 (/ pupil-y 5)) 0.0)
                                        lashes-scale
                                        v*p])
                lashes-mvp-r   (reduce #_PLACEHOLDER-multiply-matrices-3d vector
                                       [(#_PLACEHOLDER-translation-matrix-3d vector 1.4 0.0 0.0)
                                        (#_PLACEHOLDER-translation-matrix-3d vector (+ 0.18 (/ pupil-x -5))
-                                                                (+ -0.5 (/ pupil-y 5)) 0.0)
+                                                                            (+ -0.5 (/ pupil-y 5)) 0.0)
                                        (#_PLACEHOLDER-y-rotation-matrix-3d vector (#_PLACEHOLDER-deg->rad vector 180))
                                        lashes-scale
                                        v*p])]

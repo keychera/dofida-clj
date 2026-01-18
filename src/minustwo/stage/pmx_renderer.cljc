@@ -18,6 +18,8 @@
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.esse-model :as esse-model]
+   [minustwo.stage.pseudo.bones :as bones]
    [minustwo.systems.time :as time]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.room :as room]
@@ -77,6 +79,14 @@
  }
 "))
 
+(defn pmx-default [model-path config]
+  (utils/deep-merge
+   {::pmx-model/model-path model-path
+    ::pmx-model/config config}
+   #::shader{:use ::pmx-shader}
+   t3d/default
+   pose/default))
+
 (defn init-fn [world game]
   (let [ctx (gl-ctx game)]
     (-> world
@@ -91,40 +101,103 @@
 
 (defn after-load-fn [world _game] world)
 
+(defn texture-naming [esse-id tex-idx]
+  (str "tex-" esse-id "-" tex-idx))
+
 (defn pmx-spell [data {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]
     (->> [{:bind-vao esse-id}
           {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
-          {:point-attr 'POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:point-attr :POSITION :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
           {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
+          {:point-attr :NORMAL :use-shader ::pmx-shader :count 3 :component-type GL_FLOAT}
           {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
+          {:point-attr :TEXCOORD :use-shader ::pmx-shader :count 2 :component-type GL_FLOAT}
 
           {:buffer-data (:WEIGHTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'WEIGHTS :use-shader ::pmx-shader :count 4 :component-type GL_FLOAT}
+          {:point-attr :WEIGHTS :use-shader ::pmx-shader :count 4 :component-type GL_FLOAT}
           {:buffer-data (:JOINTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr 'JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
+          {:point-attr :JOINTS :use-shader ::pmx-shader :count 4 :component-type GL_UNSIGNED_INT}
 
           (eduction
-           (map-indexed (fn [idx img-uri] {:bind-texture (str "tex-" esse-id "-" idx)
-                                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) idx)}))
+           (map-indexed (fn [tex-idx img-uri]
+                          {:bind-texture (texture-naming esse-id tex-idx)
+                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) tex-idx)}))
            textures)
 
           {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
           {:unbind-vao true}]
          flatten (into []))))
 
+(defn create-joint-mats-arr [bones-db* bones]
+  (let [f32s (f32-arr (* 16 (count bones)))]
+    (doseq [{:keys [idx inv-bind-mat] :as bone} bones]
+      (let [gt        (bones/resolve-gt bones-db* bone)
+            joint-mat (m/* gt inv-bind-mat)
+            i         (* idx 16)]
+        (dotimes [j 16]
+          (aset f32s (+ i j) (float (nth joint-mat j))))))
+    f32s))
+
+(defn model-gl-context [room model dynamic-data]
+  (let [{:keys [ctx project player-view vao-db*]} room
+        {:keys [esse-id pmx-data program-info skinning-ubo position-buffer bones-db*]} model
+        {:keys [transform pose-tree]} dynamic-data
+        program    (:program program-info :program)
+        vao        (get @vao-db* esse-id)
+        ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+        ^floats joint-mats (create-joint-mats-arr bones-db* pose-tree)]
+    (gl ctx useProgram program)
+    (cljgl/set-uniform ctx program-info :u_projection (vec->f32-arr (vec project)))
+    (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec player-view)))
+    (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec transform)))
+
+    ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
+    (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
+    (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
+
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+    (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+
+    (gl ctx bindVertexArray vao)))
+
+(defn render-material [ctx texture-db* program-info material]
+  (let [face-count  (:face-count material)
+        face-offset (* 4 (:face-offset material))
+        tex         (get @texture-db* (:tex-name material))]
+    (when-let [{:keys [tex-unit texture]} tex]
+      (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+      (gl ctx bindTexture GL_TEXTURE_2D texture)
+      (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
+
+    (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
+
+(defn render-materials [room model materials _dynamic-data]
+  (let [{:keys [ctx texture-db*]} room
+        {:keys [program-info]} model]
+    (doseq [material materials]
+      (render-material ctx texture-db* program-info material))))
+
 (def rules
   (o/ruleset
    {::I-cast-pmx-magic!
     [:what
-     [esse-id ::pmx-model/data data]
+     [esse-id ::pmx-model/data data {:then false}]
+     [esse-id ::pmx-model/config config]
      [::pmx-shader ::shader/program-info _]
      [esse-id ::gl-magic/casted? :pending]
      :then
      (println esse-id "got" (keys data) "!")
-     (let [spell  (pmx-spell data {:esse-id esse-id})
+     (let [data   (update data :materials
+                          (fn [mats]
+                            (into []
+                                  (map (fn [mat]
+                                         (let [tex-idx  (:texture-index mat)
+                                               tex-name (texture-naming esse-id tex-idx)]
+                                           (assoc mat :tex-name tex-name))))
+                                  mats)))
+           spell  (pmx-spell data {:esse-id esse-id :tex-unit-offset (:tex-unit-offset config)})
            pos!   (:POSITION data)
            morphs (into []
                         (map (fn [morph]
@@ -133,6 +206,7 @@
                         (:morphs data))]
        (s-> session
             (o/insert esse-id #::gl-magic{:spell spell})
+            (o/insert esse-id ::pmx-model/data data)
             (o/insert esse-id ::morph/position-arr! pos!)
             (o/insert esse-id ::morph/morph-data morphs)))]
 
@@ -154,85 +228,41 @@
      [esse-id ::t3d/transform transform]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
      [:position ::shader/buffer position-buffer]
+     [::world/global ::bones/db* bones-db* {:then false}]
      :then
-     (println esse-id "is ready to render!")]
+     (println esse-id "is ready to render!")
+     (insert! esse-id
+              #::esse-model{:model match
+                            :prep-fn model-gl-context
+                            :mats-render-fn render-materials
+                            :materials (:materials pmx-data)})
+     :then-finally
+     (when (not (seq (o/query-all session ::default-renderplay)))
+       (let [models (o/query-all session ::render-data)
+             renderplay (into [] (mapcat (fn [{:keys [esse-id]}]
+                                           [{:prep-esse esse-id} {:render-esse esse-id}]))
+                              models)]
+         (println "default renderplay!" renderplay)
+         (insert! ::world/global ::esse-model/renderplay renderplay)))]
+
+    ::default-renderplay ;; this need mega hammock, todo
+    [:what [::world/global ::esse-model/renderplay renderplay]]
 
     ::global-transform
     [:what
-     [::time/now ::time/total tt {:then false}]
+     [::time/now ::time/delta dt {:then false}]
      [::time/now ::time/slice 4]
      [esse-id ::pmx-model/data pmx-data {:then false}]
      [esse-id ::pose/pose-tree pose-tree {:then false}]
+     [::world/global ::bones/db* bones-db* {:then false}]
      :then
-     (let [pose-tree (into [] pmx-model/global-transform-xf pose-tree)]
+     (let [pose-tree (into [] (bones/bone-transducer bones-db* dt) pose-tree)]
        (insert! esse-id ::pose/pose-tree pose-tree))]}))
 
 ;; perversion, obsession, what motivates you to move forward?
 #_(what ") made (" you choose this path?. interesting that you relied on "(() these" otherworldly dimensions for your happiness.)
 
-(defn create-joint-mats-arr [bones]
-  (let [f32s (f32-arr (* 16 (count bones)))]
-    (doseq [{:keys [idx global-transform inv-bind-mat]} bones]
-      (let [joint-mat (m/* global-transform inv-bind-mat)
-            i         (* idx 16)]
-        (dotimes [j 16]
-          (aset f32s (+ i j) (float (nth joint-mat j))))))
-    f32s))
-
-(defn render-fn [world _game]
-  (let [{:keys [ctx project player-view vao-db* texture-db*]}
-        (utils/query-one world ::room/data)]
-    (doseq [{:keys [esse-id pmx-data program-info skinning-ubo transform pose-tree position-buffer]}
-            (o/query-all world ::render-data)]
-      (let [program    (:program program-info :program)
-            vao        (get @vao-db* esse-id)
-            materials  (:materials pmx-data)
-            ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
-            ^floats joint-mats (create-joint-mats-arr pose-tree)]
-        ;; (def err [:err (gl ctx getError)])
-        #_{:clj-kondo/ignore [:inline-def]}
-        (def hmm pmx-data)
-        (gl ctx useProgram program)
-        (cljgl/set-uniform ctx program-info 'u_projection (vec->f32-arr (vec project)))
-        (cljgl/set-uniform ctx program-info 'u_view (vec->f32-arr (vec player-view)))
-        (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec transform)))
-
-        ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
-        (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
-        (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
-
-        (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
-        (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-        (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
-
-        (gl ctx bindVertexArray vao)
-
-        (doseq [material materials]
-          (let [face-count  (:face-count material)
-                face-offset (* 4 (:face-offset material))
-                tex-idx     (:texture-index material)
-                tex         (get @texture-db* (str "tex-" esse-id "-" tex-idx))]
-            (when-let [{:keys [tex-unit texture]} tex]
-              (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
-              (gl ctx bindTexture GL_TEXTURE_2D texture)
-              (cljgl/set-uniform ctx program-info 'u_mat_diffuse tex-unit))
-
-            (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))))))
-
 (def system
   {::world/init-fn #'init-fn
    ::world/after-load-fn #'after-load-fn
-   ::world/rules #'rules
-   ::world/render-fn #'render-fn})
-
-(comment
-  (require '[com.phronemophobic.viscous :as viscous])
-
-  ;; err
-  (viscous/inspect hmm)
-
-  (into []
-        (map :local-name)
-        (-> hmm :pmx-data :morphs))
-
-  :-)
+   ::world/rules #'rules})

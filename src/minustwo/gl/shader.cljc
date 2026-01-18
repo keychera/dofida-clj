@@ -4,13 +4,13 @@
    [instaparse.core :as insta]
    [clojure.string :as str]))
 
-(s/def ::glsl-type #{'float 'int 'uint 'bool
-                     'vec2 'vec3 'vec4
-                     'ivec2 'ivec3 'ivec4
-                     'uvec2 'uvec3 'uvec4
-                     'bvec2 'bvec3 'bvec4
-                     'mat2 'mat3 'mat4
-                     'sampler2D})
+(s/def ::glsl-type #{:float :int :uint :bool
+                     :vec2 :vec3 :vec4
+                     :ivec2 :ivec3 :ivec4
+                     :uvec2 :uvec3 :uvec4
+                     :bvec2 :bvec3 :bvec4
+                     :mat2 :mat3 :mat4
+                     :sampler2D})
 (s/def ::type (s/or :raw-type ::glsl-type
                     :arr-type (s/cat :type ::glsl-type :dimension int?)))
 
@@ -18,11 +18,11 @@
 
 (s/def ::attr-loc int?)
 (s/def ::attr (s/keys :req-un [::type ::attr-loc]))
-(s/def ::attr-locs (s/map-of symbol? ::attr))
+(s/def ::attr-locs (s/map-of keyword? ::attr))
 
 (s/def ::uni-loc #?(:clj int? :cljs #(instance? js/WebGLUniformLocation %)))
 (s/def ::uni (s/keys :req-un [::type ::uni-loc]))
-(s/def ::uni-locs (s/map-of symbol? ::uni))
+(s/def ::uni-locs (s/map-of keyword? ::uni))
 
 (s/def ::program-info (s/keys :req-un [::program ::attr-locs ::uni-locs]))
 (s/def ::all (s/map-of some? ::program-info))
@@ -72,11 +72,11 @@ Number = #'[0-9]+'
         tree (insta/transform
               (letfn [(qualify [qualifier member]
                         (assoc member (keyword qualifier) true))
-                      
+
                       (mapify [& nodes] (into {} nodes))]
-                {:TypeSpec           symbol
-                 :MemberName         (fn [[_ member-name]] [:member-name (symbol member-name)])
-                 :BlockName          (fn [[_ member-name]] [:member-name (symbol member-name)])
+                {:TypeSpec           keyword
+                 :MemberName         (fn [[_ member-name]] [:member-name (keyword member-name)])
+                 :BlockName          (fn [[_ member-name]] [:member-name (keyword member-name)])
                  :ArraySpec          (comp #?(:clj Integer/parseInt :cljs js/parseInt) second)
                  :TypeDecl           (fn [& nodes]
                                        (let [member-type (into [] nodes)
@@ -91,7 +91,7 @@ Number = #'[0-9]+'
                  :Header             (fn [& blocks] (into [] (map second) blocks))})
               tree)]
     (when (insta/failure? tree)
-      (throw (ex-info (pr-str tree) {}))) 
+      (throw (ex-info (pr-str tree) {})))
     tree))
 
 (defn get-header-source [source]
@@ -130,8 +130,7 @@ float main()
   gl_Position = (u_projection * cam_pos);
   Normal = NORMAL;
   TexCoords = TEXCOORD_0;
-}"
-]
- (-> shader get-header-source parse-header))
+}"]
+    (-> shader get-header-source parse-header))
 
   :-)

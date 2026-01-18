@@ -21,34 +21,37 @@
 (def up (v/vec3 0.0 1.0 0.0)) ; y points towards the sky
 (defonce reset-pos* (atom []))
 
-(defn insert-player
-  ([world position front] (insert-player world position front (* -0.5 Math/PI) 0.0))
+(defn insert-fps-cam
+  ([world position front] (insert-fps-cam world position front (* -0.5 Math/PI) 0.0))
   ([world position front yaw pitch]
    (reset! reset-pos* [position front yaw pitch])
    (-> world
-       (o/insert ::world/global {::camera/position position})
+       (o/insert ::player {::camera/position position})
        (o/insert ::player {::front front ::yaw yaw ::pitch pitch}))))
 
-(defn player-reset [world]
+(defn reset-fps-cam [world]
   (let [[position front yaw pitch] @reset-pos*]
-    (insert-player world position front yaw pitch)))
+    (insert-fps-cam world position front yaw pitch)))
+
+;; you wrapped me completely, you surrounded me with your warmth
+;; a little bit of motion of love is all you need to conquer me
 
 (def rules
   (o/ruleset
    {::firstperson-view
     [:what
-     [::world/global ::camera/position position]
+     [::player ::camera/position position]
      [::player ::front    front]
      :then
-     (insert! ::world/global ::camera/view-matrix (mat/look-at position (m/+ position front) up))]
+     (insert! ::player ::camera/view-matrix (mat/look-at position (m/+ position front) up))]
 
     ::movement
     [:what
-     [::time/now ::time/delta delta-time]
-     [::world/global ::camera/position position {:then false}]
+     [::time/now ::time/raw-delta delta-time]
+     [::player ::camera/position position {:then false}]
      [::player ::front front {:then false}]
      [::player ::move-control control {:then false}]
-     :then
+     :then 
      (let [speed   0.05
            right   (m/normalize (m/cross front up))
            [x _ z] (case control
@@ -57,9 +60,8 @@
                      ::strafe-l (m/* right (* delta-time speed -1))
                      ::strafe-r (m/* right (* delta-time speed))
                      nil)
-           move    (v/vec3 x 0.0 z)]
-       (when move
-         (insert! ::world/global {::camera/position (m/+ position move)})))]
+           move    (v/vec3 x 0.0 z)] 
+       (insert! ::player ::camera/position (m/+ position move)))]
 
     ::mouse-camera
     [:what
@@ -84,4 +86,4 @@
                  ::front (m/normalize front)}))]}))
 
 (def system
-  {::world/rules rules})
+  {::world/rules #'rules})

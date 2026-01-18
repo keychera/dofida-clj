@@ -1,5 +1,5 @@
 (ns rules.asset
-  (:require 
+  (:require
    [clojure.spec.alpha :as s]
    [engine.utils :as utils]
    [engine.world :as world]

@@ -21,7 +21,7 @@
      [::world/global ::camera/projection-matrix project]
      [::world/global ::camera/active cam-id]
      [cam-id ::camera/view-matrix player-view]
-     [::world/global ::camera/position player-pos]]
+     [cam-id ::camera/position player-pos]]
 
     ::gl-data
     [:what
@@ -30,4 +30,4 @@
      [::world/global ::shader/all all-shaders]]}))
 
 (def system
-  {::world/rules rules})
+  {::world/rules #'rules})

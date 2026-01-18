@@ -51,7 +51,19 @@ todo:
                     ✘ try assimp ourself? @cancelled(25-12-25 00:25)
                        
             ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
-                
+
+    re:minusthree, yet still so far:
+        ☐ the timing
+        ☐ multi track sampling
+        ☐ text
+        ☐ motion graphics
+        ☐ multi armature
+        ☐ shader, lighting
+        ☐ props, room
+        ☐ post-effect
+        ☐ audio
+        ☐ modelling
+
     ☐ shader delusion, begins
         ✔ investigate input @done(26-01-04 15:46) i think the cljs solution works for now, no delayed effects lately
         ☐ arcball
@@ -59,7 +71,7 @@ todo:
         ☐ IK is still wrong I think
         ☐ anime is still a bad api
         
-        ☐ let's dance!
+        ✔ let's dance! @done(26-01-18 20:55)
         ☐ LIGHTING
         ☐ SHADERS
         ✔ particle @done(26-01-04 15:47) kinda, not efficient yet in the drawcalls
@@ -75,7 +87,7 @@ todo:
 
         ☐ we still dont understand UBO yet, weird stuff when we load more than 1 models
         ☐ automatic tex unit counter
-        ☐ gltf and pmx renderer
+        ✔ gltf and pmx renderer @done(26-01-18 16:47)
 
         ☐ jank exploration?
 
@@ -156,6 +168,12 @@ todo:
             ☐ the browser's performance tab
             ☐ jvm world's tools
 
+    ☐ studio
+        ✔ recorder @done(26-01-18 16:48)
+            ☐ first frame record timing is off, something corrupted image taken
+            ☐ timing is confusing
+            ☐ renderplay state is all messed up after one recording. for now we can only restart to restore (using `start-dev/stop`). low prio
+
 
 ✔ sidestream @done(25-11-04 07:25) moved
     ✔ macros s-> refactor @done(25-08-25 21:26)
@@ -171,7 +189,7 @@ todo:
         ✘ tools.namespace @cancelled(25-10-11 19:47)
         ✔ fps imgui @done(25-10-11 19:47)
         ✔ hot-reload JVM side @done(25-10-11 19:47)
-        ☐ clj-memory-meter
+        ✔ clj-memory-meter @done(26-01-18 16:15)
 
 ✘ play-cljc.gl: @cancelled(25-12-16 22:56) so long partner
     ☐ from zero
@@ -189,7 +207,7 @@ todo:
                 ✔ try the Moon as well (https://clojurecivitas.github.io/opengl_visualization/main.html) @done(25-11-29 02:09)
                 ☐ clicky-clicky (https://x.com/tsoding/status/1975233872221610206)   
                 ☐ play with fire (https://x.com/cmzw_/status/1730593875545477617/video/1)
-            ☐ sidestream particle
+            ✔ sidestream particle @done(26-01-18 16:15)
             ✔ particle 3d @done(26-01-04 15:43)
             ✔ text particle @done(26-01-04 15:43) not font rendering, just text meshes, basilisp ftw
             ✔ sidestream anime @done(26-01-04 15:43)
@@ -199,13 +217,13 @@ todo:
                     ☐ using gltf scene?
         ☐ text render
         ☐ dialogue render
-        ☐ 3d text
+        ✔ 3d text @done(26-01-12 14:36) just a 3d model mesh as needed
         ☐ think of abstraction... 
         ✔ reintro odoyle @done(25-11-29 02:10)
         ☐ UI
         ☐ button
         ☐ circle transition
-        ☐ director
+        ✔ director @done(26-01-18 16:47) kinda
 
 cmzw_:
     ✔ second esse @done(25-06-13 01:25)
@@ -227,7 +245,7 @@ cmzw_:
     ☐ twitter embed
     ✔ shadow-cljs? @done(25-07-03 22:15)
     ✔ remove figwheel-main? @done(25-07-28 13:09)
-        ☐ fix .start-dev, build, and maybe remove lein in favor of tools.build
+        ✔ fix .start-dev, build, and maybe remove lein in favor of tools.build @done(26-01-12 14:36) I think we did this already
 
 I don't think you realized how blessed you are:
     ☐ text
@@ -248,15 +266,18 @@ startaker:
     ☐ vfx
     ☐ publish
 
-bug:
+undefined behaviours/fix or dont do it:
     ✔ (JS err) Uncaught (in promise) SecurityError: The user has exited the lock before this request was completed. @done(25-11-20 00:04) seems like by design ;; https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/4
     ✘ quaternion rotation on arcball sometimes morph the cube weirdly @cancelled(25-11-22 16:22) THIS IS AN OPTICAL ILLUSION LMAO
-    ☐ input delay on jvm, probably the input-queue
+    ✔ input delay on jvm, probably the input-queue @done(26-01-12 14:34) fix following cljs solution
+    ☐ if you render stuff but using the wrong shader program, jvm will crash natively
+    ☐ multiple piece rendering not defined yet
 
 error path that breaks the repl dev:
-    ☐ removing a rule and hot reload
-    ☐ inserting wrong type to odoyle
-    ☐ shader compile error stops odoyle
+    ✔ removing a rule and hot reload @done(26-01-12 14:35)
+    ✔ inserting wrong type to odoyle @done(26-01-12 14:35)
+    ✔ shader compile error stops odoyle @done(26-01-12 14:35)
+        ☐ now we catch the error and (viscous/inspect) them, repl should be mostly alive unless native crash
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}

@@ -19,8 +19,7 @@
         (reset! last-sample-time now)))))
 
 (def config (merge {:title "dofida" :text "is grateful"}
-                   (:imgui start/config)))
-
+                   (:imgui (start/get-config))))
 
 (defn fps-panel!
   []

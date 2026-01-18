@@ -11,12 +11,8 @@
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]))
 
-(defn render-zone [game]
-  (let [total-time             (:total-time game)
-        delta-time             (:delta-time game)
-        world                  (swap! (::world/atom* game)
-                                      (fn [world] (-> world (time/insert total-time delta-time) (o/fire-rules))))
-        {:keys [ctx window]}   (utils/query-one world ::room/data)
+(defn render [world game]
+  (let [{:keys [ctx window]}   (utils/query-one world ::room/data)
         {:keys [width height]} window]
     (when ctx
       (gl ctx blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
@@ -25,3 +21,10 @@
       (gl ctx viewport 0 0 width height)
       (doseq [render-fn @(::game/render-fns* game)]
         (render-fn world game)))))
+
+(defn render-zone [game]
+  (let [total-time (:total-time game)
+        delta-time (:delta-time game)
+        world      (swap! (::world/atom* game)
+                          (fn [world] (-> world (time/insert total-time delta-time) (o/fire-rules))))]
+    (render world game)))

@@ -29,57 +29,57 @@
 
 (def rules
   (o/ruleset
-    {::fire-particle
-     [:what
-      [esse-id ::fire config]
-      :then
-      (let [physic (or (:physics config) {})]
-        (s-> session
-          (o/retract esse-id ::fire)
-          (esse-inst esse-id
-            {::age-in-step (:age-in-step config)
-             ::position (v/vec3) ;; this is the local position, the global one is controlled by t3d/transform
-             ::velocity (or (:initial-velocity physic) (v/vec3))
-             ::physics physic})))]
+   {::fire-particle
+    [:what
+     [esse-id ::fire config]
+     :then
+     (let [physic (or (:physics config) {})]
+       (s-> session
+            (o/retract esse-id ::fire)
+            (esse-inst esse-id
+                       {::age-in-step (:age-in-step config)
+                        ::position (v/vec3) ;; this is the local position, the global one is controlled by t3d/transform
+                        ::velocity (or (:initial-velocity physic) (v/vec3))
+                        ::physics physic})))]
 
-     ::gravity
-     [:what
-      [::time/now ::time/delta dt]
-      [esse-uuid ::age-in-step age {:then false}] ;; just to make sure it's alive
-      [esse-uuid ::position p {:then false}]
-      [esse-uuid ::velocity v {:then false}]
-      [esse-uuid ::physics physics {:then false}]
-      :then
-      (s-> session
-        (o/insert esse-uuid ::position (m/+ p (g/scale v dt)))
-        (o/insert esse-uuid ::velocity (m/+ v (or (:gravity physics) (v/vec3 0.0 (* -9.8 1e-6 dt) 0.0)))))]
+    ::gravity
+    [:what
+     [::time/now ::time/delta dt]
+     [esse-uuid ::age-in-step age {:then false}] ;; just to make sure it's alive
+     [esse-uuid ::position p {:then false}]
+     [esse-uuid ::velocity v {:then false}]
+     [esse-uuid ::physics physics {:then false}]
+     :then
+     (s-> session
+          (o/insert esse-uuid ::position (m/+ p (g/scale v dt)))
+          (o/insert esse-uuid ::velocity (m/+ v (or (:gravity physics) (v/vec3 0.0 (* -9.8 dt) 0.0)))))]
 
-     ::live-particles
-     [:what
-      [::time/now ::time/step _]
-      [esse-uuid ::inst/origin-id esse-id {:then false}]
-      [esse-uuid ::age-in-step age {:then false}]
-      [esse-uuid ::position position {:then false}]
-      :then
-      (if (<= age 0)
-        (s-> session (remove-esse-inst esse-uuid))
-        (s-> session
-          (o/insert esse-uuid ::age-in-step (dec age))))]}))
+    ::live-particles
+    [:what
+     [::time/now ::time/step _]
+     [esse-uuid ::inst/origin-id esse-id {:then false}]
+     [esse-uuid ::age-in-step age {:then false}]
+     [esse-uuid ::position position {:then false}]
+     :then
+     (if (<= age 0)
+       (s-> session (remove-esse-inst esse-uuid))
+       (s-> session
+            (o/insert esse-uuid ::age-in-step (dec age))))]}))
 
 ;; this is for gltf-renderer/custom-draw-fn, I wonder if there is a static way to define this, protocol?
 ;; one idea is a protocol that not only define draw element, but also something that can prevent the cost of doing all that data passing before draw
 (defn draw-fn [world ctx gltf-model prim]
   ;; hmm this cross backward chaining needs hammock time later I feel like
   (when-let [particles (seq (into []
-                              (filter #(= (:esse-id %) (:esse-id gltf-model)))
-                              (o/query-all world ::live-particles)))]
+                                  (filter #(= (:esse-id %) (:esse-id gltf-model)))
+                                  (o/query-all world ::live-particles)))]
     (let [{:keys [model program-info]} gltf-model
           indices        (:indices prim)
           vert-count     (:count indices)
           component-type (:componentType indices)]
       (doseq [{:keys [position]} particles]
         (let [particle-trans (m/* (m-ext/translation-mat position) model)]
-          (cljgl/set-uniform ctx program-info 'u_model (vec->f32-arr (vec particle-trans)))
+          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec particle-trans)))
           (gl ctx drawElements GL_TRIANGLES vert-count component-type 0))))))
 
 (def system

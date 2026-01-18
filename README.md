@@ -36,3 +36,10 @@ clj -M:serve :port 1339 :dir "resources/public"
 jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
 
 webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
+
+
+## ffmpeg
+
+```
+ffmpeg -framerate 24 -i render-%04d.png -c:v libx264 -pix_fmt yuv420p output.mp4
+```

@@ -1,5 +1,6 @@
 (ns minustwo.systems
   (:require
+   #?(:clj [minustwo.model.pmx-model :as pmx-model])
    [minustwo.anime.anime :as anime]
    [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.morph :as morph]
@@ -10,9 +11,11 @@
    [minustwo.gl.texture :as texture]
    [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
-   [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.default :as default]
+   [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
+   [minustwo.stage.pseudo.bones :as bones]
    [minustwo.stage.pseudo.particle :as particle]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
@@ -23,7 +26,9 @@
    [minustwo.systems.view.camera :as camera]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
-   [minustwo.systems.window :as window]))
+   [minustwo.systems.window :as window]
+   [minustwo.zone.director :as director]
+   [minustwo.zone.studio :as studio]))
 
 (def all
   [time/system
@@ -48,13 +53,16 @@
    perspective-grid/system
    t3d/system
    uuid-instance/system
+   esse-model/system
+   director/system
+   studio/system
 
-   ;;  hidup/system
    pmx-model/system
    pmx-renderer/system
    gltf-renderer/system
-
+   bones/system
+   pose/system
    particle/system
 
    wirecube/system
-   pose/system])
+   default/system])

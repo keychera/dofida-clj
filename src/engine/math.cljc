@@ -141,3 +141,14 @@
     (<= cos-v -1) Math/PI
     (>= cos-v 1) 0.0
     :else (Math/acos cos-v)))
+
+(defn v 
+  ([[^double x ^double y ^double z]] (v/vec3 x y z))
+  ([^double x ^double y ^double z] (v/vec3 x y z)))
+
+(defn q ^thi.ng.geom.quaternion.Quat4
+  ([[^double x ^double y ^double z] ^double a] (q/quat-from-axis-angle (v/vec3 x y z) (m/radians a)))
+  ([^double x ^double y ^double z ^double a] (q/quat-from-axis-angle (v/vec3 x y z) (m/radians a))))
+
+(defn q* [& b]
+  (transduce (filter some?) quat-mul-reducer b))

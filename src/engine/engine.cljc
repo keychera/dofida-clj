@@ -3,7 +3,7 @@
    [engine.refresh :refer [*refresh?]]
    [minustwo.zone.init :refer [init-zone]]
    [minustwo.zone.loading :refer [loading-zone]]
-   [minustwo.zone.render :refer [render-zone]]))
+   [minustwo.zone.director :as director]))
 
 (declare refresh-zone progress-zone error-zone)
 
@@ -24,7 +24,7 @@
 
 (defn progress-zone [game]
   (loading-zone game)
-  (render-zone game))
+  (director/rolling! game))
 
 (defn error-zone [_game err]
   (throw err))

@@ -16,16 +16,16 @@
 (defn interpolate
   [keyframes]
   (->> (cycle keyframes)
-    (take (inc (count keyframes)))
-    (partition 2 1)
-    (map (fn [[start-kf next-kf]]
-           (s/assert ::raw-keyframe start-kf)
-           (s/assert ::raw-keyframe next-kf)
-           (let [[input output] start-kf
-                 [next-input next-output anime-fn] next-kf]
-             {::inp input
-              ::out output
-              ::next-inp next-input
-              ::next-out next-output
-              ::anime-fn anime-fn})))
-    butlast))
+       (take (inc (count keyframes)))
+       (partition 2 1)
+       (map (fn [[start-kf next-kf]]
+              (s/assert ::raw-keyframe start-kf)
+              (s/assert ::raw-keyframe next-kf)
+              (let [[input output] start-kf
+                    [next-input next-output anime-fn] next-kf]
+                {::inp input
+                 ::out output
+                 ::next-inp next-input
+                 ::next-out next-output
+                 ::anime-fn anime-fn})))
+       butlast))

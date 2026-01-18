@@ -264,14 +264,12 @@
          (catch java.io.FileNotFoundException _
            (spit config default)))))
 
-(def config (get-config))
-
 (defn ->window
   ([] (->window false))
   ([floating?]
    (when-not (GLFW/glfwInit)
      (throw (Exception. "Unable to initialize GLFW")))
-   (let [[w h x y] (:window config)]
+   (let [[w h x y] (:window (get-config))]
      (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
      (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
      (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
@@ -289,18 +287,16 @@
          (->Window window))
        (throw (Exception. "Failed to create window"))))))
 
-
-
 (defn start
   ([game window] (start game window nil))
   ([game window {::keys [init-fn frame-fn destroy-fn stop-flag*]}]
    (let [handle (:handle window)
          game (assoc game :delta-time 0.0 :total-time (* (GLFW/glfwGetTime) 1000))]
-     (GLFW/glfwShowWindow handle)
-     (engine/init game)
-     (listen-for-events window)
-     (when init-fn (init-fn window))
      (try
+       (GLFW/glfwShowWindow handle)
+       (listen-for-events window)
+       (when init-fn (init-fn window))
+       (engine/init game)
        (loop [game game]
          (when-not (or (GLFW/glfwWindowShouldClose handle)
                        (and (some? stop-flag*) @stop-flag*))
