@@ -79,8 +79,7 @@
    {target-width :width 
     target-height :height
     target-fbo :fbo
-    target-color-attachment :color-attachment
-    :or {target-color-attachment GL_COLOR_ATTACHMENT0}}
+    target-color-attachment :color-attachment}
    {:keys [translation scale]}]
   (fn [_world ctx]
     (let [model (m/* (m-ext/vec3->trans-mat translation)
@@ -98,5 +97,6 @@
       (cljgl/set-uniform ctx source-program :u_model (vec->f32-arr (vec model)))
       (cljgl/set-uniform ctx source-program :u_tex source-tex-unit)
 
-      (gl ctx drawBuffers (int-array [target-color-attachment]))
+      (when target-color-attachment
+        (gl ctx drawBuffers (int-array [target-color-attachment])))
       (gl ctx drawArrays GL_TRIANGLES 0 6))))
