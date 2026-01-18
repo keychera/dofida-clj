@@ -86,10 +86,11 @@
      [::world/global ::gl-system/context ctx]
      :then
      (if (<= tally 0)
-       (s-> session 
+       (s-> session
             (o/retract ::world/global ::snap)
             (o/retract ::world/global ::framecount))
-       (let [framefile (str ".zzz/out/render-" (- framecount tally) ".png")]
+       (let [framefile #?(:cljs (str ".zzz/out/render-" (- framecount tally) ".png")
+                          :clj (format ".zzz/out/render-%04d.png" (- framecount tally)))]
          (println "[studio] out:" framefile)
          (take-a-photo ctx fbo-source framefile)
          (insert! ::world/global ::snap (dec tally))))]}))
