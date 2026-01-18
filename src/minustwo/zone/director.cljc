@@ -21,7 +21,9 @@
 (s/def ::duration-sec number?)
 
 (defn init-fn [world _game]
-  (o/insert world ::world/global ::mode ::render))
+  (-> world
+      (o/insert ::world/global ::mode ::render)
+      (o/insert ::time/now ::time/step-delay (/ 1000 6))))
 
 (defn after-load-fn [world game]
   #_{:clj-kondo/ignore [:inline-def]} ;; for repl goodness
@@ -45,6 +47,7 @@
            rec-session (merge window rec-config)]
        (s-> session
             (o/insert ::world/global ::mode ::recording)
+            (o/insert ::time/now ::time/scale (:timescale rec-config))
             (o/retract ::world/global ::rec-session)
             (studio/prepare-recording ctx models rec-session)))]}))
 
@@ -94,7 +97,7 @@
 
   (mm/measure
    (swap! world* o/insert ::world/global
-          {::rec-session {:fps 24 :duration-sec 2}}))
+          {::rec-session {:fps 24 :duration-sec 5 :timescale (/ 1 4)}}))
 
   (o/query-all @world* ::studio/let-me-capture-your-cuteness)
 

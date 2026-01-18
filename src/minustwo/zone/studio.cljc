@@ -50,13 +50,13 @@
   (let [{studio-fbo :fbo :as studio-fbo-data}
         (offscreen/prep-offscreen-render ctx (* 2 width) (* 2 height) 8
                                          {:color-attachment GL_COLOR_ATTACHMENT1})
-        framecount (* fps duration-sec)
+        framecount (int (Math/ceil (* fps duration-sec)))
         frametime  (/ 1000 fps)]
     (-> world
         (o/insert ::world/global {::snap framecount ;; not good, refactor later
                                   ::framecount framecount
                                   ::fbo-data studio-fbo-data})
-        (o/insert ::time/now ::time/step-delay frametime)
+        (o/insert ::time/now {::time/step-delay frametime})
         (o/insert ::recording ::esse-model/renderplay
                   (->>
                    [{:custom-fn
