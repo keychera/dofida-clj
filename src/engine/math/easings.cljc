@@ -1,6 +1,9 @@
-(ns engine.math.easings 
+(ns engine.math.easings
   (:require
    [engine.math :as m-ext]))
+
+(defn ease-in-sine [n]
+  (- 1 (Math/cos (/ (* Math/PI n) 2))))
 
 (defn ease-out-sine [n]
   (Math/sin (/ (* Math/PI n) 2)))
