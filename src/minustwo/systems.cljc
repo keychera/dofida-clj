@@ -14,10 +14,10 @@
    [minustwo.stage.default :as default]
    [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
+   [minustwo.stage.nihility.piece.sw-hipswing :as sw-hipswing]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.bones :as bones]
    [minustwo.stage.pseudo.particle :as particle]
-   [minustwo.zone.studio :as studio]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
@@ -27,7 +27,9 @@
    [minustwo.systems.view.camera :as camera]
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
-   [minustwo.systems.window :as window]))
+   [minustwo.systems.window :as window]
+   [minustwo.zone.director :as director]
+   [minustwo.zone.studio :as studio]))
 
 (def all
   [time/system
@@ -53,6 +55,7 @@
    t3d/system
    uuid-instance/system
    esse-model/system
+   director/system
    studio/system
 
    pmx-model/system
