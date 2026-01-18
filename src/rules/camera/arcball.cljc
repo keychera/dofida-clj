@@ -4,7 +4,6 @@
    [engine.macros :refer [insert! s->]]
    [engine.world :as world]
    [odoyle.rules :as o]
-   [rules.window :as window]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q #?@(:cljs [:refer [Quat4]])]
    [thi.ng.geom.vector :as v #?@(:cljs [:refer [Vec3]])]
@@ -59,7 +58,7 @@
       [::camera ::state ::rotation-in-progress]
       [::camera ::x-on-plane x]
       [::camera ::y-on-plane y]
-      [::window/window ::window/dimension dimension]
+      [:window/window :window/dimension dimension]
       :then
       (if-not (seq (o/query-all session ::start-vec3))
         (s-> session (o/insert ::camera ::start-vec3 (v3-on-arcball dimension x y)))

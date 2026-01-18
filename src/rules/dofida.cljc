@@ -302,7 +302,7 @@
        (let [esse-3d (:esse-3d dofida)
              texture (:texture dofida)
              fbo     (:fbo dofida)
-             dim     (window/get-window world)
+             dim     (#_window/get-window world)
              mvp     (get-mvp world dim)
              {:keys [the-program
                      the-attr-loc
