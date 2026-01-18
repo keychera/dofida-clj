@@ -38,10 +38,25 @@
       ::render (render/render-zone game)
       :no-op)))
 
-(comment
+;; dev-repl only
+(defn set-mode [mode]
+  (swap! world* o/insert ::world/global ::mode mode))
 
-  (swap! world* o/insert ::world/global ::mode ::pause)
-  (swap! world* o/insert ::world/global ::mode ::render)
+(comment
+  (require '[clj-memory-meter.core :as mm]
+           '[com.phronemophobic.viscous :as viscous])
+
+  (viscous/inspect #_the @world*)
+  (viscous/inspect (o/query-all @world*))
+  (mm/measure #_the @world*)
+  (mm/measure (o/query-all @world*))
+
+  ;; if we just call swap! and return it to the repl, 
+  ;; the entirety of the world will be printed to repl, slowing the game down
+  ;; if we consume it like this, the problem goes away 
+  ;; + awareness of our game runtime memory size
+  (mm/measure (set-mode ::pause))
+  (mm/measure (set-mode ::render))
 
   (o/query-all @world* ::studio/let-me-capture-your-cuteness)
 
