@@ -17,7 +17,7 @@
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.bones :as bones]
    [minustwo.stage.pseudo.particle :as particle]
-   [minustwo.stage.pseudo.studio :as studio]
+   [minustwo.zone.studio :as studio]
    [minustwo.stage.wirecube :as wirecube]
    [minustwo.systems.gizmo.perspective-grid :as perspective-grid]
    [minustwo.systems.input :as input]
@@ -59,10 +59,10 @@
    pmx-renderer/system
    gltf-renderer/system
    bones/system
-
+   pose/system
    particle/system
 
-   default/system
-
+   
+   
    wirecube/system
-   pose/system])
+   default/system])

@@ -1,4 +1,4 @@
-(ns minustwo.stage.pseudo.studio
+(ns minustwo.zone.studio
   (:require
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
