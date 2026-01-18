@@ -46,11 +46,11 @@
         (STBImageWrite/stbi_write_png target-path width, height, 4, bytebuf, (* width 4))
         (MemoryUtil/memFree bytebuf)))))
 
-(defn prepare-recording [world ctx models {:keys [width height duration-sec fps]}]
+(defn prepare-recording [world ctx models {:keys [framecount width height duration-sec fps]}]
   (let [{studio-fbo :fbo :as studio-fbo-data}
         (offscreen/prep-offscreen-render ctx (* 2 width) (* 2 height) 8
                                          {:color-attachment GL_COLOR_ATTACHMENT1})
-        framecount (int (Math/ceil (* fps duration-sec)))
+        framecount (or framecount (int (Math/ceil (* fps duration-sec))))
         frametime  (/ 1000 fps)]
     (-> world
         (o/insert ::world/global {::snap framecount ;; not good, refactor later
@@ -64,7 +64,7 @@
                        (gl ctx bindFramebuffer GL_FRAMEBUFFER studio-fbo)
                        (gl ctx clearColor 0.02 0.02 0.12 1.0)
                        (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-                       (gl ctx viewport 0 0 (* 2 width) (* 2 height)))}
+                       (gl ctx viewport 0 0 width height))}
 
                     (eduction
                      (mapcat (fn [{:keys [esse-id]}] [{:prep-esse esse-id} {:render-esse esse-id}]))
@@ -74,6 +74,8 @@
                      (fn quiet-on-set! [_world ctx]
                        (gl ctx drawBuffers (int-array [GL_COLOR_ATTACHMENT1])))}]
                    flatten (into []))))))
+
+(def wait-until-frame 2)
 
 (def rules
   (o/ruleset
@@ -89,10 +91,13 @@
        (s-> session
             (o/retract ::world/global ::snap)
             (o/retract ::world/global ::framecount))
-       (let [framefile #?(:cljs (str ".zzz/out/render-" (- framecount tally) ".png")
-                          :clj (format ".zzz/out/render-%04d.png" (- framecount tally)))]
-         (println "[studio] out:" framefile)
-         (take-a-photo ctx fbo-source framefile)
+       (let [framenum (- framecount tally)]
+         (when (> framenum wait-until-frame) ;; just heuristic because we dont know when render is ready
+           (let [framenum (- framenum wait-until-frame)
+                 framefile #?(:cljs (str ".zzz/out/render-" framenum ".png")
+                              :clj (format ".zzz/out/render-%04d.png" framenum))]
+             (println "[studio] out:" framefile)
+             (take-a-photo ctx fbo-source framefile)))
          (insert! ::world/global ::snap (dec tally))))]}))
 
 ;; don't you ever lose the sight of what's important to you 
