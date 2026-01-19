@@ -3,10 +3,11 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [engine.math :as m-ext]
+   [engine.sugar :refer [f32-arr i32-arr]]
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.texture :as texture]
-   [minustwo.model.pmx-parser :refer [parse-pmx]]
+   #?(:clj [minustwo.model.pmx-parser :refer [parse-pmx]])
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
@@ -38,8 +39,8 @@
 (defn reduce-to-WEIGHTS-and-JOINTS
   "assuming all bones weights are :BDEF1, :BDEF2, or :BDEF4"
   [len]
-  (let [WEIGHTS (float-array (* 4 len))
-        JOINTS  (int-array (* 4 len))]
+  (let [WEIGHTS (f32-arr (* 4 len))
+        JOINTS  (i32-arr (* 4 len))]
     (fn
       ([] 0)
       ([_counter] (vars->map WEIGHTS JOINTS))
@@ -118,36 +119,38 @@
          (vswap! parents! assoc idx updated-bone)
          (rf result updated-bone))))))
 
-(defn load-pmx-model [model-path]
-  (let [res-path  (str "public" java.io.File/separator model-path)
-        pmx-data  (time (parse-pmx res-path))
-        vertices  (:vertices pmx-data)
-        POSITION  (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
-        NORMAL    (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
-        TEXCOORD  (float-array (into [] (mapcat :uv) vertices))
-        vert-wj   (transduce (map :weight)
-                             (reduce-to-WEIGHTS-and-JOINTS (count vertices))
-                             vertices)
-        WEIGHTS   (:WEIGHTS vert-wj)
-        JOINTS    (:JOINTS vert-wj)
-        INDICES   (int-array (ccw-face (:faces pmx-data)))
-        parent    (:parent-dir pmx-data)
-        textures  (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
-        materials (into [] accumulate-face-count (:materials pmx-data))
-        bones     (into []
-                        (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
-                              resolve-pmx-bones)
-                        (:bones pmx-data))
-        morphs    (:morphs pmx-data)]
-    (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
-               textures materials bones morphs)))
+#?(:clj
+   (defn load-pmx-model [model-path]
+     (let [res-path  (str "public" java.io.File/separator model-path)
+           pmx-data  (time (parse-pmx res-path))
+           vertices  (:vertices pmx-data)
+           POSITION  (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
+           NORMAL    (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
+           TEXCOORD  (float-array (into [] (mapcat :uv) vertices))
+           vert-wj   (transduce (map :weight)
+                                (reduce-to-WEIGHTS-and-JOINTS (count vertices))
+                                vertices)
+           WEIGHTS   (:WEIGHTS vert-wj)
+           JOINTS    (:JOINTS vert-wj)
+           INDICES   (int-array (ccw-face (:faces pmx-data)))
+           parent    (:parent-dir pmx-data)
+           textures  (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
+           materials (into [] accumulate-face-count (:materials pmx-data))
+           bones     (into []
+                           (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
+                                 resolve-pmx-bones)
+                           (:bones pmx-data))
+           morphs    (:morphs pmx-data)]
+       (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
+                  textures materials bones morphs))))
 
 (defn load-models-from-world*
   [models-to-load world*]
   (doseq [{:keys [esse-id model-path]} models-to-load]
     (println "[minustwo-pmx] loading pmx model" esse-id)
     (swap! world* o/retract esse-id ::model-path)
-    (let [data (load-pmx-model model-path)]
+    (let [data #?(:cljs (throw (ex-info "cljs doesn't support loading pmx model yet!" {}))
+                  :clj  (load-pmx-model model-path))]
       (swap! debug-data* assoc esse-id data)
       (println "[minustwo-pmx]" esse-id "=> loaded!")
       (swap! world* o/insert esse-id {::data data ::gl-magic/casted? :pending}))))

@@ -1,7 +1,6 @@
 (ns minustwo.zone.studio
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! s->]]
@@ -19,9 +18,9 @@
    [minustwo.zone.render :as render]
    [odoyle.rules :as o]
    [thi.ng.geom.vector :as v])
-  #?(:clj (:import
-           [org.lwjgl.stb STBImageWrite]
-           [org.lwjgl.system MemoryUtil])))
+  (:import
+   [org.lwjgl.stb STBImageWrite]
+   [org.lwjgl.system MemoryUtil]))
 
 (s/def ::snap int?)
 (s/def ::framecount int?)
@@ -35,16 +34,14 @@
   ([ctx fbo-data] (take-a-photo ctx fbo-data ".zzz/render.png"))
   ([ctx fbo-data target-path]
    (s/assert ::fbo-data fbo-data)
-   #?(:cljs [gl GL_FRAMEBUFFER GL_RGBA GL_UNSIGNED_BYTE ctx fbo-data target-path :noop]
-      :clj
-      (let [{:keys [fbo color-attachment width height]} fbo-data
-            bytebuf (MemoryUtil/memAlloc (* width height 4))]
-        (gl ctx bindFramebuffer GL_FRAMEBUFFER fbo)
-        (gl ctx readBuffer color-attachment)
-        (gl ctx readPixels 0 0 width height GL_RGBA GL_UNSIGNED_BYTE bytebuf)
-        (STBImageWrite/stbi_flip_vertically_on_write true)
-        (STBImageWrite/stbi_write_png target-path width, height, 4, bytebuf, (* width 4))
-        (MemoryUtil/memFree bytebuf)))))
+   (let [{:keys [fbo color-attachment width height]} fbo-data
+         bytebuf (MemoryUtil/memAlloc (* width height 4))]
+     (gl ctx bindFramebuffer GL_FRAMEBUFFER fbo)
+     (gl ctx readBuffer color-attachment)
+     (gl ctx readPixels 0 0 width height GL_RGBA GL_UNSIGNED_BYTE bytebuf)
+     (STBImageWrite/stbi_flip_vertically_on_write true)
+     (STBImageWrite/stbi_write_png target-path width, height, 4, bytebuf, (* width 4))
+     (MemoryUtil/memFree bytebuf))))
 
 (defn prepare-recording [world ctx models {:keys [framecount width height duration-sec fps]}]
   (let [{studio-fbo :fbo :as studio-fbo-data}
@@ -94,8 +91,7 @@
        (let [framenum (- framecount tally)]
          (when (> framenum wait-until-frame) ;; just heuristic because we dont know when render is ready
            (let [framenum (- framenum wait-until-frame)
-                 framefile #?(:cljs (str ".zzz/out/render-" framenum ".png")
-                              :clj (format ".zzz/out/render-%04d.png" framenum))]
+                 framefile (format ".zzz/out/render-%04d.png" framenum)]
              (println "[studio] out:" framefile)
              (take-a-photo ctx fbo-source framefile)))
          (insert! ::world/global ::snap (dec tally))))]}))

@@ -11,7 +11,7 @@
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]
    [minustwo.zone.render :as render]
-   [minustwo.zone.studio :as studio]
+   #?(:clj [minustwo.zone.studio :as studio])
    [odoyle.rules :as o]))
 
 (s/def ::mode #{::pause ::render ::recording})
@@ -49,7 +49,7 @@
             (o/insert ::world/global ::mode ::recording)
             (o/insert ::time/now ::time/scale (:timescale rec-config))
             (o/retract ::world/global ::rec-session)
-            (studio/prepare-recording ctx models rec-session)))]}))
+            #?(:clj (studio/prepare-recording ctx models rec-session))))]}))
 
 (def system
   {::world/init-fn #'init-fn
@@ -79,29 +79,28 @@
 (defn set-mode! [mode]
   (swap! world* o/insert ::world/global ::mode mode))
 
-(comment
-  (require '[clj-memory-meter.core :as mm]
-           '[com.phronemophobic.viscous :as viscous])
+#?(:clj
+   (comment
+     (require '[clj-memory-meter.core :as mm]
+              '[com.phronemophobic.viscous :as viscous])
 
-  (viscous/inspect #_the @world*)
-  (viscous/inspect (o/query-all @world*))
-  (mm/measure #_the @world*)
-  (mm/measure (o/query-all @world*))
+     (viscous/inspect #_the @world*)
+     (viscous/inspect (o/query-all @world*))
+     (mm/measure #_the @world*)
+     (mm/measure (o/query-all @world*))
 
-  ;; if we just call swap! and return it to the repl, 
-  ;; the entirety of the world will be printed to repl, slowing the game down
-  ;; if we consume it like this, the problem goes away 
-  ;; + awareness of our game runtime memory size
-  (mm/measure (set-mode! ::pause))
-  (mm/measure (set-mode! ::render))
+     ;; if we just call swap! and return it to the repl, 
+     ;; the entirety of the world will be printed to repl, slowing the game down
+     ;; if we consume it like this, the problem goes away 
+     ;; + awareness of our game runtime memory size
+     (mm/measure (set-mode! ::pause))
+     (mm/measure (set-mode! ::render))
 
-  (mm/measure
-   (swap! world* o/insert ::world/global
-          {::rec-session {:fps 24 :duration-sec 5 :timescale (/ 1 4)}}))
+     (mm/measure
+      (swap! world* o/insert ::world/global
+             {::rec-session {:fps 24 :duration-sec 5 :timescale (/ 1 4)}}))
 
-  (o/query-all @world* ::studio/let-me-capture-your-cuteness)
+     (do (swap! world* o/insert ::world/global ::snap 1)
+         :snap!)
 
-  (do (swap! world* o/insert ::world/global ::snap 1)
-      :snap!)
-
-  :-)
+     :-))

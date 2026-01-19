@@ -1,6 +1,5 @@
 (ns minustwo.systems
   (:require
-   #?(:clj [minustwo.model.pmx-model :as pmx-model])
    [minustwo.anime.anime :as anime]
    [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.morph :as morph]
@@ -14,6 +13,7 @@
    [minustwo.stage.default :as default]
    [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
+   [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.bones :as bones]
    [minustwo.stage.pseudo.particle :as particle]
@@ -28,7 +28,7 @@
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]
    [minustwo.zone.director :as director]
-   [minustwo.zone.studio :as studio]))
+   #?(:clj [minustwo.zone.studio :as studio])))
 
 (def all
   [time/system
@@ -55,7 +55,7 @@
    uuid-instance/system
    esse-model/system
    director/system
-   studio/system
+   #?(:clj studio/system)
 
    pmx-model/system
    pmx-renderer/system
