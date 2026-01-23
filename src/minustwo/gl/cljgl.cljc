@@ -66,7 +66,7 @@
                                                          :uni-loc (gl ctx getUniformLocation program (name member-name))}])))))]
     (doseq [uni-block (filter :uniform-block members)]
       (let [{:keys [member-name]} uni-block
-            block-index (gl ctx getUniformBlockIndex program (str member-name))]
+            block-index (gl ctx getUniformBlockIndex program (name member-name))]
         ;; not sure why zero
         (gl ctx uniformBlockBinding program block-index 0)))
     {:program    program
