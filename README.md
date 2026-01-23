@@ -22,12 +22,14 @@ clj -T:build repl
 
 js shadow-cljs dev
 ```
+bun install
 Calva Jack-in
 ```
 
 js release
 ```
-npx shadow-cljs release game
+bun install
+bun shadow-cljs release game
 clj -M:serve :port 1339 :dir "resources/public"
 ```
 
