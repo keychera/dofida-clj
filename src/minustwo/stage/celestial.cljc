@@ -29,14 +29,12 @@
         in vec3 a_pos;
         in vec2 a_uv;
 
-        uniform mat4 u_projection;
-        uniform mat4 u_view;
         uniform mat4 u_model;
         
         out vec2 UV;
         
         void main() {
-          gl_Position = u_projection * u_view * u_model * vec4(a_pos, 1.0);
+          gl_Position = u_model * vec4(a_pos, 1.0);
           UV = a_uv;
         }"))
 
@@ -270,8 +268,8 @@ void main() {
         (pacing/set-config {:max-progress 1e6})
         (esse ::celestia-shader #::shader{:program-info (cljgl/create-program-info-from-source ctx shader-omocha-vs shader-omocha-fs)})
         (esse ::celestia
-              #::t3d{:translation (v/vec3 0.0 5.0 0.0)
-                     :scale (v/vec3 2.0)}
+              #::t3d{:translation (v/vec3 0.0 0.0 0.0)
+                     :scale (v/vec3 0.25)}
               #::gl-magic{:casted? :pending
                           :spell [{:bind-vao ::celestia-vao}
                                   {:buffer-data primitives/plane3d-vertices :buffer-type GL_ARRAY_BUFFER}
@@ -300,9 +298,7 @@ void main() {
       (let [vao (get @vao-db* ::celestia-vao)]
         (gl ctx useProgram (:program program-info))
         (gl ctx bindVertexArray vao)
-
-        (cljgl/set-uniform ctx program-info :u_projection (vec->f32-arr (vec project)))
-        (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec view)))
+        
         (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec model)))
         (cljgl/set-uniform ctx program-info :u_time (* 1e-4 Math/PI progress))
 
