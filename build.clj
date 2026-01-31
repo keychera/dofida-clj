@@ -36,6 +36,14 @@
                              :main-args ["-m" "start-dev"]})]
     (b/process cmd)))
 
+(defn minusthree [& _]
+  ;; (compile-java-repl)
+  (println "running minusthree")
+  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl :profile]})
+                             :main  'clojure.main
+                             :main-args ["-m" "minusthree.-dev.start"]})]
+    (b/process cmd)))
+
 (defn jar [& _]
   (compile-java)
   (b/write-pom {:class-dir class-dir

@@ -18,6 +18,12 @@ jvm desktop with repl and imgui
 clj -T:build repl
 ```
 
+### -3
+
+```
+clj -T:build minusthree
+```
+
 ### js
 
 js shadow-cljs dev
