@@ -17,11 +17,13 @@
        (when-not (or (GLFW/glfwWindowShouldClose glfw-window)
                      (and (some? stop-flag*) @stop-flag*))
          (let [ts (* (GLFW/glfwGetTime) 1000)
+               dt (- ts (:total-time game))
                game (assoc game
-                           :delta-time (- ts (:total-time game))
+                           :delta-time dt
                            :total-time ts)]
            (GLFW/glfwSwapBuffers glfw-window)
            (GLFW/glfwPollEvents)
+           (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " dt))
            (recur game))))
      (finally
        (Callbacks/glfwFreeCallbacks glfw-window)
