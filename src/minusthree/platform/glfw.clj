@@ -3,7 +3,7 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io])
   (:import
-   [org.lwjgl.glfw GLFW]
+   [org.lwjgl.glfw Callbacks GLFW]
    [org.lwjgl.opengl GL GL42]))
 
 (defn create-window
@@ -12,7 +12,7 @@
   ([{:keys [w h x y floating? title]
      :or   {w 1280 h 720 x 100 y 100 title "Hello, dofida!"}}]
    (when-not (GLFW/glfwInit)
-     (throw (ex-info "Unable to initialize GLFW" {}))) 
+     (throw (ex-info "Unable to initialize GLFW" {})))
    (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
    (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
    (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 4)
@@ -30,3 +30,25 @@
      (GL/createCapabilities)
      (when floating? (GLFW/glfwSetWindowAttrib window GLFW/GLFW_FLOATING GLFW/GLFW_TRUE))
      window)))
+
+(defn start-glfw-loop
+  ([glfw-window {:keys [stop-flag*]}]
+   (println "hello -3 + glfw")
+   (try
+     (GLFW/glfwShowWindow glfw-window)
+     (loop [game {:total-time 0.0}]
+       (when-not (or (GLFW/glfwWindowShouldClose glfw-window)
+                     (and (some? stop-flag*) @stop-flag*))
+         (let [ts (* (GLFW/glfwGetTime) 1000)
+               dt (- ts (:total-time game))
+               game (assoc game
+                           :delta-time dt
+                           :total-time ts)]
+           (GLFW/glfwSwapBuffers glfw-window)
+           (GLFW/glfwPollEvents)
+           (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " dt))
+           (recur game))))
+     (finally
+       (Callbacks/glfwFreeCallbacks glfw-window)
+       (GLFW/glfwDestroyWindow glfw-window)
+       (GLFW/glfwTerminate)))))

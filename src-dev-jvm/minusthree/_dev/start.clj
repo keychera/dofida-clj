@@ -7,9 +7,7 @@
    [clojure.spec.test.alpha :as st]
    [clojure.string :as str]
    [com.phronemophobic.viscous :as viscous]
-   [minusthree.platform.glfw :as glfw]
    [minusthree.platform.jvm-game :as jvm-game]
-   [minusthree.platform.sdl3 :as sdl]
    [nrepl.server :as nrepl-server]))
 
 (defn get-config []
@@ -30,8 +28,8 @@
 (defn start []
   (let [dev-config (assoc (get-config)
                           :stop-flag* stop*)
-        sdl-window (sdl/create-window (:window-conf dev-config))]
-    (sdl/start-sdl-loop sdl-window dev-config)))
+        window     (jvm-game/create-window (:window-conf dev-config))]
+    (jvm-game/start window dev-config)))
 
 (defn -main [& _]
   (st/instrument 'odoyle.rules/insert)
