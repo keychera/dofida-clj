@@ -1,9 +1,12 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.12.1"}
+        org.clojure/core.async {:mvn/version "1.8.741"}
+        org.clojure/core.match {:mvn/version "1.1.0"}
+
         thi.ng/geom {:mvn/version "1.0.1"}
         iglu/iglu {:mvn/version "0.10.2"}
         io.github.keychera/odoyle-rules {:git/sha "10447b7d8e3c9611fc9d59bc29d5a6d148d10556"}
-        org.clojure/core.match {:mvn/version "1.1.0"}
+
         com.rpl/specter {:mvn/version "1.1.4"}
         instaparse/instaparse {:mvn/version "1.5.0"}
         org.clj-commons/gloss {:mvn/version "0.3.6"}

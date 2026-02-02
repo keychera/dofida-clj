@@ -4,21 +4,28 @@
    [minusthree.engine.systems :as systems]
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
+   [minusthree.engine.loading :as loading]
    [odoyle.rules :as o]))
 
 (s/def ::init-game (s/keys :req [::world/this ::time/total]))
 
 (defn init [game]
   (->> (world/init-world game systems/all)
+       (loading/init-channel)
+       ((fn [g] (update g ::world/this
+                        loading/insert-load-fn
+                        ::dummy (fn [] (println "this is what gets loaded") 
+                                  []))))
        (s/assert ::init-game)))
 
-(declare render)
+(declare rendering-zone)
 
 (defn tick [game]
   (-> game
       (update ::world/this o/fire-rules)
-      (render)))
+      (loading/loading-zone)
+      (rendering-zone)))
 
-(defn render [game]
-;;   (println "render" (::time/total game))
+(defn rendering-zone [game]
+  ;; (println "render" (::time/total game))
   game)
