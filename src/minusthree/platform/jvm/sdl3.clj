@@ -1,6 +1,4 @@
-(ns minusthree.platform.sdl3
-  (:require
-   [minustwo.systems.window :as window])
+(ns minusthree.platform.jvm.sdl3
   (:import
    [org.lwjgl.sdl
     SDLError

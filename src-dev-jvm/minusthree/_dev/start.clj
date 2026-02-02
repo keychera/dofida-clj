@@ -7,7 +7,7 @@
    [clojure.spec.test.alpha :as st]
    [clojure.string :as str]
    [com.phronemophobic.viscous :as viscous]
-   [minusthree.platform.jvm-game :as jvm-game]
+   [minusthree.platform.jvm.jvm-game :as jvm-game]
    [nrepl.server :as nrepl-server]))
 
 (defn get-config []

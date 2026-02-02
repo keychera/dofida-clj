@@ -1,7 +1,7 @@
-(ns minusthree.platform.jvm-game
+(ns minusthree.platform.jvm.jvm-game
   (:require
-   [minusthree.platform.glfw :as glfw]
-   [minusthree.platform.sdl3 :as sdl]
+   [minusthree.platform.jvm.glfw :as glfw]
+   [minusthree.platform.jvm.sdl3 :as sdl]
    [minustwo.systems.window :as window]))
 
 (defn create-window [config]
