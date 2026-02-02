@@ -1,15 +1,16 @@
 (ns minusthree.platform.jvm-game
   (:require
-   [minustwo.systems.window :as window]
-   [minusthree.platform.sdl3 :as sdl]))
+   [minusthree.platform.glfw :as glfw]
+   [minusthree.platform.sdl3 :as sdl]
+   [minustwo.systems.window :as window]))
 
 (defn create-window [config]
-  #_(minusthree.platform.glfw/create-window config)
-  (sdl/create-window config))
+  (glfw/create-window config)
+  #_(sdl/create-window config))
 
 (defn start [window config]
-  #_(minusthree.platform.glfw/start-glfw-loop window config)
-  (sdl/start-sdl-loop window config))
+  (glfw/start-glfw-loop window config)
+  #_(sdl/start-sdl-loop window config))
 
 (defn -main []
   (let [sdl-window (sdl/create-window {})]

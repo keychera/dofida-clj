@@ -1,7 +1,9 @@
 (ns minusthree.platform.glfw
   (:require
    [clojure.edn :as edn]
-   [clojure.java.io :as io])
+   [clojure.java.io :as io]
+   [minusthree.engine.engine :as engine]
+   [minusthree.engine.time :as time])
   (:import
    [org.lwjgl.glfw Callbacks GLFW]
    [org.lwjgl.opengl GL GL42]))
@@ -36,18 +38,16 @@
    (println "hello -3 + glfw")
    (try
      (GLFW/glfwShowWindow glfw-window)
-     (loop [game {:total-time 0.0}]
+     (loop [game (engine/init {::time/total 0.0})]
        (when-not (or (GLFW/glfwWindowShouldClose glfw-window)
                      (and (some? stop-flag*) @stop-flag*))
-         (let [ts (* (GLFW/glfwGetTime) 1000)
-               dt (- ts (:total-time game))
-               game (assoc game
-                           :delta-time dt
-                           :total-time ts)]
+         (let [total (* (GLFW/glfwGetTime) 1000)
+               delta (- total (::time/total game))
+               game (time/update-time game total delta)]
            (GLFW/glfwSwapBuffers glfw-window)
            (GLFW/glfwPollEvents)
-           (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " dt))
-           (recur game))))
+           (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " delta))
+           (recur (engine/tick game)))))
      (finally
        (Callbacks/glfwFreeCallbacks glfw-window)
        (GLFW/glfwDestroyWindow glfw-window)
