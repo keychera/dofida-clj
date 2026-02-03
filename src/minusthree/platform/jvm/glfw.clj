@@ -28,7 +28,7 @@
        (throw (ex-info "Failed to create GLFW window" {})))
      (GLFW/glfwSetWindowPos window x y)
      (GLFW/glfwMakeContextCurrent window)
-     (GLFW/glfwSwapInterval 0) ;; vsync off
+     (GLFW/glfwSwapInterval 1) ;; vsync
      (GL/createCapabilities)
      (when floating? (GLFW/glfwSetWindowAttrib window GLFW/GLFW_FLOATING GLFW/GLFW_TRUE))
      window)))
