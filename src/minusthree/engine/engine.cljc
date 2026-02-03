@@ -14,7 +14,9 @@
        (loading/init-channel)
        ((fn [g] (update g ::world/this
                         loading/insert-load-fn
-                        ::dummy (fn [] (println "this is what gets loaded") 
+                        ::dummy (fn [] 
+                                  #?(:clj (Thread/sleep 2000))
+                                  (println "this is what gets loaded") 
                                   []))))
        (s/assert ::init-game)))
 
