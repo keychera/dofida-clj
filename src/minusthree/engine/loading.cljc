@@ -21,13 +21,7 @@
    {::to-load
     [:what
      [esse-id ::load-fn load-fn]
-     [esse-id ::state :pending]]
-
-    ::loaded
-    [:what
-     [esse-id ::state :success]
-     :then
-     (println esse-id "loaded!")]}))
+     [esse-id ::state :pending]]}))
 
 (def system
   {::world/rules #'rules})

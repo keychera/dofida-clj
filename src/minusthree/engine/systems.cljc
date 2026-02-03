@@ -1,8 +1,11 @@
-(ns minusthree.engine.systems 
+(ns minusthree.engine.systems
   (:require
-    [minusthree.engine.time :as time]
-    [minusthree.engine.loading :as loading]))
+   [minusthree.engine.loading :as loading]
+   [minusthree.engine.time :as time]
+   [minusthree.stage.sankyuu :as sankyuu]))
 
 (def all
   [time/system
-   loading/system])
+   loading/system
+
+   sankyuu/system])
