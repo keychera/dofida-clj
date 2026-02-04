@@ -1,13 +1,16 @@
 (ns minusthree.stage.sankyuu
   (:require
+   [engine.macros :refer [s->]]
+   [engine.math.primitives :as primitives]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.world :as world]
+   [minusthree.gl.gl-magic :as gl-magic]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.gltf :as gltf]
+   [minustwo.gl.shader :as shader]
    [minustwo.model.assimp-lwjgl :as assimp-lwjgl]
    [minustwo.stage.wirecube :as wirecube]
-   [odoyle.rules :as o]
-   [minusthree.gl.gl-magic :as gl-magic]))
+   [odoyle.rules :as o]))
 
 ;; 39
 
@@ -39,7 +42,19 @@
            summons      (gl-magic/cast-spell ctx gltf-chant)]
        #_{:clj-kondo/ignore [:inline-def]}
        (def debug-var summons)
-       (println esse-id "loaded!"))]}))
+       (println esse-id "is loaded!")
+       (s-> (reduce o/insert session summons)
+            (o/insert esse-id {::gl-magic/casted? true
+                               ::shader/program-info program-info})))]
+
+    ::render-data
+    [:what
+     [esse-id ::gl-magic/casted? true]
+     [":minusthree.stage.sankyuu/wirebeing_Cube_vao0000" ::gl-magic/vao vao] ;; need hammock on storing vao here
+     [esse-id ::shader/program-info program-info]
+     [esse-id ::gltf/primitives primitives]
+     :then
+     (println esse-id "ready to render!")]}))
 
 (def system
   {::world/init-fn #'init-fn
@@ -47,10 +62,8 @@
 
 #?(:clj
    (comment
-     (import [java.nio.file Files] [java.nio.file LinkOption])
-     (require '[engine.macros :refer [public-resource-path]]
-              '[com.phronemophobic.viscous :as viscous])
+     (require '[com.phronemophobic.viscous :as viscous])
 
-     (viscous/inspect debug-var)
+     (-> debug-var ffirst)
 
-     (Files/exists (.resolve public-resource-path "assets/models/default-miku/HatsuneMiku.pmx") (into-array LinkOption []))))
+     (viscous/inspect debug-var)))

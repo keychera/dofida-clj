@@ -10,6 +10,9 @@
    [minustwo.gl.shader :as shader]
    [minustwo.gl.texture :as texture]))
 
+(s/def ::casted? boolean?)
+(s/def ::vao some?)
+
 (defn cast-spell [ctx spell-chants]
   (-> (reduce
        (fn [{:keys [state] :as magician} chant]
