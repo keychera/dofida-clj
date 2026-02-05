@@ -11,6 +11,8 @@
    [minustwo.gl.texture :as texture]))
 
 (s/def ::casted? boolean?)
+(s/def ::data some?)
+(s/def ::facts some?)
 (s/def ::vao some?)
 
 (defn cast-spell [ctx spell-chants]
@@ -20,7 +22,7 @@
            [{:bind-vao _}] ;; entry: vao binding
            (let [vao (gl ctx #?(:clj genVertexArrays :cljs createVertexArray))]
              (gl ctx bindVertexArray vao)
-             (update magician :summons conj [(:bind-vao chant) ::vao vao]))
+             (assoc-in magician [::data ::vao (:bind-vao chant)] vao))
 
            [{:buffer-data _ :buffer-type _}] ;; entry: buffer binding
            (let [buffer (cljgl/create-buffer ctx)
@@ -29,7 +31,7 @@
              (gl ctx bindBuffer buffer-type buffer)
              (gl ctx bufferData buffer-type buffer-data GL_STATIC_DRAW)
              (cond-> magician
-               (:buffer-name chant) (update :summons conj [(:buffer-name chant) ::shader/buffer buffer])
+               (:buffer-name chant) (assoc-in [::data ::shader/buffer (:buffer-name chant)] buffer)
                true (update :state assoc :current-buffer buffer :buffer-type buffer-type)))
 
            [{:bind-current-buffer _}]
@@ -38,7 +40,7 @@
              (gl ctx bindBuffer buffer-type current-buffer)
              magician)
 
-                 ;; entry: attrib pointing, some keywords follows gltf accessor keys 
+           ;; entry: attrib pointing, some keywords follows gltf accessor keys 
            [{:point-attr _ :count _ :component-type _ :use-shader _}]
            (try
              (s/assert ::shader/program-info (:use-shader chant))
@@ -50,15 +52,15 @@
                    (gl ctx vertexAttribPointer attr-loc count component-type false stride offset))
                  (gl ctx enableVertexAttribArray attr-loc)
                  magician)
-               (update magician :summons conj [:err-fact ::err (str "[error] attr-loc not found for chant:" chant)]))
+               (update-in magician [::data ::err] conj (str "[error] attr-loc not found for chant:" chant)))
              (catch #?(:clj Exception :cljs js/Error) err
-               (update magician :summons conj [:err-fact ::err err])))
+               (update-in magician [::data ::err] conj err)))
 
            [{:bind-texture _ :image _ :tex-unit _}] ;; entry: texture binding
            (let [uri      (-> chant :image :uri)
                  tex-unit (:tex-unit chant)
                  tex-name (:bind-texture chant)]
-             (update magician :summons conj
+             (update magician ::facts conj
                      [tex-name ::texture/uri-to-load uri]
                      [tex-name ::texture/tex-unit tex-unit]
                      [tex-name ::texture/loaded? :pending]))
@@ -70,9 +72,9 @@
            [{:insert-facts _}]
            (let [facts (:insert-facts chant)]
              (println "will insert" (count facts) "fact(s)")
-             (update magician :summons into facts))
+             (update magician ::facts into facts))
 
            #_"no else handling. m/match will throw on faulty spell."))
-       {:summons [] :state {}}
+       {::data {} ::facts [] :state {}}
        spell-chants)
-      :summons))
+      (dissoc :state)))

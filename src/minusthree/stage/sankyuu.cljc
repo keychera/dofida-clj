@@ -39,18 +39,21 @@
      (let [ctx          nil ; for now, since jvm doesn't need it
            program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)
            gltf-chant   (gltf/gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
-           summons      (gl-magic/cast-spell ctx gltf-chant)]
+           summons      (gl-magic/cast-spell ctx gltf-chant)
+           gl-facts     (::gl-magic/facts summons)
+           gl-data      (::gl-magic/data summons)]
        #_{:clj-kondo/ignore [:inline-def]}
        (def debug-var summons)
        (println esse-id "is loaded!")
-       (s-> (reduce o/insert session summons)
+       (s-> (reduce o/insert session gl-facts)
             (o/insert esse-id {::gl-magic/casted? true
+                               ::gl-magic/data gl-data
                                ::shader/program-info program-info})))]
 
     ::render-data
     [:what
      [esse-id ::gl-magic/casted? true]
-     [":minusthree.stage.sankyuu/wirebeing_Cube_vao0000" ::gl-magic/vao vao] ;; need hammock on storing vao here
+     [esse-id ::gl-magic/data gl-data]
      [esse-id ::shader/program-info program-info]
      [esse-id ::gltf/primitives primitives]
      :then
