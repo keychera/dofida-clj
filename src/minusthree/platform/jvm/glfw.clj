@@ -38,16 +38,17 @@
    (println "hello -3 + glfw")
    (try
      (GLFW/glfwShowWindow glfw-window)
-     (loop [game (engine/init {::time/total 0.0})]
-       (when-not (or (GLFW/glfwWindowShouldClose glfw-window)
-                     (and (some? stop-flag*) @stop-flag*))
+     (loop [game (engine/init {::time/total 0.0 :glfw-window glfw-window})]
+       (if-not (or (GLFW/glfwWindowShouldClose glfw-window)
+                   (and (some? stop-flag*) @stop-flag*))
          (let [total (* (GLFW/glfwGetTime) 1000)
                delta (- total (::time/total game))
-               game (time/update-time game total delta)]
+               game  (time/update-time game total delta)]
            (GLFW/glfwSwapBuffers glfw-window)
            (GLFW/glfwPollEvents)
            (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " delta))
-           (recur (engine/tick game)))))
+           (recur (engine/tick game)))
+         (engine/destroy game)))
      (finally
        (Callbacks/glfwFreeCallbacks glfw-window)
        (GLFW/glfwDestroyWindow glfw-window)
