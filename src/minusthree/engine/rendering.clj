@@ -1,7 +1,5 @@
 (ns minusthree.engine.rendering
   (:require
-   [clojure.edn :as edn]
-   [clojure.java.io :as io]
    [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [minusthree.engine.loading :as loading]
@@ -61,18 +59,6 @@
         (swap! fps-idx #(mod (inc %) (alength buf)))
         (reset! last-sample-time now)))))
 
-(defn get-config []
-  (let [default {:window [1024 768 500 500]}
-        config "config.edn"]
-    (try (with-open [rdr (io/reader (io/input-stream config))]
-           (edn/read (java.io.PushbackReader. rdr)))
-         (catch java.io.FileNotFoundException _
-           (spit config default)
-           default))))
-
-(def config (merge {:title "dofida" :text "is grateful"}
-                   (:imgui (get-config))))
-
 (defn fps-panel!
   []
   (let [fps (.getFramerate (ImGui/getIO))]
@@ -82,18 +68,18 @@
       ;; label, values, count, offset, overlay, scaleMin, scaleMax, size  
       (ImGui/plotLines "" buf (alength buf) @fps-idx "FPS graph" (float 0.0) (float 180.0) size))))
 
-(defn layer []
-  (let [{:keys [title text]} config]
-    (ImGui/begin title)
-    (ImGui/text text))
+(defn layer [title text]
+  (ImGui/begin title)
+  (ImGui/text text)
   (fps-panel!)
   (ImGui/end))
 
-(defn imGuiFrame [{:keys [imGuiGl3 imGuiGlfw]}]
+(defn imGuiFrame [{:keys [imGuiGl3 imGuiGlfw config]}]
   (.newFrame imGuiGlfw)
   (.newFrame imGuiGl3)
   (ImGui/newFrame)
-  (layer)
+  (let [{:keys [title text]} (:imgui config)]
+    (layer title text))
   (ImGui/render)
   (.renderDrawData imGuiGl3 (ImGui/getDrawData))
   (let [backupWindowPtr (GLFW/glfwGetCurrentContext)]
