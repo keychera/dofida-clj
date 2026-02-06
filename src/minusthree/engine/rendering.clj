@@ -5,10 +5,13 @@
    [minusthree.engine.world :as world]
    [minusthree.gl.gl-magic :as gl-magic]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT
+   [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
+                                  GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
+                                  GL_FRAMEBUFFER GL_MULTISAMPLE
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_TRIANGLES]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+   [minustwo.stage.pseudo.offscreen :as offscreen]
    [odoyle.rules :as o]
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.vector :as v])
@@ -17,8 +20,7 @@
    (imgui.extension.imguizmo ImGuizmo)
    (imgui.flag ImGuiConfigFlags)
    (imgui.gl3 ImGuiImplGl3)
-   (imgui.glfw ImGuiImplGlfw)
-   (org.lwjgl.glfw GLFW)))
+   (imgui.glfw ImGuiImplGlfw)))
 
 (def project
   (let [[w h]   [540 540]
@@ -39,18 +41,30 @@
 (def last-sample-time (atom 0))
 
 (defn init [{:keys [glfw-window] :as game}]
-  (let [imGuiGlfw (ImGuiImplGlfw.)
-        imGuiGl3  (ImGuiImplGl3.)]
-    (ImGui/createContext)
-    (doto (ImGui/getIO)
-      (.addConfigFlags ImGuiConfigFlags/DockingEnable)
-      (.setFontGlobalScale 1.0))
-    (doto imGuiGlfw
-      (.init glfw-window true)
-      (.setCallbacksChainForAllWindows true))
-    (.init imGuiGl3 "#version 300 es")
-    (println "init game")
-    (assoc game :imGuiGlfw imGuiGlfw :imGuiGl3 imGuiGl3)))
+  (let [ctx nil]
+    (gl ctx enable GL_BLEND)
+    (gl ctx enable GL_CULL_FACE)
+    (gl ctx enable GL_MULTISAMPLE)
+    (gl ctx enable GL_DEPTH_TEST)
+    (let [{:keys [w h]} (-> game :config :window-conf)
+          imGuiGlfw     (ImGuiImplGlfw.)
+          imGuiGl3      (ImGuiImplGl3.)
+          screen1       (offscreen/prep-offscreen-render ctx w h 1)]
+      (ImGui/createContext)
+      (doto (ImGui/getIO)
+        (.addConfigFlags ImGuiConfigFlags/DockingEnable)
+        (.setFontGlobalScale 1.0))
+      (doto imGuiGlfw
+        (.init glfw-window true)
+        (.setCallbacksChainForAllWindows true))
+      (.init imGuiGl3 "#version 300 es")
+      (println "init game")
+      #_{:clj-kondo/ignore [:inline-def]}
+      (def debug-var screen1)
+      (assoc game
+             :imGuiGlfw imGuiGlfw
+             :imGuiGl3 imGuiGl3
+             :screen1 screen1))))
 
 (defn sample-fps [fps]
   (let [now (System/currentTimeMillis)]
@@ -128,19 +142,21 @@
   (let [{:keys [title text]} (:imgui config)]
     (layer title text))
   (ImGui/render)
-  (.renderDrawData imGuiGl3 (ImGui/getDrawData))
-  (let [backupWindowPtr (GLFW/glfwGetCurrentContext)]
-    (ImGui/updatePlatformWindows)
-    (ImGui/renderPlatformWindowsDefault)
-    (GLFW/glfwMakeContextCurrent backupWindowPtr)))
+  (.renderDrawData imGuiGl3 (ImGui/getDrawData)))
 
 (defn rendering-zone [game]
-  (let [ctx nil
-        {:keys [w h]} (-> game :config :window-conf)]
+  (let [ctx                      nil
+        {:keys [config screen1]} game
+        {:keys [w h]}            (:window-conf config)]
     (gl ctx blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
     (gl ctx clearColor 0.02 0.02 0.12 1.0)
     (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+
+    (gl ctx bindFramebuffer GL_FRAMEBUFFER (:fbo screen1))
+    (gl ctx clearColor 0.0 0.0 0.0 0.0)
+    (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
     (gl ctx viewport 0 0 w h)
+
     (let [world   (::world/this game)
           renders (o/query-all world :minusthree.stage.sankyuu/render-data)]
       (doseq [{:keys [program-info gl-data primitives]} renders]
@@ -158,7 +174,13 @@
                 (gl ctx bindVertexArray vao)
                 (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
                 (gl ctx bindVertexArray 0)))))))
-    (imGuiFrame game))
+    (imGuiFrame game)
+
+    ;; this is an fn producing fn 💀 of course it won't render anything if it's just called once, need hammock
+    ((offscreen/render-fbo
+      screen1 {:fbo 0 :width w :height h}
+      {:translation (v/vec3 0.0 0.0 0.0)
+       :scale       (v/vec3 1.0)}) nil ctx))
   game)
 
 (defn destroy [{:keys [imGuiGl3 imGuiGlfw]}]
@@ -166,3 +188,8 @@
   (when imGuiGl3 (.shutdown imGuiGl3))
   (when imGuiGlfw (.shutdown imGuiGlfw))
   (ImGui/destroyContext))
+
+(comment
+  (require '[com.phronemophobic.viscous :as viscous])
+
+  (viscous/inspect debug-var))
