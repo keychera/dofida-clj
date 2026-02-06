@@ -1,7 +1,6 @@
 (ns minusthree.stage.sankyuu
   (:require
    [engine.macros :refer [s->]]
-   [engine.math.primitives :as primitives]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.world :as world]
    [minusthree.gl.gl-magic :as gl-magic]
@@ -18,7 +17,7 @@
   (fn []
     ;; initially we tried do gl stuff inside load-model-fn but it turns out opengl context only works in one thread
     (let [[gltf bin] #?(:clj  (assimp-lwjgl/load-model model-path "gltf2")
-                        :cljs [model-path :todo])]
+                        :cljs [:TODO assimp-lwjgl/load-model model-path])]
       [[esse-id ::gltf/data gltf]
        [esse-id ::gltf/bins [bin]]])))
 

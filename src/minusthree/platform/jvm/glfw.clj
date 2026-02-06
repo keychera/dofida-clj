@@ -1,7 +1,5 @@
 (ns minusthree.platform.jvm.glfw
   (:require
-   [clojure.edn :as edn]
-   [clojure.java.io :as io]
    [minusthree.engine.engine :as engine]
    [minusthree.engine.time :as time])
   (:import
