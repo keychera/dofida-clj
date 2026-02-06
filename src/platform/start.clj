@@ -257,7 +257,7 @@
 
 ;; dev only for now
 (defn get-config []
-  (let [default {:window [1024 768 500 500]}
+  (let [default {:window-conf {:w 1024 :h 768 :x 500 :y 500}}
         config "config.edn"]
     (try (with-open [rdr (io/reader (io/input-stream config))]
            (edn/read (java.io.PushbackReader. rdr)))
@@ -269,7 +269,7 @@
   ([floating?]
    (when-not (GLFW/glfwInit)
      (throw (Exception. "Unable to initialize GLFW")))
-   (let [[w h x y] (:window (get-config))]
+   (let [{:keys [w h x y]} (:window-conf (get-config))]
      (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
      (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
      (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
