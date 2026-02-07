@@ -15,10 +15,13 @@
         (reset! last-sample-time now)))))
 
 (defn render!
-  []
+  [title text]
   (let [fps (.getFramerate (ImGui/getIO))]
-    (ImGui/text (format "FPS: %.1f (%.2f ms)" fps (if (pos? fps) (/ 1000.0 fps) 0.0)))
-    (sample-fps fps)
-    (let [buf  @fps-buf size (ImVec2. (float 240) (float 120))]
+    (when (ImGui/begin title)
+      (ImGui/text text)
+      (ImGui/text (format "FPS: %.1f (%.2f ms)" fps (if (pos? fps) (/ 1000.0 fps) 0.0)))
+      (sample-fps fps)
+      (let [buf  @fps-buf size (ImVec2. (float 240) (float 120))]
       ;; label values count offset overlay scaleMin scaleMax size  
-      (ImGui/plotLines "" buf (alength buf) @fps-idx "FPS graph" (float 0.0) (float 180.0) size))))
+        (ImGui/plotLines "" buf (alength buf) @fps-idx "FPS graph" (float 0.0) (float 180.0) size))
+      (ImGui/end))))

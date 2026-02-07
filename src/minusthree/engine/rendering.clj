@@ -19,7 +19,7 @@
   (:import
    (imgui ImGui)
    (imgui.extension.imguizmo ImGuizmo)
-   (imgui.flag ImGuiConfigFlags)
+   (imgui.flag ImGuiConfigFlags ImGuiWindowFlags)
    (imgui.gl3 ImGuiImplGl3)
    (imgui.glfw ImGuiImplGlfw)))
 
@@ -72,21 +72,21 @@
              :imGuiGl3 imGuiGl3
              :screen1 screen1))))
 
-(defn imGuizmoPanel []
+(defn imGuizmoPanel [w h]
   (ImGuizmo/beginFrame)
 
-  (when (ImGui/begin "imguizmo")
-
-    (let [win-x   (ImGui/getWindowPosX)
-          win-y   (ImGui/getWindowPosY)
-          w       (ImGui/getWindowWidth)
-          h       (ImGui/getWindowHeight)
-          manip-x (+ (ImGui/getWindowPosX) w -150.0)
-          manip-y (+ (ImGui/getWindowPosY) 32.0)]
+  (ImGui/setNextWindowPos 0.0 0.0)
+  (ImGui/setNextWindowSize (float w) (float h))
+  (when (ImGui/begin "imguizmo"
+                     (bit-or ImGuiWindowFlags/NoTitleBar
+                             ImGuiWindowFlags/NoMove
+                             ImGuiWindowFlags/NoBringToFrontOnFocus))
+    (let [manip-x (+ w -150.0)
+          manip-y 16.0]
       (ImGuizmo/setOrthographic false)
       (ImGuizmo/enable true)
       (ImGuizmo/setDrawList)
-      (ImGuizmo/setRect win-x win-y w h)
+      (ImGuizmo/setRect 0.0 0.0 w h)
       (ImGuizmo/drawGrid view project identity-mat 100)
       (ImGuizmo/setID 0)
       (ImGuizmo/viewManipulate view cam-distance manip-x manip-y 128.0 128.0 0x10101010))
@@ -99,12 +99,10 @@
   (.newFrame imGuiGlfw)
   (.newFrame imGuiGl3)
   (ImGui/newFrame)
+  (let [{:keys [w h]} (:window-conf config)]
+    (imGuizmoPanel w h))
   (let [{:keys [title text]} (:imgui config)]
-    (ImGui/begin title)
-    (ImGui/text text)
-    (fps-panel/render!)
-    (imGuizmoPanel)
-    (ImGui/end))
+    (fps-panel/render! title text))
   (ImGui/render)
   (.renderDrawData imGuiGl3 (ImGui/getDrawData)))
 
