@@ -27,11 +27,13 @@
   (let [[w h]   [540 540]
         fov     45.0
         aspect  (/ w h)]
-    (-> (mat/perspective fov aspect 0.1 100) vec vec->f32-arr)))
+    (-> (mat/perspective fov aspect 0.1 1000) vec vec->f32-arr)))
+
+(def cam-distance 24.0)
 
 (def view
-  (let [position       (v/vec3 3.0 3.0 8.0)
-        look-at-target (v/vec3 0.0 0.0 0.0)
+  (let [position       (v/vec3 0.0 12.0 cam-distance)
+        look-at-target (v/vec3 0.0 12.0 0.0)
         up             (v/vec3 0.0 1.0 0.0)]
     (-> (mat/look-at position look-at-target up) vec vec->f32-arr)))
 
@@ -42,8 +44,6 @@
                     0.0 1.0 0.0 0.0
                     0.0 0.0 1.0 0.0
                     0.0 0.0 0.0 1.0]))
-
-(def cam-distance 8.0)
 
 (defn init [{:keys [glfw-window] :as game}]
   (let [ctx nil]
@@ -89,7 +89,7 @@
       (ImGuizmo/setRect 0.0 0.0 w h)
       (ImGuizmo/drawGrid view project identity-mat 100)
       (ImGuizmo/setID 0)
-      (ImGuizmo/viewManipulate view cam-distance manip-x manip-y 128.0 128.0 0x10101010))
+      (ImGuizmo/viewManipulate view cam-distance manip-x manip-y 128.0 128.0 0x70707070))
 
     :-)
 
