@@ -2,7 +2,7 @@
   (:require
    [engine.macros :refer [s->]]
    [minusthree.engine.loading :as loading]
-   [minusthree.engine.world :as world]
+   [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.gl-magic :as gl-magic]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.gltf :as gltf]
@@ -24,12 +24,14 @@
 (defn init-fn [world _game]
   (-> world
       ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
-      (loading/insert-load-fn ::miku (load-model-fn ::miku "assets/models/default-miku/HatsuneMiku.pmx"))
-      (loading/insert-load-fn ::wirebeing (load-model-fn ::wirebeing "assets/wirebeing.glb"))))
+      (esse ::wolfie
+            (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx")))
+      (esse ::wirebeing
+            (loading/push (load-model-fn ::wirebeing "assets/wirebeing.glb")))))
 
 (def rules
   (o/ruleset
-   {::miku
+   {::wolfie
     [:what
      [esse-id ::gltf/data gltf-data]
      [esse-id ::gltf/bins bins]

@@ -10,8 +10,8 @@
 (s/def ::state #{:pending :loading :success})
 (def channel-size 8)
 
-(defn insert-load-fn [world esse-id load-fn]
-  (o/insert world esse-id {::load-fn load-fn ::state :pending}))
+(defn push [load-fn]
+  {::load-fn load-fn ::state :pending})
 
 (defn init-channel [game]
   (assoc game ::channel (chan channel-size)))

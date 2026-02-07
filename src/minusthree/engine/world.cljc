@@ -24,3 +24,14 @@
                         (sp/select [sp/ALL ::rules] systems))
         init-fns  (sp/select [sp/ALL ::init-fn some?] systems)]
     (update game ::this prepare-world game all-rules init-fns)))
+
+;; esse, short for 'essence', has similar connotation to entity in an entity-component-system
+;; however, this game is built on top of a rules engine, it doesn't actually mean anything inherently
+;; here, an esse is often referring to something that has the same id in the rules engine
+;; (also, I've never used an ecs before so I am not sure if this is actually similar)
+
+(defn esse
+  "insert an esse given the facts in the shape of maps of attr->value.
+   this fn is merely sugar, spice, and everything nice"
+  [world esse-id & facts]
+  (o/insert world esse-id (apply merge facts)))
