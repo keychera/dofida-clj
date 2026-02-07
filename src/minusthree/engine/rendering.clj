@@ -10,7 +10,7 @@
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_FRAMEBUFFER GL_MULTISAMPLE
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                  GL_TRIANGLES]]
+                                  GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [minustwo.stage.pseudo.offscreen :as offscreen]
    [odoyle.rules :as o]
@@ -123,18 +123,24 @@
 
     (let [world   (::world/this game)
           renders (o/query-all world :minusthree.stage.sankyuu/render-data)]
-      (doseq [{:keys [program-info gl-data primitives]} renders]
+      (doseq [{:keys [program-info gl-data tex-data primitives]} renders]
         (let [vaos (::gl-magic/vao gl-data)]
           (gl ctx useProgram (:program program-info))
           (cljgl/set-uniform ctx program-info :u_projection project)
           (cljgl/set-uniform ctx program-info :u_view view)
           (cljgl/set-uniform ctx program-info :u_model model)
 
-          (doseq [{:keys [indices vao-name]} primitives]
+          (doseq [{:keys [indices vao-name tex-name]} primitives]
             (let [vert-count     (:count indices)
                   component-type (:componentType indices)
-                  vao            (get vaos vao-name)]
+                  vao            (get vaos vao-name)
+                  tex            (get tex-data tex-name)]
               (when vao
+                (when-let [{:keys [tex-unit gl-texture]} tex]
+                  (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+                  (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
+                  (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
+
                 (gl ctx bindVertexArray vao)
                 (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
                 (gl ctx bindVertexArray 0)))))))

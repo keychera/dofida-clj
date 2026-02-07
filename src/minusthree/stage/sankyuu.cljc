@@ -22,13 +22,56 @@
       [[esse-id ::gltf/data gltf]
        [esse-id ::gltf/bins [bin]]])))
 
+(def gltf-vert
+  (str cljgl/version-str
+       "
+   precision mediump float;
+   
+   in vec3 POSITION;
+   in vec3 NORMAL;
+   in vec2 TEXCOORD_0;
+   
+   uniform mat4 u_model;
+   uniform mat4 u_view;
+   uniform mat4 u_projection;
+   
+   out vec3 Normal;
+   out vec2 TexCoord;
+  
+   void main() {
+     gl_Position = u_projection * u_view * u_model * vec4(POSITION, 1.0);
+     Normal = NORMAL;
+     TexCoord = TEXCOORD_0;
+   }
+  "))
+
+(def gltf-frag
+  (str cljgl/version-str
+       "
+ precision mediump float;
+ 
+ in vec3 Normal;
+ in vec2 TexCoord;
+ 
+ uniform sampler2D u_mat_diffuse;
+ 
+ out vec4 o_color;
+
+ void main() {
+   o_color = vec4(texture(u_mat_diffuse, TexCoord).rgb, 1.0); 
+ }
+"))
+
 (defn init-fn [world _game]
-  (-> world
+  (let [ctx nil]
+    (-> world
       ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
-      (esse ::wolfie
-            (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx")))
-      (esse ::wirebeing
-            (loading/push (load-model-fn ::wirebeing "assets/wirebeing.glb")))))
+        (esse ::wolfie
+              (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx gltf-vert gltf-frag)})
+        (esse ::wirebeing
+              (loading/push (load-model-fn ::wirebeing "assets/wirebeing.glb"))
+              {::shader/program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)}))))
 
 (def rules
   (o/ruleset
@@ -37,9 +80,9 @@
      [esse-id ::gltf/data gltf-data]
      [esse-id ::gltf/bins bins]
      [esse-id ::loading/state :success]
+     [esse-id ::shader/program-info program-info]
      :then
-     (let [ctx          nil ; for now, since jvm doesn't need it
-           program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)
+     (let [ctx          nil ; for now, since jvm doesn't need it 
            gltf-chant   (gltf/gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
            summons      (gl-magic/cast-spell ctx esse-id gltf-chant)
            gl-facts     (::gl-magic/facts summons)
@@ -50,7 +93,6 @@
        (s-> (reduce o/insert session gl-facts)
             (o/insert esse-id {::gl-magic/casted? true
                                ::gl-magic/data gl-data
-                               ::shader/program-info program-info
                                ::texture/data {}})))]
 
     ::render-data
