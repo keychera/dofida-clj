@@ -18,7 +18,7 @@
   (:import
    (imgui ImGui ImVec2)
    (imgui.extension.imguizmo ImGuizmo)
-   (imgui.flag ImGuiConfigFlags)
+   (imgui.flag ImGuiConfigFlags ImGuiWindowFlags)
    (imgui.gl3 ImGuiImplGl3)
    (imgui.glfw ImGuiImplGlfw)))
 
@@ -53,6 +53,7 @@
       (ImGui/createContext)
       (doto (ImGui/getIO)
         (.addConfigFlags ImGuiConfigFlags/DockingEnable)
+        (.setConfigWindowsMoveFromTitleBarOnly  true)
         (.setFontGlobalScale 1.0))
       (doto imGuiGlfw
         (.init glfw-window true)
@@ -101,30 +102,28 @@
                     0.0 0.0 1.0 0.0
                     0.0 0.0 0.0 1.0]))
 
+(def cam-distance 8.0)
+
 (defn imGuizmoPanel []
   (ImGuizmo/beginFrame)
 
   (when (ImGui/begin "imguizmo")
 
-    (let [win-x (ImGui/getWindowPosX)
-          win-y (ImGui/getWindowPosY)
-          w (ImGui/getWindowWidth)
-          h (ImGui/getWindowHeight)]
+    (let [win-x   (ImGui/getWindowPosX)
+          win-y   (ImGui/getWindowPosY)
+          w       (ImGui/getWindowWidth)
+          h       (ImGui/getWindowHeight)
+          manip-x (+ (ImGui/getWindowPosX) w -150.0)
+          manip-y (+ (ImGui/getWindowPosY) 32.0)]
       (ImGuizmo/setOrthographic false)
       (ImGuizmo/enable true)
       (ImGuizmo/setDrawList)
       (ImGuizmo/setRect win-x win-y w h)
       (ImGuizmo/drawGrid camera-view projection identity-mat 100)
       (ImGuizmo/setID 0)
-      (ImGuizmo/drawCubes camera-view projection identity-mat))
+      (ImGuizmo/viewManipulate camera-view, cam-distance, manip-x, manip-y, 128.0, 128.0, 0x10101010))
 
     :-)
-
-  (if (ImGuizmo/isUsing)
-    (do (ImGui/text "using gizmo")
-        (when (ImGuizmo/isOver)
-          (ImGui/text "over a gizmo")))
-    (ImGui/text "not using gizmo"))
 
   (ImGui/end))
 
