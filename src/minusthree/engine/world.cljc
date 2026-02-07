@@ -30,6 +30,8 @@
 ;; here, an esse is often referring to something that has the same id in the rules engine
 ;; (also, I've never used an ecs before so I am not sure if this is actually similar)
 
+(s/def ::esse-id qualified-keyword?)
+
 (defn esse
   "insert an esse given the facts in the shape of maps of attr->value.
    this fn is merely sugar, spice, and everything nice"

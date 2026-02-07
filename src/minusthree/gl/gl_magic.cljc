@@ -4,18 +4,18 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.core.match :as match]
    [clojure.spec.alpha :as s]
+   [minusthree.gl.texture :as texture]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
                                   GL_UNSIGNED_SHORT]]
-   [minustwo.gl.shader :as shader]
-   [minustwo.gl.texture :as texture]))
+   [minustwo.gl.shader :as shader]))
 
 (s/def ::casted? boolean?)
 (s/def ::data some?)
 (s/def ::facts some?)
 (s/def ::vao some?)
 
-(defn cast-spell [ctx spell-chants]
+(defn cast-spell [ctx esse-id spell-chants]
   (-> (reduce
        (fn [{:keys [state] :as magician} chant]
          (match/match [chant]
@@ -63,7 +63,7 @@
              (update magician ::facts conj
                      [tex-name ::texture/uri-to-load uri]
                      [tex-name ::texture/tex-unit tex-unit]
-                     [tex-name ::texture/loaded? :pending]))
+                     [tex-name ::texture/for esse-id]))
 
            [{:unbind-vao _}]
            (do (gl ctx bindVertexArray #?(:clj 0 :cljs nil))

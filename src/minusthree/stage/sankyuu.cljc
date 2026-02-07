@@ -4,6 +4,7 @@
    [minusthree.engine.loading :as loading]
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.texture :as texture]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
@@ -40,7 +41,7 @@
      (let [ctx          nil ; for now, since jvm doesn't need it
            program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)
            gltf-chant   (gltf/gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
-           summons      (gl-magic/cast-spell ctx gltf-chant)
+           summons      (gl-magic/cast-spell ctx esse-id gltf-chant)
            gl-facts     (::gl-magic/facts summons)
            gl-data      (::gl-magic/data summons)]
        #_{:clj-kondo/ignore [:inline-def]}
@@ -49,7 +50,8 @@
        (s-> (reduce o/insert session gl-facts)
             (o/insert esse-id {::gl-magic/casted? true
                                ::gl-magic/data gl-data
-                               ::shader/program-info program-info})))]
+                               ::shader/program-info program-info
+                               ::texture/data {}})))]
 
     ::render-data
     [:what
@@ -57,6 +59,7 @@
      [esse-id ::gl-magic/data gl-data]
      [esse-id ::shader/program-info program-info]
      [esse-id ::gltf/primitives primitives]
+     [esse-id ::texture/data tex-data]
      :then
      (println esse-id "ready to render!")]}))
 
