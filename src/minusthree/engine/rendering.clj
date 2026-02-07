@@ -2,6 +2,7 @@
   (:require
    [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
+   [minusthree.engine.gui.fps-panel :as fps-panel]
    [minusthree.engine.world :as world]
    [minusthree.gl.gl-magic :as gl-magic]
    [minustwo.gl.cljgl :as cljgl]
@@ -16,9 +17,9 @@
    [thi.ng.geom.matrix :as mat]
    [thi.ng.geom.vector :as v])
   (:import
-   (imgui ImGui ImVec2)
+   (imgui ImGui)
    (imgui.extension.imguizmo ImGuizmo)
-   (imgui.flag ImGuiConfigFlags ImGuiWindowFlags)
+   (imgui.flag ImGuiConfigFlags)
    (imgui.gl3 ImGuiImplGl3)
    (imgui.glfw ImGuiImplGlfw)))
 
@@ -26,19 +27,23 @@
   (let [[w h]   [540 540]
         fov     45.0
         aspect  (/ w h)]
-    (mat/perspective fov aspect 0.1 1000)))
+    (-> (mat/perspective fov aspect 0.1 100) vec vec->f32-arr)))
 
 (def view
-  (let [position       (v/vec3 0.0 1.0 18.0)
-        look-at-target (v/vec3 0.0 0.0 -1.0)
+  (let [position       (v/vec3 3.0 3.0 8.0)
+        look-at-target (v/vec3 0.0 0.0 0.0)
         up             (v/vec3 0.0 1.0 0.0)]
-    (mat/look-at position look-at-target up)))
+    (-> (mat/look-at position look-at-target up) vec vec->f32-arr)))
 
-(def model (m-ext/vec3->scaling-mat (v/vec3 0.5)))
+(def model (-> (m-ext/vec3->scaling-mat (v/vec3 1.0)) vec vec->f32-arr))
 
-(def fps-buf (atom (float-array 40)))
-(def fps-idx (atom 0))
-(def last-sample-time (atom 0))
+(def identity-mat (float-array
+                   [1.0 0.0 0.0 0.0
+                    0.0 1.0 0.0 0.0
+                    0.0 0.0 1.0 0.0
+                    0.0 0.0 0.0 1.0]))
+
+(def cam-distance 8.0)
 
 (defn init [{:keys [glfw-window] :as game}]
   (let [ctx nil]
@@ -67,43 +72,6 @@
              :imGuiGl3 imGuiGl3
              :screen1 screen1))))
 
-(defn sample-fps [fps]
-  (let [now (System/currentTimeMillis)]
-    (when (>= (- now @last-sample-time) 1000)
-      (let [buf @fps-buf]
-        (aset-float buf @fps-idx (float fps))
-        (swap! fps-idx #(mod (inc %) (alength buf)))
-        (reset! last-sample-time now)))))
-
-(defn fps-panel!
-  []
-  (let [fps (.getFramerate (ImGui/getIO))]
-    (ImGui/text (format "FPS: %.1f (%.2f ms)" fps (if (pos? fps) (/ 1000.0 fps) 0.0)))
-    (sample-fps fps)
-    (let [buf  @fps-buf size (ImVec2. (float 240) (float 120))]
-      ;; label values count offset overlay scaleMin scaleMax size  
-      (ImGui/plotLines "" buf (alength buf) @fps-idx "FPS graph" (float 0.0) (float 180.0) size))))
-
-(def camera-view (float-array
-                  [0.25881903   0.5117449  -0.81915265  0.0
-                   0.0          0.8478537   0.5299193   0.0
-                   0.9659258   -0.137949    0.21984629  0.0
-                   -0.003452   0.00165     -8.0         1.0]))
-
-(def projection (float-array
-                 [1.9626105 0.0 0.0 0.0
-                  0.0 1.9626105 0.0 0.0
-                  0.0 0.0 -1.002002 -1.0
-                  0.0 0.0 -0.2002002 0.0]))
-
-(def identity-mat (float-array
-                   [1.0 0.0 0.0 0.0
-                    0.0 1.0 0.0 0.0
-                    0.0 0.0 1.0 0.0
-                    0.0 0.0 0.0 1.0]))
-
-(def cam-distance 8.0)
-
 (defn imGuizmoPanel []
   (ImGuizmo/beginFrame)
 
@@ -119,19 +87,12 @@
       (ImGuizmo/enable true)
       (ImGuizmo/setDrawList)
       (ImGuizmo/setRect win-x win-y w h)
-      (ImGuizmo/drawGrid camera-view projection identity-mat 100)
+      (ImGuizmo/drawGrid view project identity-mat 100)
       (ImGuizmo/setID 0)
-      (ImGuizmo/viewManipulate camera-view, cam-distance, manip-x, manip-y, 128.0, 128.0, 0x10101010))
+      (ImGuizmo/viewManipulate view cam-distance manip-x manip-y 128.0 128.0 0x10101010))
 
     :-)
 
-  (ImGui/end))
-
-(defn layer [title text]
-  (ImGui/begin title)
-  (ImGui/text text)
-  (fps-panel!)
-  (imGuizmoPanel)
   (ImGui/end))
 
 (defn imGuiFrame [{:keys [imGuiGl3 imGuiGlfw config]}]
@@ -139,7 +100,11 @@
   (.newFrame imGuiGl3)
   (ImGui/newFrame)
   (let [{:keys [title text]} (:imgui config)]
-    (layer title text))
+    (ImGui/begin title)
+    (ImGui/text text)
+    (fps-panel/render!)
+    (imGuizmoPanel)
+    (ImGui/end))
   (ImGui/render)
   (.renderDrawData imGuiGl3 (ImGui/getDrawData)))
 
@@ -151,6 +116,8 @@
     (gl ctx clearColor 0.02 0.02 0.12 1.0)
     (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
 
+    (imGuiFrame game)
+
     (gl ctx bindFramebuffer GL_FRAMEBUFFER (:fbo screen1))
     (gl ctx clearColor 0.0 0.0 0.0 0.0)
     (gl ctx clear (bit-or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
@@ -161,9 +128,9 @@
       (doseq [{:keys [program-info gl-data primitives]} renders]
         (let [vaos (::gl-magic/vao gl-data)]
           (gl ctx useProgram (:program program-info))
-          (cljgl/set-uniform ctx program-info :u_projection (vec->f32-arr (vec project)))
-          (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec view)))
-          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec model)))
+          (cljgl/set-uniform ctx program-info :u_projection project)
+          (cljgl/set-uniform ctx program-info :u_view view)
+          (cljgl/set-uniform ctx program-info :u_model model)
 
           (doseq [{:keys [indices vao-name]} primitives]
             (let [vert-count     (:count indices)
@@ -173,7 +140,6 @@
                 (gl ctx bindVertexArray vao)
                 (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
                 (gl ctx bindVertexArray 0)))))))
-    (imGuiFrame game)
 
     ;; this is an fn producing fn 💀 of course it won't render anything if it's just called once, need hammock
     ((offscreen/render-fbo
