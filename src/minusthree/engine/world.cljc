@@ -21,7 +21,7 @@
 (defn init-world [game system-coll]
   (let [systems   (into [] (map resolve-var) system-coll)
         all-rules (into [] (comp (distinct) (mapcat resolve-var))
-                        (sp/select [sp/ALL ::rules] systems))
+                        (sp/select [sp/ALL (sp/multi-path ::rules :engine.world/rules)] systems))
         init-fns  (sp/select [sp/ALL ::init-fn some?] systems)]
     (update game ::this prepare-world game all-rules init-fns)))
 
