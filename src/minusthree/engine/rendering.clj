@@ -1,10 +1,10 @@
 (ns minusthree.engine.rendering
   (:require
-   [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [minusthree.engine.gui.fps-panel :as fps-panel]
    [minusthree.engine.world :as world]
    [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.stage.model :as model]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
@@ -36,8 +36,6 @@
         look-at-target (v/vec3 0.0 12.0 0.0)
         up             (v/vec3 0.0 1.0 0.0)]
     (-> (mat/look-at position look-at-target up) vec vec->f32-arr)))
-
-(def model (-> (m-ext/vec3->scaling-mat (v/vec3 1.0)) vec vec->f32-arr))
 
 (def identity-mat (float-array
                    [1.0 0.0 0.0 0.0
@@ -122,13 +120,13 @@
     (gl ctx viewport 0 0 w h)
 
     (let [world   (::world/this game)
-          renders (o/query-all world :minusthree.stage.sankyuu/render-data)]
-      (doseq [{:keys [program-info gl-data tex-data primitives]} renders]
+          renders (o/query-all world ::model/render-model-biasa)]
+      (doseq [{:keys [program-info gl-data tex-data primitives transform]} renders]
         (let [vaos (::gl-magic/vao gl-data)]
           (gl ctx useProgram (:program program-info))
           (cljgl/set-uniform ctx program-info :u_projection project)
           (cljgl/set-uniform ctx program-info :u_view view)
-          (cljgl/set-uniform ctx program-info :u_model model)
+          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec transform)))
 
           (doseq [{:keys [indices vao-name tex-name]} primitives]
             (let [vert-count     (:count indices)
