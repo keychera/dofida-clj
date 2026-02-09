@@ -1,11 +1,14 @@
 (ns minusthree.stage.sankyuu
   (:require
+   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.macros :refer [s->]]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.stage.model :as model]
    [minustwo.gl.cljgl :as cljgl]
+   [minustwo.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [minustwo.model.assimp-lwjgl :as assimp-lwjgl]
@@ -24,6 +27,8 @@
       [[esse-id ::gltf/data gltf]
        [esse-id ::gltf/bins [bin]]])))
 
+(def MAX_JOINTS 500)
+
 (def gltf-vert
   (str cljgl/version-str
        "
@@ -32,16 +37,26 @@
    in vec3 POSITION;
    in vec3 NORMAL;
    in vec2 TEXCOORD_0;
+   in vec4 WEIGHTS_0;
+   in uvec4 JOINTS_0;
    
    uniform mat4 u_model;
    uniform mat4 u_view;
    uniform mat4 u_projection;
+   layout(std140) uniform Skinning {
+      mat4[" MAX_JOINTS "] u_joint_mats;
+   };
    
    out vec3 Normal;
    out vec2 TexCoord;
   
    void main() {
-     gl_Position = u_projection * u_view * u_model * vec4(POSITION, 1.0);
+     vec4 pos = vec4(POSITION, 1.0);
+     mat4 skin = (WEIGHTS_0.x * u_joint_mats[JOINTS_0.x]) 
+               + (WEIGHTS_0.y * u_joint_mats[JOINTS_0.y]) 
+               + (WEIGHTS_0.z * u_joint_mats[JOINTS_0.z])
+               + (WEIGHTS_0.w * u_joint_mats[JOINTS_0.w]);
+     gl_Position = u_projection * u_view * u_model * skin * pos;
      Normal = NORMAL;
      TexCoord = TEXCOORD_0;
    }
@@ -64,10 +79,19 @@
  }
 "))
 
+(defn create-ubo [ctx size to-index]
+  (let [ubo (gl ctx genBuffers)]
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
+    (gl ctx bufferData GL_UNIFORM_BUFFER size GL_DYNAMIC_DRAW)
+    (gl ctx bindBufferBase GL_UNIFORM_BUFFER to-index ubo)
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+    ubo))
+
 (defn init-fn [world _game]
   (let [ctx nil]
     (-> world
       ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
+        (esse ::skinning-ubo {::model/ubo (create-ubo ctx (* MAX_JOINTS 16 4) 0)})
         (esse ::wolfie model/biasa
               (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx gltf-vert gltf-frag)})
