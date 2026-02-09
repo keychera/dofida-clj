@@ -2,7 +2,7 @@
   (:require
    [engine.macros :refer [s->]]
    [minusthree.engine.loading :as loading]
-   [minusthree.engine.world :as world]
+   [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.stage.model :as model]
    [minustwo.gl.cljgl :as cljgl]
@@ -68,13 +68,13 @@
   (let [ctx nil]
     (-> world
       ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
-        (model/push ::model/biasa ::wolfie
-                    (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
-                    {::shader/program-info (cljgl/create-program-info-from-source ctx gltf-vert gltf-frag)})
-        (model/push ::model/biasa ::wirebeing
-                    (loading/push (load-model-fn ::wirebeing "assets/wirebeing.glb"))
-                    {::shader/program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)
-                     ::t3d/translation (v/vec3 -2.0 8.0 0.0)}))))
+        (esse ::wolfie model/biasa
+              (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx gltf-vert gltf-frag)})
+        (esse ::wirebeing model/biasa
+              (loading/push (load-model-fn ::wirebeing "assets/wirebeing.glb"))
+              {::shader/program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)
+               ::t3d/translation (v/vec3 -2.0 8.0 0.0)}))))
 
 (def rules
   (o/ruleset

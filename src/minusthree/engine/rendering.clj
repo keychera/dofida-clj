@@ -3,14 +3,11 @@
    [engine.sugar :refer [vec->f32-arr]]
    [minusthree.engine.gui.fps-panel :as fps-panel]
    [minusthree.engine.world :as world]
-   [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.stage.model :as model]
-   [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_FRAMEBUFFER GL_MULTISAMPLE
-                                  GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                  GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES]]
+                                  GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [minustwo.stage.pseudo.offscreen :as offscreen]
    [odoyle.rules :as o]
@@ -68,7 +65,9 @@
       (assoc game
              :imGuiGlfw imGuiGlfw
              :imGuiGl3 imGuiGl3
-             :screen1 screen1))))
+             :screen1 screen1
+             :project project
+             :view view))))
 
 (defn imGuizmoPanel [w h]
   (ImGuizmo/beginFrame)
@@ -121,27 +120,8 @@
 
     (let [world   (::world/this game)
           renders (o/query-all world ::model/render-model-biasa)]
-      (doseq [{:keys [program-info gl-data tex-data primitives transform]} renders]
-        (let [vaos (::gl-magic/vao gl-data)]
-          (gl ctx useProgram (:program program-info))
-          (cljgl/set-uniform ctx program-info :u_projection project)
-          (cljgl/set-uniform ctx program-info :u_view view)
-          (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec transform)))
-
-          (doseq [{:keys [indices vao-name tex-name]} primitives]
-            (let [vert-count     (:count indices)
-                  component-type (:componentType indices)
-                  vao            (get vaos vao-name)
-                  tex            (get tex-data tex-name)]
-              (when vao
-                (when-let [{:keys [tex-unit gl-texture]} tex]
-                  (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
-                  (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
-                  (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
-
-                (gl ctx bindVertexArray vao)
-                (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
-                (gl ctx bindVertexArray 0)))))))
+      (doseq [{:keys [render-fn] :as match} renders]
+        (render-fn game match)))
 
     ;; this is an fn producing fn 💀 of course it won't render anything if it's just called once, need hammock
     ((offscreen/render-fbo
