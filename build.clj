@@ -31,15 +31,23 @@
 (defn repl [& _]
   ;; (compile-java-repl)
   (println "running desktop game with repl...")
-  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl :profile]})
+  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl :profile :imgui]})
                              :main  'clojure.main
                              :main-args ["-m" "start-dev"]})]
     (b/process cmd)))
 
+(defn minusthree-rel [& _]
+  ;; (compile-java-repl)
+  (println "running minusthree release")
+  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :imgui]})
+                             :main  'clojure.main
+                             :main-args ["-m" "minusthree.platform.jvm.jvm-game"]})]
+    (b/process cmd)))
+
 (defn minusthree [& _]
   ;; (compile-java-repl)
-  (println "running minusthree")
-  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :repl :profile]})
+  (println "running minusthree dev")
+  (let [cmd (b/java-command {:basis (b/create-basis {:project "deps.edn" :aliases [:jvm :imgui :repl :profile]})
                              :main  'clojure.main
                              :main-args ["-m" "minusthree.-dev.start"]})]
     (b/process cmd)))

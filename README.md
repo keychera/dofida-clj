@@ -2,38 +2,44 @@
 
 > dofida, an esse made of stars, shaders, and clojure data structures.
 
-## dev
+### -3
 
-we mostly dev in jvm lately. since assimp has failed us and we need clojure gloss.
+```bash
+clj -T:build minusthree
+```
+
+release
+```bash
+clj -T:build minusthree-rel
+
+# or
+
+clj -M:jvm:imgui -m minusthree.platform.jvm.jvm-game
+```
+
 
 ### jvm
 
 jvm desktop
-```
+```bash
 clj -T:build desktop
 ```
 
 jvm desktop with repl and imgui
-```
+```bash
 clj -T:build repl
-```
-
-### -3
-
-```
-clj -T:build minusthree
 ```
 
 ### js
 
 js shadow-cljs dev
-```
+```bash
 bun install
 Calva Jack-in
 ```
 
 js release
-```
+```bash
 bun install
 bun shadow-cljs release game
 clj -M:serve :port 1339 :dir "resources/public"

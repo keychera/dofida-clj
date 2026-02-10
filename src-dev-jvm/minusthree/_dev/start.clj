@@ -11,7 +11,7 @@
    [nrepl.server :as nrepl-server]))
 
 (defn get-config []
-  (let [default {:window {:w 1024 :h 768 :x 500 :y 500}}
+  (let [default {:window-conf {:w 1024 :h 768 :x 500 :y 500}}
         config  "config.edn"]
     (try (with-open [rdr (io/reader (io/input-stream config))]
            (edn/read (java.io.PushbackReader. rdr)))
