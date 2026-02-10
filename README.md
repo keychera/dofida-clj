@@ -8,13 +8,24 @@
 clj -T:build minusthree
 ```
 
-release
+play release 
 ```bash
 clj -T:build minusthree-rel
 
 # or
 
 clj -M:jvm:imgui -m minusthree.platform.jvm.jvm-game
+```
+
+build release
+```bash
+clj -T:build minusthree-uber
+java -jar target/dofida-clj-0.1.601.jar
+```
+
+graalvm
+```
+native-image -jar target/dofida-clj-0.1.602-for-native.jar -H:Name=minusthree -H:+ReportExceptionStackTraces --features=clj_easy.graal_build_time.InitClojureClasses --verbose --no-fallback --initialize-at-build-time=com.fasterxml.jackson --trace-object-instantiation=java.util.Random
 ```
 
 

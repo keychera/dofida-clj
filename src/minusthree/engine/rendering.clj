@@ -1,7 +1,9 @@
 (ns minusthree.engine.rendering
   (:require
    [engine.sugar :refer [vec->f32-arr]]
+   [fastmath.matrix :refer [mat->float-array]]
    [minusthree.engine.gui.fps-panel :as fps-panel]
+   [minusthree.engine.math :refer [perspective]]
    [minusthree.engine.world :as world]
    [minusthree.stage.model :as model]
    [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
@@ -24,7 +26,7 @@
   (let [[w h]   [540 540]
         fov     45.0
         aspect  (/ w h)]
-    (-> (mat/perspective fov aspect 0.1 1000) vec vec->f32-arr)))
+    (-> (perspective fov aspect 0.1 1000) mat->float-array)))
 
 (def cam-distance 24.0)
 
