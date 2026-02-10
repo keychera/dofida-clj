@@ -11,7 +11,7 @@
                                   GL_FRAMEBUFFER GL_MULTISAMPLE
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-   [minustwo.stage.pseudo.offscreen :as offscreen]
+   [minusthree.engine.offscreen :as offscreen]
    [odoyle.rules :as o])
   (:import
    (imgui ImGui)
@@ -123,11 +123,9 @@
       (doseq [{:keys [render-fn] :as match} renders]
         (render-fn game match)))
 
-    ;; this is an fn producing fn 💀 of course it won't render anything if it's just called once, need hammock
-    ((offscreen/render-fbo
-      screen1 {:fbo 0 :width w :height h}
-      {:translation (v/vec3 0.0 0.0 0.0)
-       :scale       (v/vec3 1.0 1.0 1.0)}) nil ctx))
+    (offscreen/render-fbo ctx screen1 {:fbo 0 :width w :height h}
+                          {:translation (v/vec3 0.0 0.0 0.0)
+                           :scale       (v/vec3 1.0 1.0 1.0)}))
   game)
 
 (defn destroy [{:keys [imGuiGl3 imGuiGlfw]}]

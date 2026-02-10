@@ -6,13 +6,13 @@
    [fastmath.matrix :refer [mat->float-array]]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world]
+   [minusthree.gl.geom :as geom]
    [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.gltf :as gltf]
    [minusthree.gl.texture :as texture]
    [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
                                   GL_UNIFORM_BUFFER]]
-   [minustwo.gl.geom :as geom]
-   [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
    [odoyle.rules :as o]))
 
@@ -65,7 +65,7 @@
     (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
 
     (when (seq joints)
-      (let [global-tt (into [] gltf/global-transform-xf transform-tree)
+      (let [global-tt  (into [] gltf/global-transform-xf transform-tree)
             ^floats joint-mats (gltf/create-joint-mats-arr joints global-tt inv-bind-mats)]
         (when (> (alength joint-mats) 0)
           (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
