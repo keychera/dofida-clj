@@ -15,8 +15,19 @@
            [org.lwjgl.stb STBImage]
            [org.lwjgl.system MemoryUtil])))
 
+#?(:clj
+   (defn ^:vibe get-parent-path [path-str]
+     (let [last-slash (max (.lastIndexOf path-str "/")
+                           (.lastIndexOf path-str "\\"))]
+       (if (pos? last-slash)
+         (subs path-str 0 last-slash)
+         ""))))
+
+#?(:clj (defn get-public-resource [res]
+          (io/resource (str "public/" res))))
+
 (defn get-image [fname callback]
-  #?(:clj  (let [^bytes barray (with-open [is  (io/input-stream (io/file fname))
+  #?(:clj  (let [^bytes barray (with-open [is  (io/input-stream (get-public-resource fname))
                                            out (java.io.ByteArrayOutputStream.)]
                                  (io/copy is out)
                                  (.toByteArray out))
@@ -28,7 +39,7 @@
                  decoded-image (STBImage/stbi_load_from_memory
                                 direct-buffer *width *height *components
                                 STBImage/STBI_rgb_alpha)
-                 image         {:data   decoded-image :width (.get *width) :height (.get *height)}]
+                 image         {:data decoded-image :width (.get *width) :height (.get *height)}]
              (MemoryUtil/memFree *width)
              (MemoryUtil/memFree *height)
              (MemoryUtil/memFree *components)
@@ -97,45 +108,6 @@
              (nth verts i)
              (nth verts (inc i))])
           (range 1 (dec (count verts)))))
-
-(defn model->vertex-data
-  "call this with (load-model-on-compile).
-   they need to be called separately because load-model-on-compile will
-   produce string data of the model at compile time
-
-   very simple. triangulate vertices 4 and above.
-   
-     e.g.
-   
-     (-> (utils/load-model-on-compile \"assets/defaultcube.obj\")
-         (utils/model->vertex-data))"
-  [load-model-here]
-  (let [grouped       (-> load-model-here
-                          (edn/read-string))
-        faces         (mapcat triangulate (get grouped "f"))
-        all-vertices  (get grouped "v")
-        all-uvs       (get grouped "vt")
-        all-normals   (get grouped "vn")
-        vertex-count  (count faces)]
-    (loop [i 0
-           [[v-i uv-i n-i] & remains] faces
-           vertices   (f32-arr (* vertex-count 3))
-           uvs        (f32-arr (* vertex-count 2))
-           normals    (f32-arr (* vertex-count 3))]
-      (if (some? v-i)
-        (let [[^float v1 ^float v2 ^float v3] (nth all-vertices (dec v-i))
-              [^float uv1 ^float uv2] (nth all-uvs (dec uv-i))
-              [^float n1 ^float n2 ^float n3] (nth all-normals (dec n-i))]
-          (aset vertices (* i 3) v1)
-          (aset vertices (+ (* i 3) 1) v2)
-          (aset vertices (+ (* i 3) 2) v3)
-          (aset uvs (* i 2)  uv1)
-          (aset uvs (+ (* i 2) 1) uv2)
-          (aset normals (* i 3) n1)
-          (aset normals (+ (* i 3) 1) n2)
-          (aset normals (+ (* i 3) 2) n3)
-          (recur (inc i) remains vertices uvs normals))
-        (vars->map vertex-count vertices uvs normals)))))
 
 (defn deep-merge [a & maps]
   (if (map? a)
