@@ -3,7 +3,9 @@
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.macros :refer [s->]]
+   [fastmath.vector :as v]
    [minusthree.engine.loading :as loading]
+   [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.stage.model :as model]
@@ -13,9 +15,7 @@
    [minustwo.gl.shader :as shader]
    [minustwo.model.assimp-lwjgl :as assimp-lwjgl]
    [minustwo.stage.wirecube :as wirecube]
-   [minustwo.systems.transform3d :as t3d]
-   [odoyle.rules :as o]
-   [thi.ng.geom.vector :as v]))
+   [odoyle.rules :as o]))
 
 ;; 39
 

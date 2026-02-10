@@ -3,7 +3,8 @@
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
-   [engine.sugar :refer [vec->f32-arr]]
+   [fastmath.matrix :refer [mat->float-array]]
+   [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.texture :as texture]
@@ -13,7 +14,6 @@
    [minustwo.gl.geom :as geom]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]
-   [minustwo.systems.transform3d :as t3d]
    [odoyle.rules :as o]))
 
 (s/def ::render-type qualified-keyword?)
@@ -62,7 +62,7 @@
     (gl ctx useProgram (:program program-info))
     (cljgl/set-uniform ctx program-info :u_projection project)
     (cljgl/set-uniform ctx program-info :u_view view)
-    (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec transform)))
+    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
 
     (when (seq joints)
       (let [global-tt (into [] gltf/global-transform-xf transform-tree)

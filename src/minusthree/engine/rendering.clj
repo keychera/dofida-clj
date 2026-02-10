@@ -1,9 +1,9 @@
 (ns minusthree.engine.rendering
   (:require
-   [engine.sugar :refer [vec->f32-arr]]
    [fastmath.matrix :refer [mat->float-array]]
+   [fastmath.vector :as v]
    [minusthree.engine.gui.fps-panel :as fps-panel]
-   [minusthree.engine.math :refer [perspective]]
+   [minusthree.engine.math :refer [look-at perspective]]
    [minusthree.engine.world :as world]
    [minusthree.stage.model :as model]
    [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
@@ -12,9 +12,7 @@
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [minustwo.stage.pseudo.offscreen :as offscreen]
-   [odoyle.rules :as o]
-   [thi.ng.geom.matrix :as mat]
-   [thi.ng.geom.vector :as v])
+   [odoyle.rules :as o])
   (:import
    (imgui ImGui)
    (imgui.extension.imguizmo ImGuizmo)
@@ -34,7 +32,7 @@
   (let [position       (v/vec3 0.0 12.0 cam-distance)
         look-at-target (v/vec3 0.0 12.0 0.0)
         up             (v/vec3 0.0 1.0 0.0)]
-    (-> (mat/look-at position look-at-target up) vec vec->f32-arr)))
+    (-> (look-at position look-at-target up) mat->float-array)))
 
 (def identity-mat (float-array
                    [1.0 0.0 0.0 0.0
@@ -129,7 +127,7 @@
     ((offscreen/render-fbo
       screen1 {:fbo 0 :width w :height h}
       {:translation (v/vec3 0.0 0.0 0.0)
-       :scale       (v/vec3 1.0)}) nil ctx))
+       :scale       (v/vec3 1.0 1.0 1.0)}) nil ctx))
   game)
 
 (defn destroy [{:keys [imGuiGl3 imGuiGlfw]}]

@@ -2,10 +2,10 @@
   (:require
    [minusthree.engine.loading :as loading]
    [minusthree.engine.time :as time]
-   [minusthree.stage.sankyuu :as sankyuu]
+   [minusthree.engine.transform3d :as t3d]
    [minusthree.gl.texture :as texture]
-   [minustwo.systems.transform3d :as t3d]
-   [minusthree.stage.model :as model]))
+   [minusthree.stage.model :as model]
+   [minusthree.stage.sankyuu :as sankyuu]))
 
 (def all
   [time/system
