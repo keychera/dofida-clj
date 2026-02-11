@@ -38,6 +38,11 @@ clj -T:build minusthree-prepare-for-graal
 clj -T:build minusthree-graal
 ```
 
+glfw linux
+```bash
+# ref https://github.com/alecjacobson/computer-graphics-bounding-volume-hierarchy
+sudo apt-get install libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
+```
 
 ### jvm
 

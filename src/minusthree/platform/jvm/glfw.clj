@@ -3,7 +3,7 @@
    [minusthree.engine.engine :as engine]
    [minusthree.engine.time :as time])
   (:import
-   [org.lwjgl.glfw Callbacks GLFW]
+   [org.lwjgl.glfw Callbacks GLFW GLFWErrorCallback]
    [org.lwjgl.opengl GL GL42]))
 
 (defn create-window
@@ -11,6 +11,7 @@
   ([] (create-window {}))
   ([{:keys [w h x y floating? title]
      :or   {w 1280 h 720 x 100 y 100 title "Hello, dofida!"}}]
+   (.. (GLFWErrorCallback/createPrint System/err) set)
    (when-not (GLFW/glfwInit)
      (throw (ex-info "Unable to initialize GLFW" {})))
    (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
