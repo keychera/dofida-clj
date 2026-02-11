@@ -26,6 +26,8 @@ compile classes
 ```bash
 clj -T:build minusthree-compile
 java -cp "$(clojure -A:imgui -Spath);target/input/classes" minusthree.platform.jvm.jvm_game
+
+java -agentlib:native-image-agent=caller-filter-file=resources/META-INF/native-image/filter.json,config-output-dir=resources/META-INF/native-image -jar target/output/rel/dofida-clj-0.1.608-for-native.jar
 ```
 
 graalvm

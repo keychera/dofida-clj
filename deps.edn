@@ -17,40 +17,40 @@
         org.clj-commons/gloss {:mvn/version "0.3.6"}
         cheshire/cheshire {:mvn/version "6.1.0"}
 
-        org.lwjgl/lwjgl {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-glfw {:mvn/version "3.4.0"}
-       ;;  org.lwjgl/lwjgl-sdl {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-opengl {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-stb {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-assimp {:mvn/version "3.4.0"}
+        org.lwjgl/lwjgl {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-glfw {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-sdl {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-opengl {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-stb {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-assimp {:mvn/version "3.3.6"}
 
-        org.lwjgl/lwjgl$natives-linux {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-glfw$natives-linux {:mvn/version "3.4.0"}
-       ;;  org.lwjgl/lwjgl-sdl$natives-linux {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-stb$natives-linux {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-assimp$natives-linux {:mvn/version "3.4.0"}
+       ;;  org.lwjgl/lwjgl$natives-linux {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-glfw$natives-linux {:mvn/version "3.3.6"}
+       ;; ;;  org.lwjgl/lwjgl-sdl$natives-linux {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-stb$natives-linux {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-assimp$natives-linux {:mvn/version "3.3.6"}
 
-        org.lwjgl/lwjgl$natives-macos {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-glfw$natives-macos {:mvn/version "3.4.0"}
-       ;;  org.lwjgl/lwjgl-sdl$natives-macos {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-stb$natives-macos {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-assimp$natives-macos {:mvn/version "3.4.0"}
+       ;;  org.lwjgl/lwjgl$natives-macos {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-glfw$natives-macos {:mvn/version "3.3.6"}
+       ;; ;;  org.lwjgl/lwjgl-sdl$natives-macos {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-stb$natives-macos {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-assimp$natives-macos {:mvn/version "3.3.6"}
 
-        org.lwjgl/lwjgl$natives-macos-arm64 {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-glfw$natives-macos-arm64 {:mvn/version "3.4.0"}
-       ;;  org.lwjgl/lwjgl-sdl$natives-macos-arm64 {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-stb$natives-macos-arm64 {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-assimp$natives-macos-arm64 {:mvn/version "3.4.0"}
+       ;;  org.lwjgl/lwjgl$natives-macos-arm64 {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-glfw$natives-macos-arm64 {:mvn/version "3.3.6"}
+       ;; ;;  org.lwjgl/lwjgl-sdl$natives-macos-arm64 {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-stb$natives-macos-arm64 {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-assimp$natives-macos-arm64 {:mvn/version "3.3.6"}
 
-        org.lwjgl/lwjgl$natives-windows {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-glfw$natives-windows {:mvn/version "3.4.0"}
-       ;;  org.lwjgl/lwjgl-sdl$natives-windows {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.4.0"}
-        org.lwjgl/lwjgl-assimp$natives-windows {:mvn/version "3.4.0"}}
+        org.lwjgl/lwjgl$natives-windows {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-glfw$natives-windows {:mvn/version "3.3.6"}
+       ;;  org.lwjgl/lwjgl-sdl$natives-windows {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.3.6"}
+        org.lwjgl/lwjgl-assimp$natives-windows {:mvn/version "3.3.6"}}
  :aliases {:shadow-cljs {:extra-paths ["src-dev-js"]
                          :extra-deps  {thheller/shadow-cljs {:mvn/version "3.2.1"}
                                        org.mentat/leva.cljs {:mvn/version "0.3.0"}}}

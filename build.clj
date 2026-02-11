@@ -9,6 +9,7 @@
 (def target-dir "target")
 (def class-dir (str target-dir "/input/classes"))
 (def dist-dir (str target-dir "/output"))
+(def rel-dir (str dist-dir "/rel"))
 (def base-uber-file (format "%s/jar/%s-%s.jar" dist-dir (name game) version))
 
 (def basis (delay (b/create-basis {:project "deps.edn" :aliases [:jvm]})))
@@ -79,18 +80,21 @@
   (println "uberjar created at" uber-file)
   (println (str "run with `java -jar " uber-file "`")))
 
+(defn minusthree-uber-native
+  [& _]
+  (minusthree-uber {:uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
+                    :basis minusthree-native-basis}))
+
 ;; https://github.com/chirontt/lwjgl3-helloworld-native
-;; https://github.com/libgdx/libgdx/issues/7113
 ;; still errs with
 ;; Exception in thread "main" com.oracle.svm.core.jdk.UnsupportedFeatureError: Classes cannot be defined at runtime by default 
 ;; when using ahead-of-time Native Image compilation. Tried to define class 'org/lwjgl/system/JNIBindingsImpl'
+;; answer: drop to lwjgl 3.3.6, do https://github.com/clj-easy/graal-docs/blob/master/README.adoc#automatically-discovering-reflection-config
 (defn minusthree-graal [& _]
-  (let [rel-path   (str dist-dir "/rel")
-        graal-exe  (str rel-path "/" (name game))
-        graal-uber (format "%s/%s-%s-for-native.jar" rel-path (name game) version)
+  (let [graal-exe  (str rel-dir "/" (name game))
+        graal-uber (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
         graal-cmd  ["powershell" "/C" b/*project-root*
                     "native-image" "-jar" graal-uber
-                    "-H:Name=minusthree"
                     "-H:+ReportExceptionStackTraces"
                     "-H:+ReportUnsupportedElementsAtRuntime"
                     "--features=clj_easy.graal_build_time.InitClojureClasses"
@@ -100,26 +104,7 @@
                     "--initialize-at-run-time=org.lwjgl"
                     "-o" graal-exe]]
 
-    (minusthree-uber {:uber-file graal-uber
-                      :basis minusthree-native-basis})
-
-    #_(let [native-jars   (into []
-                              (filter #(re-find #"lwjgl-.*3.4.0-natives-windows.*\.jar$" %))
-                              (:classpath-roots @minusthree-native-basis))
-          meta-inf      (str rel-path "/META-INF")
-          platform-root (str rel-path "/windows")
-          natives-root  (str rel-path "/natives")]
-      (print "gathering native deps...")
-      (doseq [jar native-jars]
-        (b/unzip {:zip-file   jar
-                  :target-dir rel-path}))
-      (b/delete {:path meta-inf})
-      (doseq [file (file-seq (io/file (str rel-path "/windows")))]
-        (when (str/ends-with? (.getName file) ".dll")
-          (b/copy-file {:src    (.getAbsolutePath file)
-                        :target (str natives-root "/" (.getName file))})))
-      (b/delete {:path platform-root})
-      (println "gathered at" natives-root))
+    (minusthree-uber-native)
 
     (println "running" (str/join " " (into [] (map #(if (> (count %) 64) (str (subs % 0 64) "...") %))  graal-cmd)))
     (io/make-parents graal-exe)
