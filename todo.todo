@@ -56,8 +56,8 @@ todo:
         ☐ rewrite
             ✔ imguizmo @done(26-02-07 19:44)
             ☐ do we need refresh? seems repl is enough for now
-            ☐ transform3d
-            ☐ skinning
+            ✔ transform3d @done(26-02-11 23:04)
+            ✔ skinning @done(26-02-11 23:04)
             ☐ pmx
             ☐ morph
             ☐ camera
@@ -157,7 +157,8 @@ todo:
             ✔ check our assumptions about gltf parsing @done(25-12-15 00:31) we spec our way
             ✔ the blender gizmo @done(25-12-06 14:42) we did the perspective grid
                 ☐ (luxury) the 3 axis arrow maybe
-            ☐ arcball recreate
+            ✔ arcball recreate @done(26-02-11 23:03) kinda with ImGuizmo
+                ☐ thi.ng arcball
         
         ☐ skybox
         ☐ better first person control feel
@@ -176,7 +177,11 @@ todo:
         ☐ does box2d make sense in clojure?
         ✔ clojure basilisp @done(26-01-04 15:43)
             ✔ blender @done(26-01-04 15:43) we will do more clojure blender-ing
-        ☐ graalvm
+        ✔ graalvm @done(26-02-11 23:02) HOLY SHIII
+            ☐ lwjgl 3.4.0 cant do because we dont know how to work around with org.lwjgl.system.ffm.FFM.ffmGenerate
+            ☐ sometimes the exe segfault and we dont know why
+            ☐ the model loads block the thread, not graalvm related probably...?
+            ☐ other platform????
         ☐ understanding performance and profiling tools again
             ☐ the browser's performance tab
             ☐ jvm world's tools

@@ -85,13 +85,22 @@
   (minusthree-uber {:uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
                     :basis minusthree-native-basis}))
 
+(defn minusthree-prepare-for-graal
+  [& _]
+  (let [uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)]
+    (minusthree-uber {:uber-file uber-file :basis minusthree-native-basis})
+    (b/process {:command-args ["powershell" "/C" b/*project-root*
+                               "java"
+                               "-agentlib:native-image-agent=caller-filter-file=resources/META-INF/native-image/filter.json,config-output-dir=resources/META-INF/native-image"
+                               "-jar" uber-file]})))
+
 ;; https://github.com/chirontt/lwjgl3-helloworld-native
 ;; still errs with
 ;; Exception in thread "main" com.oracle.svm.core.jdk.UnsupportedFeatureError: Classes cannot be defined at runtime by default 
 ;; when using ahead-of-time Native Image compilation. Tried to define class 'org/lwjgl/system/JNIBindingsImpl'
 ;; answer: drop to lwjgl 3.3.6, do https://github.com/clj-easy/graal-docs/blob/master/README.adoc#automatically-discovering-reflection-config
 (defn minusthree-graal [& _]
-  (let [graal-exe  (str rel-dir "/" (name game))
+  (let [graal-exe  (format "%s/%s-%s" rel-dir (name game) version)
         graal-uber (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
         graal-cmd  ["powershell" "/C" b/*project-root*
                     "native-image" "-jar" graal-uber
@@ -103,9 +112,6 @@
                     "--initialize-at-build-time=com.fasterxml.jackson"
                     "--initialize-at-run-time=org.lwjgl"
                     "-o" graal-exe]]
-
-    (minusthree-uber-native)
-
     (println "running" (str/join " " (into [] (map #(if (> (count %) 64) (str (subs % 0 64) "...") %))  graal-cmd)))
     (io/make-parents graal-exe)
     (b/process {:command-args graal-cmd})))
