@@ -82,15 +82,17 @@
 (def os   #{"windows" "linux" "macos"})
 (def arch #{"amd64" "arm64"})
 
+;; will hammock more of this multi os target
+(defn windows? []
+  (.startsWith (System/getProperty "os.name") "Windows"))
+
 (defn minusthree-prepare-for-graal
-  [{:keys [target-os]
-    :or {target-os "windows"}}]
-  (let [os-alias  (keyword target-os)
+  [& _]
+  (let [os-alias  (if (windows?) :windows :linux)
         basis     (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :native os-alias]}))
         uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)]
     (minusthree-uber {:uber-file uber-file :basis basis})
-    (b/process {:command-args ["powershell" "/C" b/*project-root*
-                               "java"
+    (b/process {:command-args ["java"
                                "-agentlib:native-image-agent=caller-filter-file=resources/META-INF/native-image/filter.json,config-output-dir=resources/META-INF/native-image"
                                "-jar" uber-file]})))
 
@@ -101,15 +103,13 @@
 ;; answer: drop to lwjgl 3.3.6, do https://github.com/clj-easy/graal-docs/blob/master/README.adoc#automatically-discovering-reflection-config
 
 (defn minusthree-graal
-  [{:keys [target-os target-arch]
-    :or {target-os   "windows"
-         target-arch "amd64"}}]
-  (let [os-alias   (keyword target-os)
-        os-arch    (str target-os "-" target-arch)
+  [& _]
+  (let [os         (if (windows?) "windows" "linux")
+        arch       (System/getProperty "os.arch")
+        os-arch    (str os "-" arch)
         graal-bin  (format "%s/%s-%s-%s" rel-dir (name game) version os-arch)
         graal-uber (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
-        graal-cmd  ["powershell" "/C" b/*project-root*
-                    "native-image" "-jar" graal-uber
+        graal-cmd  [(if (windows?) "native-image.cmd" "native-image") "-jar" graal-uber
                     "-H:+ReportExceptionStackTraces"
                     "-H:+ReportUnsupportedElementsAtRuntime"
                     "--features=clj_easy.graal_build_time.InitClojureClasses"
