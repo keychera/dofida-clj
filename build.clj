@@ -1,5 +1,6 @@
 (ns build
   (:require
+   [clojure.string :as str]
    [clojure.tools.build.api :as b]))
 
 (def game 'self.chera/dofida-clj)
@@ -70,6 +71,17 @@
   (println (str "run with `java -jar " uber-file "`")))
 
 (defn minusthree-graal [& _]
-  (let [graal-uber (format "target/%s-%s-for-native.jar" (name game) version)]
-    (minusthree-uber {:uber-file graal-uber
-                      :basis minusthree-native-basis})))
+  (let [graal-uber (format "target/%s-%s-for-native.jar" (name game) version)
+        graal-cmd  ["powershell" "/C" b/*project-root*
+                    "native-image" "-jar"
+                    graal-uber
+                    "-H:Name=minusthree"
+                    "-H:+ReportExceptionStackTraces"
+                    "--features=clj_easy.graal_build_time.InitClojureClasses"
+                    "--verbose"
+                    "--no-fallback"
+                    "--initialize-at-build-time=com.fasterxml.jackson"]]
+    #_(minusthree-uber {:uber-file graal-uber
+                      :basis minusthree-native-basis}) 
+    (println "running" (str/join " " graal-cmd))
+    (b/process {:command-args graal-cmd})))
