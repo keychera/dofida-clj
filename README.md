@@ -22,6 +22,12 @@ build release
 clj -T:build minusthree-uber
 ```
 
+compile classes
+```bash
+clj -T:build minusthree-compile
+java -cp "$(clojure -A:imgui -Spath);target/input/classes" minusthree.platform.jvm.jvm_game
+```
+
 graalvm
 ```bash
 clj -T:build minusthree-graal
