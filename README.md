@@ -25,7 +25,7 @@ java -jar target/dofida-clj-0.1.601.jar
 
 graalvm
 ```
-native-image -jar target/dofida-clj-0.1.602-for-native.jar -H:Name=minusthree -H:+ReportExceptionStackTraces --features=clj_easy.graal_build_time.InitClojureClasses --verbose --no-fallback --initialize-at-build-time=com.fasterxml.jackson --trace-object-instantiation=java.util.Random
+native-image -jar target/dofida-clj-0.1.605-for-native.jar -H:Name=minusthree -H:+ReportExceptionStackTraces --features=clj_easy.graal_build_time.InitClojureClasses --verbose --no-fallback --initialize-at-build-time=com.fasterxml.jackson --initialize-at-build-time=fastmath.distance$gen_smile. --trace-object-instantiation=org.apache.commons.math3.random.JDKRandomGenerator
 ```
 
 

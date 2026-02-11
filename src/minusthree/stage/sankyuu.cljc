@@ -5,27 +5,19 @@
    [engine.macros :refer [s->]]
    [fastmath.vector :as v]
    [minusthree.engine.loading :as loading]
+   [minusthree.engine.model-loading :refer [load-gltf-fn]]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world :refer [esse]]
+   [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.gltf :as gltf]
    [minusthree.stage.model :as model]
-   [minustwo.gl.cljgl :as cljgl]
+   [minusthree.stage.wirecube :as wirecube]
    [minustwo.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
    [minustwo.gl.shader :as shader]
-   [minustwo.model.assimp-lwjgl :as assimp-lwjgl]
-   [minustwo.stage.wirecube :as wirecube]
    [odoyle.rules :as o]))
 
 ;; 39
-
-(defn load-model-fn [esse-id model-path]
-  (fn []
-    ;; initially we tried do gl stuff inside load-model-fn but it turns out opengl context only works in one thread
-    (let [[gltf bin] #?(:clj  (assimp-lwjgl/load-model model-path "gltf2")
-                        :cljs [:TODO assimp-lwjgl/load-model model-path])]
-      [[esse-id ::gltf/data gltf]
-       [esse-id ::gltf/bins [bin]]])))
 
 (def MAX_JOINTS 500)
 
@@ -93,11 +85,11 @@
       ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
         (esse ::skinning-ubo {::model/ubo (create-ubo ctx (* MAX_JOINTS 16 4) 0)})
         (esse ::wolfie model/biasa
-              (loading/push (load-model-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
+              (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx gltf-vert gltf-frag)})
         (esse ::wirebeing model/biasa
-              (loading/push (load-model-fn ::wirebeing "assets/wirebeing.glb"))
-              {::shader/program-info (cljgl/create-program-info-from-iglu ctx wirecube/the-vertex-shader wirecube/the-fragment-shader)
+              (loading/push (load-gltf-fn ::wirebeing "assets/wirebeing.glb"))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx wirecube/vs wirecube/fs)
                ::t3d/translation (v/vec3 -2.0 8.0 0.0)}))))
 
 (def rules

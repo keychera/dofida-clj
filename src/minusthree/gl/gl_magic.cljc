@@ -4,8 +4,8 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.core.match :as match]
    [clojure.spec.alpha :as s]
+   [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.texture :as texture]
-   [minustwo.gl.cljgl :as cljgl]
    [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
                                   GL_UNSIGNED_SHORT]]
    [minustwo.gl.shader :as shader]))

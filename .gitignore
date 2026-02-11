@@ -21,3 +21,5 @@ config.edn
 
 # ignoring .blend files for now
 resources/blender/*
+
+*.exe

@@ -2,11 +2,11 @@
   (:require
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert!]]
-   [engine.world :as world]
    [fastmath.matrix :as mat]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.engine.math :refer [quat->mat4 scaling-mat translation-mat]]
+   [minusthree.engine.world :as world]
    [odoyle.rules :as o]))
 
 (s/def ::translation #(instance? fastmath.vector.Vec3 %))
