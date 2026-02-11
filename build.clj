@@ -34,7 +34,6 @@
 
 (def minusthree-dev-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :repl :profile]})))
 (def minusthree-rel-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui]})))
-(def minusthree-native-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :native]})))
 
 (defn minusthree [& _]
   (println "running minusthree dev")
@@ -80,15 +79,16 @@
   (println "uberjar created at" uber-file)
   (println (str "run with `java -jar " uber-file "`")))
 
-(defn minusthree-uber-native
-  [& _]
-  (minusthree-uber {:uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
-                    :basis minusthree-native-basis}))
+(def os   #{"windows" "linux" "macos"})
+(def arch #{"amd64" "arm64"})
 
 (defn minusthree-prepare-for-graal
-  [& _]
-  (let [uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)]
-    (minusthree-uber {:uber-file uber-file :basis minusthree-native-basis})
+  [{:keys [target-os]
+    :or {target-os "windows"}}]
+  (let [os-alias  (keyword target-os)
+        basis     (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :native os-alias]}))
+        uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)]
+    (minusthree-uber {:uber-file uber-file :basis basis})
     (b/process {:command-args ["powershell" "/C" b/*project-root*
                                "java"
                                "-agentlib:native-image-agent=caller-filter-file=resources/META-INF/native-image/filter.json,config-output-dir=resources/META-INF/native-image"
@@ -99,8 +99,14 @@
 ;; Exception in thread "main" com.oracle.svm.core.jdk.UnsupportedFeatureError: Classes cannot be defined at runtime by default 
 ;; when using ahead-of-time Native Image compilation. Tried to define class 'org/lwjgl/system/JNIBindingsImpl'
 ;; answer: drop to lwjgl 3.3.6, do https://github.com/clj-easy/graal-docs/blob/master/README.adoc#automatically-discovering-reflection-config
-(defn minusthree-graal [& _]
-  (let [graal-exe  (format "%s/%s-%s" rel-dir (name game) version)
+
+(defn minusthree-graal
+  [{:keys [target-os target-arch]
+    :or {target-os   "windows"
+         target-arch "amd64"}}]
+  (let [os-alias   (keyword target-os)
+        os-arch    (str target-os "-" target-arch)
+        graal-bin  (format "%s/%s-%s-%s" rel-dir (name game) version os-arch)
         graal-uber (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
         graal-cmd  ["powershell" "/C" b/*project-root*
                     "native-image" "-jar" graal-uber
@@ -109,9 +115,10 @@
                     "--features=clj_easy.graal_build_time.InitClojureClasses"
                     "--verbose"
                     "--no-fallback"
+                    (str "--target=" os-arch)
                     "--initialize-at-build-time=com.fasterxml.jackson"
                     "--initialize-at-run-time=org.lwjgl"
-                    "-o" graal-exe]]
+                    "-o" graal-bin]]
     (println "running" (str/join " " (into [] (map #(if (> (count %) 64) (str (subs % 0 64) "...") %))  graal-cmd)))
-    (io/make-parents graal-exe)
+    (io/make-parents graal-bin)
     (b/process {:command-args graal-cmd})))
