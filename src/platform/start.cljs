@@ -16,15 +16,15 @@
    ::keydown      #{}
    ::prev-keydown #{}})
 (def world-inputs (atom world-init-inputs))
-(def current-mode (atom ::input/arcball))
+(def current-mode (atom ::input/default))
 
 (defn update-world [game]
   (let [inputs @world-inputs]
     (case (::flag inputs)
       ::lockchange
       (let [new-mode (case @current-mode
-                       ::input/arcball     ::input/firstperson
-                       ::input/firstperson ::input/arcball)]
+                       ::input/default     ::input/firstperson
+                       ::input/firstperson ::input/default)]
         (reset! current-mode new-mode)
         (swap! (::world/atom* game)
                (fn [world']

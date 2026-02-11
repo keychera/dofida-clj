@@ -53,10 +53,23 @@ todo:
             ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
 
     re:minusthree, yet still so far:
+        ☐ rewrite
+            ✔ imguizmo @done(26-02-07 19:44)
+            ☐ do we need refresh? seems repl is enough for now
+            ✔ transform3d @done(26-02-11 23:04)
+            ✔ skinning @done(26-02-11 23:04)
+            ☐ pmx
+            ☐ morph
+            ☐ camera
+            ☐ particle
+            ☐ anime
+            ☐ loop
+            ☐ record
         ☐ the timing
         ☐ multi track sampling
         ☐ text
         ☐ motion graphics
+            ☐ nanovg?
         ☐ multi armature
         ☐ shader, lighting
         ☐ props, room
@@ -66,7 +79,7 @@ todo:
 
     ☐ shader delusion, begins
         ✔ investigate input @done(26-01-04 15:46) i think the cljs solution works for now, no delayed effects lately
-        ☐ arcball
+        ✔ arcball @done(26-02-07 19:43) relying on ImGuizmo
 
         ☐ IK is still wrong I think
         ☐ anime is still a bad api
@@ -144,7 +157,8 @@ todo:
             ✔ check our assumptions about gltf parsing @done(25-12-15 00:31) we spec our way
             ✔ the blender gizmo @done(25-12-06 14:42) we did the perspective grid
                 ☐ (luxury) the 3 axis arrow maybe
-            ☐ arcball recreate
+            ✔ arcball recreate @done(26-02-11 23:03) kinda with ImGuizmo
+                ☐ thi.ng arcball
         
         ☐ skybox
         ☐ better first person control feel
@@ -163,7 +177,11 @@ todo:
         ☐ does box2d make sense in clojure?
         ✔ clojure basilisp @done(26-01-04 15:43)
             ✔ blender @done(26-01-04 15:43) we will do more clojure blender-ing
-        ☐ graalvm
+        ✔ graalvm @done(26-02-11 23:02) HOLY SHIII
+            ☐ lwjgl 3.4.0 cant do because we dont know how to work around with org.lwjgl.system.ffm.FFM.ffmGenerate
+            ☐ sometimes the exe segfault and we dont know why
+            ☐ the model loads block the thread, not graalvm related probably...?
+            ☐ other platform????
         ☐ understanding performance and profiling tools again
             ☐ the browser's performance tab
             ☐ jvm world's tools
@@ -277,7 +295,7 @@ error path that breaks the repl dev:
     ✔ removing a rule and hot reload @done(26-01-12 14:35)
     ✔ inserting wrong type to odoyle @done(26-01-12 14:35)
     ✔ shader compile error stops odoyle @done(26-01-12 14:35)
-        ☐ now we catch the error and (viscous/inspect) them, repl should be mostly alive unless native crash
+        ✔ now we catch the error and (viscous/inspect) them, repl should be mostly alive unless native crash @done(26-02-07 19:48)
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}

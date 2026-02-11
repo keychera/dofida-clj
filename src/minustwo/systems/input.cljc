@@ -7,10 +7,9 @@
    [engine.world :as world]
    [minustwo.systems.view.camera :as camera]
    [minustwo.systems.view.firstperson :as firstperson]
-   [odoyle.rules :as o]
-   [rules.camera.arcball :as arcball]))
+   [odoyle.rules :as o]))
 
-(s/def ::mode #{::arcball ::firstperson})
+(s/def ::mode #{::default ::firstperson})
 (s/def ::x number?)
 (s/def ::y number?)
 (s/def ::dx number?)
@@ -24,14 +23,7 @@
     [_ :r]
     (if (= keystate ::keyup)
       (-> session
-          firstperson/reset-fps-cam
-          arcball/reset-rot)
-      session)
-
-    [::arcball ::mouse-left]
-    (case keystate
-      ::keydown (arcball/start-rotating session)
-      ::keyup   (arcball/stop-rotating session)
+          firstperson/reset-fps-cam)
       session)
 
     [::firstperson _]
@@ -49,7 +41,7 @@
     :else session))
 
 (defn init-fn [world _game]
-  (o/insert world ::global ::mode ::arcball))
+  (o/insert world ::global ::mode ::default))
 
 (def rules
   (o/ruleset
@@ -62,14 +54,7 @@
     [:what
      [::global ::mode mode]
      [::mouse ::x mouse-x {:then not=}]
-     [::mouse ::y mouse-y {:then not=}]
-     :then
-        ;; complecting with query rules kinda not it, ignore for now
-     (case mode
-       ::arcball
-       (s-> session (arcball/send-xy mouse-x mouse-y))
-
-       #_else :noop)]
+     [::mouse ::y mouse-y {:then not=}]]
 
     ::mouse-delta
     [:what

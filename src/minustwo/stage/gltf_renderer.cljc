@@ -67,8 +67,9 @@
           (cljgl/set-uniform ctx program-info :u_view (vec->f32-arr (vec player-view)))
           (cljgl/set-uniform ctx program-info :u_model (vec->f32-arr (vec model)))
 
-          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+          (when (> (alength joint-mats) 0)
+            (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+            (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil)))
 
           (doseq [prim (:gltf-primitives gltf-model)]
             (let [indices        (:indices prim)

@@ -1,4 +1,4 @@
-(ns rules.primitives)
+(ns engine.math.primitives)
 
 (def plane3d-vertices
   (#?(:clj float-array :cljs #(js/Float32Array. %))

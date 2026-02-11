@@ -56,7 +56,7 @@
    ::world/after-load-fn #'after-load-fn
    ::world/rules #'rules})
 
-#_#_"(" ("chaotic. deterministic. moral. suboptimal. #_. looks like you forgot something")
+#_("chaotic. deterministic. moral. suboptimal. #_. looks like you forgot something")
 ;; check your pocket again. maybe that's where your dream is.
 
 (defn rolling! [game]

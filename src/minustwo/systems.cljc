@@ -1,5 +1,6 @@
 (ns minustwo.systems
   (:require
+   #?(:clj [minustwo.zone.studio :as studio])
    [minustwo.anime.anime :as anime]
    [minustwo.anime.anime-gltf :as anime-gltf]
    [minustwo.anime.morph :as morph]
@@ -10,10 +11,11 @@
    [minustwo.gl.texture :as texture]
    [minustwo.gl.vao :as vao]
    [minustwo.model.assimp :as assimp]
+   [minustwo.model.pmx-model :as pmx-model]
+   [minustwo.stage.celestial :as celestial]
    [minustwo.stage.default :as default]
    [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
-   [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.pmx-renderer :as pmx-renderer]
    [minustwo.stage.pseudo.bones :as bones]
    [minustwo.stage.pseudo.particle :as particle]
@@ -27,8 +29,7 @@
    [minustwo.systems.view.firstperson :as firstperson]
    [minustwo.systems.view.room :as room]
    [minustwo.systems.window :as window]
-   [minustwo.zone.director :as director]
-   #?(:clj [minustwo.zone.studio :as studio])))
+   [minustwo.zone.director :as director]))
 
 (def all
   [time/system
@@ -63,6 +64,8 @@
    bones/system
    pose/system
    particle/system
+
+   celestial/system
 
    wirecube/system
    default/system])

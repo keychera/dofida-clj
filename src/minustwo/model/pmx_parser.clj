@@ -1,6 +1,7 @@
 (ns minustwo.model.pmx-parser
   (:require
    [clojure.java.io :as io]
+   [engine.utils :refer [get-parent-path]]
    [gloss.core :as g :refer [defcodec finite-frame repeated string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
    [gloss.core.structure :refer [compile-frame]]
@@ -358,8 +359,8 @@
                 ch  (.getChannel raf)]
       (let [buf (.map ch java.nio.channels.FileChannel$MapMode/READ_ONLY 0 (.size ch))]
         (assoc (gio/decode pmx-codec buf false)
-               ;; I have a feeling this will break if this is in a jar
-               :parent-dir (.getParent pmx-file))))))
+               ;; I have a feeling this will break if this is in a jar => damn right
+               :parent-dir (get-parent-path pmx-path))))))
 
 (comment
   #_(require '[clj-async-profiler.core :as prof])
