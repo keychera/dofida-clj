@@ -1,27 +1,29 @@
 {:paths   ["src" "resources"]
- :deps    {org.clojure/clojure                  {:mvn/version "1.12.1"}
-           org.clojure/core.async               {:mvn/version "1.8.741"}
-           org.clojure/core.match               {:mvn/version "1.1.0"}
+ :deps    {org.clojure/clojure             {:mvn/version "1.12.1"}
+           org.clojure/core.async          {:mvn/version "1.8.741"}
+           org.clojure/core.match          {:mvn/version "1.1.0"}
 
-           generateme/fastmath                  {:local/root "../fastmath"}
+           io.github.keychera/fastmath     {:git/sha "f949f031795209c2673509cbca10b059cba2f2f0"}
            ;; both thi.ng/geom and generateme/fastmath have problem of instantiating some Random related class at top-level
            ;; that blocks graalvm compilation. but I decided to change to fastmath anyway because I can modify it as :local/root
            ;; thi.ng/math source code is in an org file and I don't have ways to get the source easily to make deps.edn project
+           ;; originally
            ;; generateme/fastmath {:mvn/version "2.4.0" :exclusions [com.github.haifengl/smile-mkl org.bytedeco/openblas]}
            ;; thi.ng/geom {:mvn/version "1.0.1"}
-           iglu/iglu                            {:mvn/version "0.10.2"}
-           io.github.keychera/odoyle-rules      {:git/sha "10447b7d8e3c9611fc9d59bc29d5a6d148d10556"}
 
-           com.rpl/specter                      {:mvn/version "1.1.4"}
-           instaparse/instaparse                {:mvn/version "1.5.0"}
-           org.clj-commons/gloss                {:mvn/version "0.3.6"}
-           cheshire/cheshire                    {:mvn/version "6.1.0"}
+           iglu/iglu                       {:mvn/version "0.10.2"}
+           io.github.keychera/odoyle-rules {:git/sha "10447b7d8e3c9611fc9d59bc29d5a6d148d10556"}
 
-           org.lwjgl/lwjgl                      {:mvn/version "3.3.6"}
-           org.lwjgl/lwjgl-glfw                 {:mvn/version "3.3.6"}
-           org.lwjgl/lwjgl-opengl               {:mvn/version "3.3.6"}
-           org.lwjgl/lwjgl-stb                  {:mvn/version "3.3.6"}
-           org.lwjgl/lwjgl-assimp               {:mvn/version "3.3.6"}}
+           com.rpl/specter                 {:mvn/version "1.1.4"}
+           instaparse/instaparse           {:mvn/version "1.5.0"}
+           org.clj-commons/gloss           {:mvn/version "0.3.6"}
+           cheshire/cheshire               {:mvn/version "6.1.0"}
+
+           org.lwjgl/lwjgl                 {:mvn/version "3.3.6"}
+           org.lwjgl/lwjgl-glfw            {:mvn/version "3.3.6"}
+           org.lwjgl/lwjgl-opengl          {:mvn/version "3.3.6"}
+           org.lwjgl/lwjgl-stb             {:mvn/version "3.3.6"}
+           org.lwjgl/lwjgl-assimp          {:mvn/version "3.3.6"}}
  :aliases {:shadow-cljs {:extra-paths ["src-dev-js"]
                          :extra-deps  {thheller/shadow-cljs {:mvn/version "3.2.1"}
                                        org.mentat/leva.cljs {:mvn/version "0.3.0"}}}
