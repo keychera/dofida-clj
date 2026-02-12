@@ -44,6 +44,11 @@ glfw linux debugging (wsl actually)
 sudo apt-get install libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
 sudo apt install mesa-utils
 glxinfo | grep OpenGL
+
+# actually doesn't need all of above. just install Ubuntu 24.04
+# then follow https://www.graalvm.org/latest/getting-started/linux/
+sudo apt-get install build-essential zlib1g-dev
+# lastly just use out clojure tools.build command above (prepare -> graal)
 ```
 
 ### jvm
