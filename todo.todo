@@ -178,10 +178,11 @@ todo:
         ✔ clojure basilisp @done(26-01-04 15:43)
             ✔ blender @done(26-01-04 15:43) we will do more clojure blender-ing
         ✔ graalvm @done(26-02-11 23:02) HOLY SHIII
-            ☐ lwjgl 3.4.0 cant do because we dont know how to work around with org.lwjgl.system.ffm.FFM.ffmGenerate
+            ☐ lwjgl 3.4.0 cant do graal because we dont know how to work around with org.lwjgl.system.ffm.FFM.ffmGenerate
             ☐ sometimes the exe segfault and we dont know why
             ☐ the model loads block the thread, not graalvm related probably...?
-            ☐ other platform????
+            ✔ other platform???? @done(26-02-12 21:22) wsl ubuntu runs!
+            ☐ why size big, around 90-110mb
         ☐ understanding performance and profiling tools again
             ☐ the browser's performance tab
             ☐ jvm world's tools

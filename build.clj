@@ -83,12 +83,12 @@
 (def arch #{"amd64" "arm64"})
 
 ;; will hammock more of this multi os target
-(defn windows? []
+(defn ms-windows? []
   (.startsWith (System/getProperty "os.name") "Windows"))
 
 (defn minusthree-prepare-for-graal
   [& _]
-  (let [os-alias  (if (windows?) :windows :linux)
+  (let [os-alias  (if (ms-windows?) :windows :linux)
         basis     (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :native os-alias]}))
         uber-file (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)]
     (minusthree-uber {:uber-file uber-file :basis basis})
@@ -104,12 +104,12 @@
 
 (defn minusthree-graal
   [& _]
-  (let [os         (if (windows?) "windows" "linux")
+  (let [os         (if (ms-windows?) "windows" "linux")
         arch       (System/getProperty "os.arch")
         os-arch    (str os "-" arch)
         graal-bin  (format "%s/%s-%s-%s" rel-dir (name game) version os-arch)
         graal-uber (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
-        graal-cmd  [(if (windows?) "native-image.cmd" "native-image") "-jar" graal-uber
+        graal-cmd  [(if (ms-windows?) "native-image.cmd" "native-image") "-jar" graal-uber
                     "-H:+ReportExceptionStackTraces"
                     "-H:+ReportUnsupportedElementsAtRuntime"
                     "--features=clj_easy.graal_build_time.InitClojureClasses"
@@ -119,6 +119,7 @@
                     "--initialize-at-build-time=com.fasterxml.jackson"
                     "--initialize-at-run-time=org.lwjgl"
                     "-o" graal-bin]]
+    (minusthree-uber {:uber-file graal-uber :basis basis})
     (println "running" (str/join " " (into [] (map #(if (> (count %) 64) (str (subs % 0 64) "...") %))  graal-cmd)))
     (io/make-parents graal-bin)
     (b/process {:command-args graal-cmd})))

@@ -4,7 +4,10 @@
    [minusthree.engine.time :as time])
   (:import
    [org.lwjgl.glfw Callbacks GLFW GLFWErrorCallback]
-   [org.lwjgl.opengl GL GL41]))
+   [org.lwjgl.opengl GL GL42]))
+
+(defn ms-windows? []
+  (.startsWith (System/getProperty "os.name") "Windows"))
 
 (defn create-window
   "return handle of the glfw window"
@@ -17,15 +20,14 @@
    (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
    (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
    (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 4)
-   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 1)
-   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL41/GL_TRUE)
-   ;; Forward compat is required on macOS, harmless elsewhere
+   (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 2)
+   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GL42/GL_TRUE)
    (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
    (GLFW/glfwWindowHint GLFW/GLFW_SAMPLES 4)
    (let [window (GLFW/glfwCreateWindow w h title 0 0)]
      (when (or (nil? window) (zero? window))
        (throw (ex-info "Failed to create GLFW window" {})))
-    ;;  (GLFW/glfwSetWindowPos window x y)
+     (when (ms-windows?) (GLFW/glfwSetWindowPos window x y))
      (GLFW/glfwMakeContextCurrent window)
      (GLFW/glfwSwapInterval 1) ;; vsync
      (GL/createCapabilities)
