@@ -32,8 +32,8 @@
                              :main-args ["-m" "start-dev"]})]
     (b/process cmd)))
 
-(def minusthree-dev-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :repl :profile]})))
-(def minusthree-rel-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui]})))
+(def minusthree-dev-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :windows :repl :profile]})))
+(def minusthree-rel-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :windows]})))
 
 (defn minusthree [& _]
   (println "running minusthree dev")
@@ -108,6 +108,8 @@
         arch       (System/getProperty "os.arch")
         os-arch    (str os "-" arch)
         graal-bin  (format "%s/%s-%s-%s" rel-dir (name game) version os-arch)
+        os-alias  (if (ms-windows?) :windows :linux)
+        basis      (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :native os-alias]}))
         graal-uber (format "%s/%s-%s-for-native.jar" rel-dir (name game) version)
         graal-cmd  [(if (ms-windows?) "native-image.cmd" "native-image") "-jar" graal-uber
                     "-H:+ReportExceptionStackTraces"
@@ -119,7 +121,17 @@
                     "--initialize-at-build-time=com.fasterxml.jackson"
                     "--initialize-at-run-time=org.lwjgl"
                     "-o" graal-bin]]
-    (minusthree-uber {:uber-file graal-uber :basis basis})
+    (minusthree-uber {:uber-file graal-uber
+                      :basis     basis})
     (println "running" (str/join " " (into [] (map #(if (> (count %) 64) (str (subs % 0 64) "...") %))  graal-cmd)))
     (io/make-parents graal-bin)
     (b/process {:command-args graal-cmd})))
+
+(defn run-standalone [& _]
+  (let [windows?   (ms-windows?)
+        os         (if windows? "windows" "linux")
+        arch       (System/getProperty "os.arch")
+        os-arch    (str os "-" arch)
+        graal-bin  (format "%s/%s-%s-%s%s" rel-dir (name game) version os-arch (if windows? ".exe" ""))]
+    (println "running" graal-bin)
+    (b/process {:command-args [graal-bin]})))

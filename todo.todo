@@ -180,6 +180,8 @@ todo:
         ✔ graalvm @done(26-02-11 23:02) HOLY SHIII
             ☐ lwjgl 3.4.0 cant do graal because we dont know how to work around with org.lwjgl.system.ffm.FFM.ffmGenerate
             ☐ sometimes the exe segfault and we dont know why
+                ☐ the trigger is probably this -> moving imguizmo while model is loading. not 100% tho hmm
+                ☐ no... it seems it is caused by stb_image loading at the same time in multiple threads
             ☐ the model loads block the thread, not graalvm related probably...?
             ✔ other platform???? @done(26-02-12 21:22) wsl ubuntu runs!
             ☐ why size big, around 90-110mb

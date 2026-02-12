@@ -1,6 +1,6 @@
 (ns minusthree.engine.loading
   (:require
-   [clojure.core.async :refer [#?@(:clj [io-thread >!!]) chan poll!]]
+   [clojure.core.async :refer [#?@(:clj [>!! thread]) chan poll!]]
    [clojure.spec.alpha :as s]
    [minusthree.engine.world :as world]
    [odoyle.rules :as o]))
@@ -38,9 +38,9 @@
       (let [world    (::world/this game)
             to-loads (into [] (take channel-size) (o/query-all world ::to-load))]
         #?(:clj (doseq [{:keys [esse-id load-fn]} to-loads]
-                  (io-thread
-                   (let [loaded-facts (load-fn)] ;; TODO error handling
-                     (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts})))))
+                  (thread
+                    (let [loaded-facts (load-fn)] ;; TODO error handling
+                      (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts})))))
         (update game ::world/this
                 (fn [world]
                   (reduce (fn [w' {:keys [esse-id]}] (o/insert w' esse-id ::state :loading)) world to-loads)))))))

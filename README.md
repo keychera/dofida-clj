@@ -36,6 +36,7 @@ pushd ../fastmath;clj -T:build compile-java; popd
 clj -T:build minusthree-prepare-for-graal
 # play around a bit with the game, building reachability-metadata.json, then
 clj -T:build minusthree-graal
+clj -T:build run-standalone
 ```
 
 glfw linux debugging (wsl actually)
