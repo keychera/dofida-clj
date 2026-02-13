@@ -1,5 +1,6 @@
 (ns minusthree.engine.math
   (:require
+   [fastmath.core :as m]
    [fastmath.matrix :as mat]
    [fastmath.vector :as v]
    [fastmath.quaternion :as q])
@@ -31,7 +32,7 @@
 
 (defn perspective
   [fovy aspect near far]
-  (let [f      (/ (Math/tan (* 0.5 fovy)))
+  (let [f      (/ (Math/tan (* 0.5 (m/radians fovy))))
         nf     (/ (- near far))]
     (mat/mat
      (/ f aspect) 0.0 0.0 0.0

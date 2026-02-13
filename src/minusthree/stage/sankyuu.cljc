@@ -4,6 +4,7 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.macros :refer [s->]]
    [fastmath.vector :as v]
+   [minusthree.anime.pose :as pose]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.model-loading :refer [load-gltf-fn]]
    [minusthree.engine.transform3d :as t3d]
@@ -12,64 +13,12 @@
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.gltf :as gltf]
    [minusthree.stage.model :as model]
-   [minusthree.stage.wirecube :as wirecube]
+   [minusthree.stage.shaderdef :as shaderdef]
    [minustwo.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
    [minustwo.gl.shader :as shader]
    [odoyle.rules :as o]))
 
 ;; 39
-
-(def MAX_JOINTS 500)
-
-(def gltf-vert
-  (str cljgl/version-str
-       "
-   precision mediump float;
-   
-   in vec3 POSITION;
-   in vec3 NORMAL;
-   in vec2 TEXCOORD_0;
-   in vec4 WEIGHTS_0;
-   in uvec4 JOINTS_0;
-   
-   uniform mat4 u_model;
-   uniform mat4 u_view;
-   uniform mat4 u_projection;
-   layout(std140) uniform Skinning {
-      mat4[" MAX_JOINTS "] u_joint_mats;
-   };
-   
-   out vec3 Normal;
-   out vec2 TexCoord;
-  
-   void main() {
-     vec4 pos = vec4(POSITION, 1.0);
-     mat4 skin = (WEIGHTS_0.x * u_joint_mats[JOINTS_0.x]) 
-               + (WEIGHTS_0.y * u_joint_mats[JOINTS_0.y]) 
-               + (WEIGHTS_0.z * u_joint_mats[JOINTS_0.z])
-               + (WEIGHTS_0.w * u_joint_mats[JOINTS_0.w]);
-     gl_Position = u_projection * u_view * u_model * skin * pos;
-     Normal = NORMAL;
-     TexCoord = TEXCOORD_0;
-   }
-  "))
-
-(def gltf-frag
-  (str cljgl/version-str
-       "
- precision mediump float;
- 
- in vec3 Normal;
- in vec2 TexCoord;
- 
- uniform sampler2D u_mat_diffuse;
- 
- out vec4 o_color;
-
- void main() {
-   o_color = vec4(texture(u_mat_diffuse, TexCoord).rgb, 1.0); 
- }
-"))
 
 (defn create-ubo [ctx size to-index]
   (let [ubo (gl ctx genBuffers)]
@@ -83,18 +32,18 @@
   (let [ctx nil]
     (-> world
       ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
-        (esse ::skinning-ubo {::model/ubo (create-ubo ctx (* MAX_JOINTS 16 4) 0)})
+        (esse ::skinning-ubo {::model/ubo (create-ubo ctx (* shaderdef/MAX_JOINTS 16 4) 0)})
         (esse ::wolfie model/biasa
               (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
-              {::shader/program-info (cljgl/create-program-info-from-source ctx gltf-vert gltf-frag)})
+              {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)})
         (esse ::wirebeing model/biasa
               (loading/push (load-gltf-fn ::wirebeing "assets/wirebeing.glb"))
-              {::shader/program-info (cljgl/create-program-info-from-source ctx wirecube/vs wirecube/fs)
-               ::t3d/translation (v/vec3 -2.0 8.0 0.0)}))))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/wirecube-vert shaderdef/wirecube-frag)}))))
 
-(defn post-fn [world game]
-  (println "refreshed!" (:refresh-flag* game))
-  world)
+(defn post-fn [world _game]
+  (-> world
+      (esse ::wolfie (pose/strike identity))
+      (esse ::wirebeing {::t3d/translation (v/vec3 -5.0 8.0 0.0)})))
 
 (def rules
   (o/ruleset
