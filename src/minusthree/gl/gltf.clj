@@ -136,7 +136,7 @@
                           (mat/eye 4))]
         (assoc node :matrix matrix
                :translation (or trans (v/vec3))
-               :rotation (or rot (q/quaternion 0.0))
+               :rotation (or rot q/ONE)
                :scale (or scale (v/vec3 1.0 1.0 1.0)))))))
 
 (defn reorder-parent-child-id [nodes node-parent-fix]
