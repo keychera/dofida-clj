@@ -130,7 +130,7 @@
             rot-mat   (some-> rot (quat->mat4))
             scale     (some-> (:scale node) (v/seq->vec3))
             scale-mat (some-> scale (scaling-mat))
-            matrix    (or (cond-> trans-mat
+            matrix    (or (cond->> trans-mat
                             rot-mat   (mat/mulm rot-mat)
                             scale-mat (mat/mulm scale-mat))
                           (mat/eye 4))]
@@ -216,7 +216,7 @@
   (let [trans-mat    (translation-mat translation)
         rot-mat      (quat->mat4 rotation)
         scale-mat    (scaling-mat scale)
-        local-trans  (reduce mat/mulm [trans-mat rot-mat scale-mat])]
+        local-trans  (reduce mat/mulm [scale-mat rot-mat trans-mat])]
     local-trans))
 
 ;; transducer with assumption that parent node will always before child node in a linear seq
@@ -230,7 +230,7 @@
        (let [local-trans  (calc-local-transform node)
              parent-trans (get @parents-global-transform! (:idx node))
              global-trans (if parent-trans
-                            (mat/mulm parent-trans local-trans)
+                            (mat/mulm local-trans parent-trans)
                             local-trans)
              node         (assoc node
                                  :local-transform local-trans
@@ -249,7 +249,7 @@
             joint-id   (get joint 1)
             global-t   (:global-transform (get global-tt joint-id))
             inv-bind-m (get inv-bind-mats idx)
-            joint-mat  (mat/mulm global-t inv-bind-m)
+            joint-mat  (mat/mulm inv-bind-m global-t)
             i          (* idx 16)]
         (dotimes [j 16]
           (aset f32s (+ i j) (float (get (mat/row joint-mat (quot j 4)) (mod j 4)))))))

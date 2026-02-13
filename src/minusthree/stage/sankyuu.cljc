@@ -3,6 +3,8 @@
    #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.macros :refer [s->]]
+   [fastmath.core :as m]
+   [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.pose :as pose]
    [minusthree.engine.loading :as loading]
@@ -40,9 +42,25 @@
               (loading/push (load-gltf-fn ::wirebeing "assets/wirebeing.glb"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/wirecube-vert shaderdef/wirecube-frag)}))))
 
+(defn do-pose [pose-fn]
+  (map (fn [{:keys [name] :as bone}]
+         (if-let [bone-pose (pose-fn name)]
+           (let [next-translation (:t bone-pose)
+                 next-rotation    (or (:r bone-pose)
+                                      (when (:r-fn bone-pose) ((:r-fn bone-pose) bone)))]
+             (cond-> bone
+               next-translation (update :translation v/add next-translation)
+               next-rotation (update :rotation q/mult next-rotation)))
+           bone))))
+
+(def be-cute
+  (do-pose
+   {"右腕" {:r (q/rotation-quaternion (m/radians 30.0) (v/vec3 0.0 0.0 1.0))}
+    "左腕" {:r (q/rotation-quaternion (m/radians -30.0) (v/vec3 0.0 0.0 1.0))}}))
+
 (defn post-fn [world _game]
   (-> world
-      (esse ::wolfie (pose/strike identity))
+      (esse ::wolfie (pose/strike be-cute))
       (esse ::wirebeing {::t3d/translation (v/vec3 -5.0 8.0 0.0)})))
 
 (def rules

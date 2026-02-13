@@ -79,8 +79,8 @@ void main() {
     target-fbo :fbo
     target-color-attachment :color-attachment}
    {:keys [translation scale]}]
-  (let [model (mat/mulm (translation-mat translation)
-                        (scaling-mat scale))]
+  (let [model (mat/mulm (scaling-mat scale)
+                        (translation-mat translation))]
     (gl ctx bindFramebuffer GL_FRAMEBUFFER target-fbo)
     (gl ctx blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
 

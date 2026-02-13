@@ -29,7 +29,7 @@
      (let [trans-mat     (translation-mat position-vec3)
            rot-mat       (quat->mat4 rotation-quat)
            scale-mat     (scaling-mat scale-vec3)
-           transform-mat (reduce mat/mulm [trans-mat rot-mat scale-mat])]
+           transform-mat (reduce mat/mulm [scale-mat rot-mat trans-mat])]
        (insert! esse-id ::transform transform-mat))]}))
 
 (def system
