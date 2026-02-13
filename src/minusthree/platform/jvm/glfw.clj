@@ -35,13 +35,14 @@
      window)))
 
 (defn start-glfw-loop
-  ([glfw-window {:keys [stop-flag*] :as config}]
+  ([glfw-window {:keys [stop-flag* :refresh-flag*] :as config}]
    (println "hello -3 + glfw")
    (try
      (GLFW/glfwShowWindow glfw-window)
      (loop [game (engine/init {::time/total 0.0
                                :config (dissoc config :stop-flag*)
-                               :glfw-window glfw-window})]
+                               :glfw-window glfw-window
+                               :refresh-flag* refresh-flag*})]
        (if-not (or (GLFW/glfwWindowShouldClose glfw-window)
                    (and (some? stop-flag*) @stop-flag*))
          (let [total (* (GLFW/glfwGetTime) 1000)

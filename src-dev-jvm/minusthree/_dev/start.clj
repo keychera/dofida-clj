@@ -19,15 +19,21 @@
            (spit config default)))))
 
 (defonce stop* (atom false))
+(defonce refresh* (atom false))
 
 (defn toggle-stop []
   (if (swap! stop* not)
-    (println "stopping game...")
-    (println "starting game...")))
+    "stopping game..."
+    "starting game..."))
+
+(defn refresh []
+  (reset! refresh* true)
+  "refreshing game...")
 
 (defn start []
   (let [dev-config (assoc (get-config)
-                          :stop-flag* stop*)
+                          :stop-flag* stop*
+                          :refresh-flag* refresh*)
         window     (jvm-game/create-window (:window-conf dev-config))]
     (jvm-game/start window dev-config)))
 
@@ -49,6 +55,7 @@
 
 (comment
   (toggle-stop)
+  (refresh)
 
   (st/instrument)
   (st/unstrument)

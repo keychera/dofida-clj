@@ -16,11 +16,14 @@
        #?(:clj (rendering/init))
        (s/assert ::init-game)))
 
-(defn tick [game]
-  (-> game
-      (update ::world/this o/fire-rules)
-      (loading/loading-zone)
-      #?(:clj (rendering/rendering-zone))))
+(defn tick [{:keys [refresh-flag*] :as game}]
+  (let [refresh? (some-> refresh-flag* deref)]
+    (when refresh? (reset! refresh-flag* false))
+    (cond-> game
+      refresh? (world/post-world)
+      true     (update ::world/this o/fire-rules)
+      true     (loading/loading-zone)
+      #?@(:clj [true (rendering/rendering-zone)]))))
 
 (defn destroy [game]
   (-> game

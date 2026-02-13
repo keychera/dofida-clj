@@ -92,6 +92,10 @@
               {::shader/program-info (cljgl/create-program-info-from-source ctx wirecube/vs wirecube/fs)
                ::t3d/translation (v/vec3 -2.0 8.0 0.0)}))))
 
+(defn post-fn [world game]
+  (println "refreshed!" (:refresh-flag* game))
+  world)
+
 (def rules
   (o/ruleset
    {::wolfie
@@ -115,6 +119,7 @@
 
 (def system
   {::world/init-fn #'init-fn
+   ::world/post-fn #'post-fn
    ::world/rules #'rules})
 
 #?(:clj
