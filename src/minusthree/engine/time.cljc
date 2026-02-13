@@ -31,10 +31,9 @@
      [::now ::step-delay delay-ms {:then false}]
      :then 
      (if (> delay-ms timestep-ms)
-       (do (println "step" timestep)
-           (s-> session
-                (o/insert ::now ::step (inc timestep))
-                (o/insert ::now ::step-delay 0)))
+       (s-> session
+            (o/insert ::now ::step (inc timestep))
+            (o/insert ::now ::step-delay 0))
        (s-> session
             (o/insert ::now ::step-delay (+ delay-ms dt))))]}))
 
