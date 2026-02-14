@@ -25,6 +25,7 @@
 
 (s/def ::data map?)
 (s/def ::bins vector?)
+(s/def ::texture-count int?)
 (s/def ::primitives sequential?)
 (s/def ::joints vector?)
 (s/def ::inv-bind-mats vector?)
@@ -179,9 +180,9 @@
         materials  (some-> gltf-data :materials)
         textures   (some-> gltf-data :textures)
         accessors  (some-> gltf-data :accessors)
-        images     (eduction
-                    (process-image-uri model-id gltf-dir)
-                    (some-> gltf-data :images))
+        images     (into []
+                         (process-image-uri model-id gltf-dir)
+                         (some-> gltf-data :images))
         primitives (eduction
                     (create-vao-names (str model-id "_" (:name mesh)))
                     (match-textures tex-unit-offset materials textures images)
@@ -208,6 +209,7 @@
              transform-tree (node-transform-tree nodes node-parent-fix)]
          [[model-id ::primitives primitives]
           [model-id ::joints (or joints [])]
+          [model-id ::texture-count (count images)]
           [model-id ::geom/transform-tree (vec transform-tree)]
           (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))

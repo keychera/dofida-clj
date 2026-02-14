@@ -42,6 +42,7 @@
      [esse-id ::gl-magic/casted? true]
      [esse-id ::gl-magic/data gl-data]
      [esse-id ::texture/data tex-data]
+     [esse-id ::gltf/texture-count tex-count]
      [esse-id ::gltf/primitives primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
@@ -49,8 +50,8 @@
      ;; need hammock on how to manage ubo
      [:minusthree.stage.sankyuu/skinning-ubo ::ubo skinning-ubo]
      [esse-id ::t3d/transform transform]
-     :then
-     (println esse-id "ready to render!")]}))
+     :when (= tex-count (count tex-data))
+     :then (println esse-id "ready to render!")]}))
 
 (def system
   {::world/init-fn #'init-fn
