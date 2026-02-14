@@ -1,11 +1,11 @@
 (ns minustwo.model.pmx-parser
   (:require
    [clojure.java.io :as io]
-   [engine.utils :refer [get-parent-path]]
    [gloss.core :as g :refer [defcodec finite-frame repeated string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
    [gloss.core.structure :refer [compile-frame]]
-   [gloss.io :as gio]))
+   [gloss.io :as gio]
+   [minusthree.engine.utils :refer [get-parent-path]]))
 
 ;; PMX spec
 ;; https://gist.github.com/felixjones/f8a06bd48f9da9a4539f/b3944390bd935f48ddf72dd2fc058ffe87c10708

@@ -8,7 +8,7 @@
    [fastmath.vector :as v]
    [minusthree.anime.anime :as anime]
    [minusthree.engine.loading :as loading]
-   [minusthree.engine.model-loading :refer [load-gltf-fn]]
+   [minusthree.model.assimp-lwjgl :refer [load-gltf-fn]]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.cljgl :as cljgl]
@@ -33,8 +33,10 @@
 (defn init-fn [world _game]
   (let [ctx nil]
     (-> world
-      ;; miku is error for now (current behaviour = assert exception only prints, game doesn't crash)
         (esse ::skinning-ubo {::model/ubo (create-ubo ctx (* shaderdef/MAX_JOINTS 16 4) 0)})
+        (esse ::miku
+              (loading/push (load-gltf-fn ::miku "assets/models/HatsuneMiku/Hatsune Miku.pmx"))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)})
         (esse ::wolfie model/biasa
               (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)})

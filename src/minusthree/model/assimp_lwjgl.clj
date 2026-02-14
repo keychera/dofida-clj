@@ -1,4 +1,4 @@
-(ns minusthree.engine.model-loading
+(ns minusthree.model.assimp-lwjgl
   (:require
    [cheshire.core :as json]
    [clojure.java.io :as io]
