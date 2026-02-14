@@ -7,14 +7,14 @@
 
 (s/def ::channel some? #_ManyToManyChannel)
 (s/def ::load-fn fn? #_(fn [] (s/coll-of facts)))
-(s/def ::state #{:pending :loading :success})
-(def channel-size 8)
+(s/def ::state #{:pending :loading :success :error})
+(def load-buffer 8)
 
 (defn push [load-fn]
   {::load-fn load-fn ::state :pending})
 
 (defn init-channel [game]
-  (assoc game ::channel (chan channel-size)))
+  (assoc game ::channel (chan 2)))
 
 (def rules
   (o/ruleset
@@ -36,11 +36,15 @@
                   (-> (reduce o/insert world new-facts)
                       (o/insert esse-id ::state :success)))))
       (let [world    (::world/this game)
-            to-loads (into [] (take channel-size) (o/query-all world ::to-load))]
-        #?(:clj (doseq [{:keys [esse-id load-fn]} to-loads]
-                  (thread
-                    (let [loaded-facts (load-fn)] ;; TODO error handling
-                      (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts})))))
+            to-loads (into [] (take load-buffer) (o/query-all world ::to-load))]
+        #?(:clj (thread
+                  (doseq [{:keys [esse-id load-fn]} to-loads]
+                    (try
+                      (let [loaded-facts (load-fn)]
+                        (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts}))
+                      (catch #?(:clj Throwable :cljs js/Error) err
+                        (println esse-id "load error =" (.getMessage err))
+                        (>!! loading-ch {:esse-id esse-id :new-facts [[esse-id ::state :error]]}))))))
         (update game ::world/this
                 (fn [world]
                   (reduce (fn [w' {:keys [esse-id]}] (o/insert w' esse-id ::state :loading)) world to-loads)))))))

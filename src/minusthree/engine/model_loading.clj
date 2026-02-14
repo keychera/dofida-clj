@@ -20,7 +20,7 @@
                            Assimp/aiProcess_JoinIdenticalVertices
                            Assimp/aiProcess_SortByPType)
         aiScene    (Assimp/aiImportFileFromMemory buffer flags (str nil))
-        _          (assert (some? aiScene) (str "aiScene for " model-path " is null!"))
+        _          (assert (some? aiScene) (str "aiScene for " model-path " is null!\nerr: " (Assimp/aiGetErrorString)))
         blob       (Assimp/aiExportSceneToBlob aiScene export-format 0)
         ;; we assume only 2 files for now, or rather, convention for ourself
         gltf-buf   (.data blob)
