@@ -31,6 +31,7 @@
 (s/def ::tex-name some?)
 (s/def ::texture (s/keys :req-un [::gl-texture ::tex-unit]))
 (s/def ::data (s/map-of ::tex-name ::texture))
+(s/def ::count number?)
 
 (defn load-image [uri]
   (cond

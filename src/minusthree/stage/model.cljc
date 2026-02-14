@@ -42,7 +42,7 @@
      [esse-id ::gl-magic/casted? true]
      [esse-id ::gl-magic/data gl-data]
      [esse-id ::texture/data tex-data]
-     [esse-id ::gltf/texture-count tex-count]
+     [esse-id ::texture/count tex-count]
      [esse-id ::gltf/primitives primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]

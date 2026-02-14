@@ -10,6 +10,7 @@
                                    translation-mat]]
    [minusthree.engine.utils :as utils]
    [minusthree.gl.geom :as geom]
+   [minusthree.gl.texture :as texture]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]])
   (:import
    [java.nio ByteOrder]))
@@ -25,7 +26,6 @@
 
 (s/def ::data map?)
 (s/def ::bins vector?)
-(s/def ::texture-count int?)
 (s/def ::primitives sequential?)
 (s/def ::joints vector?)
 (s/def ::inv-bind-mats vector?)
@@ -209,7 +209,7 @@
              transform-tree (node-transform-tree nodes node-parent-fix)]
          [[model-id ::primitives primitives]
           [model-id ::joints (or joints [])]
-          [model-id ::texture-count (count images)]
+          [model-id ::texture/count (count images)]
           [model-id ::geom/transform-tree (vec transform-tree)]
           (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
             [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
