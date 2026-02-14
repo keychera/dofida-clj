@@ -45,7 +45,7 @@
      [esse-id ::gltf/primitives primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
-     [esse-id ::anime/pose pose-tree]
+     [esse-id ::anime/pose pose-tree {:then false}]
      ;; need hammock on how to manage ubo
      [:minusthree.stage.sankyuu/skinning-ubo ::ubo skinning-ubo]
      [esse-id ::t3d/transform transform]

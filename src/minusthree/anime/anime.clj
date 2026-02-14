@@ -26,6 +26,7 @@
 (s/def ::bone-name string?)
 (s/def ::bone-anime (s/map-of ::bone-name ::channels))
 
+(s/def ::use ::world/esse-id)
 (s/def ::duration number?)
 (s/def ::bone-animes (s/coll-of ::bone-anime))
 
@@ -46,7 +47,10 @@
    (fn [ch' ch-type track]
      (cond-> ch'
        (= :translation ch-type)
-       (assoc :translation (blend-kf-with track v/interpolate t))))
+       (assoc :translation (blend-kf-with track v/interpolate t))
+
+       (= :rotation ch-type)
+       (assoc :rotation (blend-kf-with track q/slerp t))))
    {} channel))
 
 (defn anime-xf [bone-animes t]
@@ -55,7 +59,8 @@
     (map (fn [{:keys [name] :as bone}]
            (let [sample (get bone->sample name)]
              (cond-> bone
-               (:translation sample) (update :translation v/add (:translation sample))))))))
+               (:translation sample) (update :translation v/add (:translation sample))
+               (:rotation sample) (update :rotation q/mult (:rotation sample))))))))
 
 (def rules
   (o/ruleset
