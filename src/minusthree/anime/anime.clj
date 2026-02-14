@@ -7,7 +7,7 @@
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
    [minusthree.gl.geom :as geom]
-   [minusthree.gl.gltf :as gltf]
+   [minusthree.model.gltf-model :as gltf]
    [odoyle.rules :as o]))
 
 (s/def :translation/out #(instance? fastmath.vector.Vec3 %))

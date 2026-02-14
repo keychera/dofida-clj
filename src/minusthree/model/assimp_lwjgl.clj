@@ -3,13 +3,15 @@
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [minusthree.engine.utils :refer [get-parent-path get-public-resource]]
-   [minusthree.gl.gltf :as gltf])
+   [minusthree.model.gltf-model :as gltf])
   (:import
    [java.nio ByteOrder]
    [org.lwjgl BufferUtils]
    [org.lwjgl.assimp Assimp]))
 
-(defn load-with-assimp [model-path export-format]
+(defn load-with-assimp
+  "load model with assimp and convert to gltf in-memory"
+  [model-path export-format]
   (let [model-res  (get-public-resource model-path)
         bytes      (.readAllBytes (io/input-stream model-res))
         buffer     (doto (BufferUtils/createByteBuffer (count bytes))

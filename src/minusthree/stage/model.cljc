@@ -9,7 +9,7 @@
    [minusthree.engine.world :as world]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
-   [minusthree.gl.gltf :as gltf]
+   [minusthree.model.gltf-model :as gltf]
    [minusthree.gl.texture :as texture]
    [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
                                   GL_UNIFORM_BUFFER]]

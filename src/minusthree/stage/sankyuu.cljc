@@ -8,12 +8,13 @@
    [fastmath.vector :as v]
    [minusthree.anime.anime :as anime]
    [minusthree.engine.loading :as loading]
-   [minusthree.model.assimp-lwjgl :refer [load-gltf-fn]]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
-   [minusthree.gl.gltf :as gltf]
+   [minusthree.model.gltf-model :as gltf]
+   [minusthree.model.assimp-lwjgl :refer [load-gltf-fn]]
+   [minusthree.model.pmx-model :refer [load-pmx-fn]]
    [minusthree.stage.model :as model]
    [minusthree.stage.shaderdef :as shaderdef]
    [minustwo.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
@@ -35,8 +36,8 @@
     (-> world
         (esse ::skinning-ubo {::model/ubo (create-ubo ctx (* shaderdef/MAX_JOINTS 16 4) 0)})
         (esse ::miku
-              (loading/push (load-gltf-fn ::miku "assets/models/HatsuneMiku/Hatsune Miku.pmx"))
-              {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)})
+              (loading/push (load-pmx-fn ::miku "assets/models/HatsuneMiku/Hatsune Miku.pmx"))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/pmx-vert shaderdef/pmx-frag)})
         (esse ::wolfie model/biasa
               (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)})

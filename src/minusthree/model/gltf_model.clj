@@ -1,4 +1,4 @@
-(ns minusthree.gl.gltf
+(ns minusthree.model.gltf-model
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
