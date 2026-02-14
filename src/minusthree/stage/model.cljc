@@ -20,7 +20,7 @@
 (s/def ::render-fn fn?)
 (s/def ::ubo some?)
 
-(declare render-biasa-fn)
+(declare render-biasa)
 
 (def default-esse
   (merge {::texture/data {}}
@@ -30,7 +30,7 @@
 
 (defn init-fn [world _game]
   (-> world
-      (o/insert ::biasa ::render-fn render-biasa-fn)))
+      (o/insert ::biasa ::render-fn render-biasa)))
 
 (def rules
   (o/ruleset
@@ -57,7 +57,7 @@
   {::world/init-fn #'init-fn
    ::world/rules #'rules})
 
-(defn render-biasa-fn
+(defn render-biasa
   [{:keys [ctx project view]}
    {:keys [program-info gl-data tex-data primitives transform
            joints pose-tree inv-bind-mats skinning-ubo]}]
