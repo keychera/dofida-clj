@@ -118,8 +118,8 @@
                     "--verbose"
                     "--no-fallback"
                     (str "--target=" os-arch)
-                    "--initialize-at-build-time=com.fasterxml.jackson"
-                    "--initialize-at-run-time=org.lwjgl"
+                    "--initialize-at-build-time=com.fasterxml.jackson,clj_tuple,potemkin,clj_tuple$hash_map,clj_tuple$vector"
+                    "--initialize-at-run-time=org.lwjgl" 
                     "-o" graal-bin]]
     (minusthree-uber {:uber-file graal-uber
                       :basis     basis})
