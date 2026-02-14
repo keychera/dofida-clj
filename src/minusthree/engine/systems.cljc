@@ -1,6 +1,6 @@
 (ns minusthree.engine.systems
   (:require
-   [minusthree.anime.pose :as pose]
+   [minusthree.anime.anime :as anime]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.time :as time]
    [minusthree.engine.transform3d :as t3d]
@@ -17,6 +17,6 @@
    t3d/system
 
    ;; anime
-   pose/system
+   anime/system
 
    sankyuu/system])

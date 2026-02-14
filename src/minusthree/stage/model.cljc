@@ -4,7 +4,7 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [fastmath.matrix :refer [mat->float-array]]
-   [minusthree.anime.pose :as pose]
+   [minusthree.anime.anime :as anime]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world]
    [minusthree.gl.cljgl :as cljgl]
@@ -24,8 +24,7 @@
 
 (def default-esse
   (merge {::texture/data {}}
-         t3d/default
-         pose/default))
+         t3d/default))
 
 (def biasa (merge {::render-type ::biasa} default-esse))
 
@@ -46,7 +45,7 @@
      [esse-id ::gltf/primitives primitives]
      [esse-id ::gltf/joints joints]
      [esse-id ::gltf/inv-bind-mats inv-bind-mats]
-     [esse-id ::pose/pose-tree pose-tree]
+     [esse-id ::anime/pose pose-tree]
      ;; need hammock on how to manage ubo
      [:minusthree.stage.sankyuu/skinning-ubo ::ubo skinning-ubo]
      [esse-id ::t3d/transform transform]

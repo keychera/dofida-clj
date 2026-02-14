@@ -1,10 +1,11 @@
 (ns minusthree.anime.anime
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [s->]]
+   [engine.macros :refer [insert!]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.engine.time :as time]
+   [minusthree.engine.world :as world]
    [minusthree.gl.geom :as geom]
    [minusthree.gl.gltf :as gltf]
    [odoyle.rules :as o]))
@@ -24,6 +25,61 @@
 
 (s/def ::bone-name string?)
 (s/def ::bone-anime (s/map-of ::bone-name ::channels))
+
+(s/def ::duration number?)
+(s/def ::bone-animes (s/coll-of ::bone-anime))
+
+(s/def ::pose ::geom/transform-tree)
+
+(defn progress [t t0 t1]
+  (/ (- t t0) (- t1 t0)))
+
+(defn blend-kf-with [track blender-fn t]
+  (let [[k0 k1] (->> (partition-all 2 1 track)
+                     (filter (fn [[k0 k1]] (<= (:in k0) t (:in k1))))
+                     first)
+        p       (progress t (:in k0) (:in k1))]
+    (blender-fn (:out k0) (:out k1) p)))
+
+(defn blend-channels [channel t]
+  (reduce-kv
+   (fn [ch' ch-type track]
+     (cond-> ch'
+       (= :translation ch-type)
+       (assoc :translation (blend-kf-with track v/interpolate t))))
+   {} channel))
+
+(defn anime-xf [bone-animes t]
+  (let [bone->sample (-> (apply merge bone-animes)
+                         (update-vals #(blend-channels % t)))]
+    (map (fn [{:keys [name] :as bone}]
+           (let [sample (get bone->sample name)]
+             (cond-> bone
+               (:translation sample) (update :translation v/add (:translation sample))))))))
+
+(def rules
+  (o/ruleset
+   {::default-pose
+    [:what [esse-id ::geom/transform-tree transform-tree]
+     :then (insert! esse-id ::pose (into [] gltf/global-transform-xf transform-tree))]
+
+    ::anime
+    [:what
+     [::time/now ::time/total tt]
+     [esse-id ::geom/transform-tree transform-tree]
+     [esse-id ::use anime-id]
+     [anime-id ::duration duration]
+     [anime-id ::bone-animes bone-animes]
+     :then
+     (let [prog (progress (mod tt duration) 0.0 duration)
+           pose (into []
+                      (comp (anime-xf bone-animes prog)
+                            gltf/global-transform-xf)
+                      transform-tree)]
+       (insert! esse-id ::pose pose))]}))
+
+(def system
+  {::world/rules #'rules})
 
 (comment
   ;; this will fail
@@ -47,32 +103,6 @@
                    {:in 0.3 :out (v/vec3 1.0 1.0 1.0)}
                    {:in 0.6 :out (v/vec3 0.0 0.0 0.0)}
                    {:in 1.0 :out (v/vec3 1.0 1.0 1.0)}]}}]
-    (letfn [(progress [t t0 t1]
-              (/ (- t t0) (- t1 t0)))
-
-            (blend-kf-with [track blender-fn t]
-              (let [[k0 k1] (->> (partition-all 2 1 track)
-                                 (filter (fn [[k0 k1]] (<= (:in k0) t (:in k1))))
-                                 first)
-                    p       (progress t (:in k0) (:in k1))]
-                (blender-fn (:out k0) (:out k1) p)))
-
-            (blend-channels [channel t]
-              (reduce-kv
-               (fn [ch' ch-type track]
-                 (cond-> ch'
-                   (= :translation ch-type)
-                   (assoc :translation (blend-kf-with track v/interpolate t))))
-               {}
-               channel))
-
-            (do-anime [bones bone-animes t]
-              (let [bone->sample (-> (apply merge bone-animes)
-                                     (update-vals #(blend-channels % t)))]
-                (into []
-                      (map (fn [{:keys [name] :as bone}]
-                             (let [sample (get bone->sample name)]
-                               (cond-> bone
-                                 (:translation sample) (update :translation v/add (:translation sample))))))
-                      bones)))]
-      (do-anime bones [anime-1 anime-2] 0.42))))
+    (into []
+          (anime-xf [anime-1 anime-2] 0.42)
+          bones)))
