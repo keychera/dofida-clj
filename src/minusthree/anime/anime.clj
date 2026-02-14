@@ -4,6 +4,7 @@
    [engine.macros :refer [insert!]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
+   [minusthree.anime.bones :as bones]
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
    [minusthree.gl.geom :as geom]
@@ -65,13 +66,13 @@
 (def rules
   (o/ruleset
    {::default-pose
-    [:what [esse-id ::geom/transform-tree transform-tree]
+    [:what [esse-id ::bones/data transform-tree]
      :then (insert! esse-id ::pose (into [] gltf/global-transform-xf transform-tree))]
 
     ::anime
     [:what
      [::time/now ::time/total tt]
-     [esse-id ::geom/transform-tree transform-tree]
+     [esse-id ::bones/data transform-tree]
      [esse-id ::use anime-id]
      [anime-id ::duration duration]
      [anime-id ::bone-animes bone-animes]

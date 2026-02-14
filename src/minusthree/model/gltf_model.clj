@@ -2,10 +2,10 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [engine.sugar :refer [f32-arr]]
    [fastmath.matrix :as mat]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
+   [minusthree.anime.bones :as bones]
    [minusthree.engine.math :refer [decompose-Mat4x4 quat->mat4 scaling-mat
                                    translation-mat]]
    [minusthree.engine.utils :as utils]
@@ -27,8 +27,6 @@
 (s/def ::data map?)
 (s/def ::bins vector?)
 (s/def ::primitives sequential?)
-(s/def ::joints vector?)
-(s/def ::inv-bind-mats vector?)
 
 (defn create-vao-names [prefix]
   (map-indexed
@@ -140,25 +138,10 @@
                :rotation (or rot q/ONE)
                :scale (or scale (v/vec3 1.0 1.0 1.0)))))))
 
-(defn reorder-parent-child-id [nodes node-parent-fix]
-  (let [nodes (into [] (map-indexed (fn [idx item] (assoc item :orig-idx idx))) nodes)
-        ;; hardcoded for pmx for now
-        parent-of-all (first (filter #(= (:name %) node-parent-fix) nodes))]
-    (if parent-of-all
-      (let [dfs-tree    (into [] (map-indexed (fn [idx item] (assoc item :idx idx)))
-                              (tree-seq :children
-                                        (fn [{:keys [children]}] (into [] (map (fn [cid] (nth nodes cid))) children))
-                                        parent-of-all))
-            idx-mapping (into {} (map (juxt :orig-idx :idx)) dfs-tree)
-            remapped    (into [] (map (fn [node] (update node :children (fn [children] (into [] (map idx-mapping) children))))) dfs-tree)]
-        remapped)
-      nodes)))
-
 (s/fdef node-transform-tree
   :ret ::geom/transform-tree)
-(defn node-transform-tree [nodes node-parent-fix]
-  (let [nodes (if node-parent-fix (reorder-parent-child-id nodes node-parent-fix) nodes)
-        tree  (tree-seq :children
+(defn node-transform-tree [nodes]
+  (let [tree  (tree-seq :children
                         (fn [parent-node]
                           (into []
                                 (comp
@@ -172,7 +155,7 @@
 
 (defn gltf-spell
   "magic to pass to gl-magic/cast-spell"
-  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset node-parent-fix]
+  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset]
                          :or {tex-unit-offset 0}}]
   (let [gltf-dir   (some-> gltf-data :asset :dir)
         _          (assert gltf-dir "no parent dir data in [:asset :dir]")
@@ -200,19 +183,24 @@
 
       {:insert-facts
        ;; assuming one skin for now
-       (let [joints         (into [] (map-indexed vector) (some-> gltf-data :skins first :joints))
-             primitives     (into []
-                                  (comp (map (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])))
-                                        (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
-                                  primitives)
-             nodes          (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-data))
-             transform-tree (node-transform-tree nodes node-parent-fix)]
+       (let [node-id->joint-id (into {} (map-indexed (fn [joint-id node-id] [node-id joint-id])) (some-> gltf-data :skins first :joints))
+             primitives        (into []
+                                     (comp (map (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])))
+                                           (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
+                                     primitives)
+             nodes             (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-data))
+             transform-tree    (into [] (node-transform-tree nodes))
+             inv-bind-mats     (get-ibm-inv-mats gltf-data result-bin)
+             bones             (into []
+                                     (comp (map (fn [{node-id :idx :as node}]
+                                                  (let [joint-id (get node-id->joint-id node-id)
+                                                        ibm      (get inv-bind-mats joint-id)]
+                                                    (when joint-id (assoc node :inv-bind-mat ibm :joint-id joint-id)))))
+                                           (filter some?))
+                                     transform-tree)]
          [[model-id ::primitives primitives]
-          [model-id ::joints (or joints [])]
-          [model-id ::texture/count (count images)]
-          [model-id ::geom/transform-tree (vec transform-tree)]
-          (let [inv-bind-mats (get-ibm-inv-mats gltf-data result-bin)]
-            [model-id ::inv-bind-mats (or inv-bind-mats [])])])}])))
+          [model-id ::bones/data bones]
+          [model-id ::texture/count (count images)]])}])))
 
 (defn calc-local-transform [{:keys [translation rotation scale]}]
   (let [trans-mat    (translation-mat translation)
@@ -243,16 +231,3 @@
                    into (map (fn [cid] [cid global-trans]))
                    (:children node)))
          (rf result node))))))
-
-(defn create-joint-mats-arr [joints global-tt inv-bind-mats]
-  (let [f32s (f32-arr (* 16 (count joints)))]
-    (doseq [joint joints]
-      (let [idx        (get joint 0)
-            joint-id   (get joint 1)
-            global-t   (:global-transform (get global-tt joint-id))
-            inv-bind-m (get inv-bind-mats idx)
-            joint-mat  (mat/mulm inv-bind-m global-t)
-            i          (* idx 16)]
-        (dotimes [j 16]
-          (aset f32s (+ i j) (float (get (mat/row joint-mat (quot j 4)) (mod j 4)))))))
-    f32s))

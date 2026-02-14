@@ -5,12 +5,13 @@
    [clojure.spec.alpha :as s]
    [fastmath.matrix :refer [mat->float-array]]
    [minusthree.anime.anime :as anime]
+   [minusthree.anime.bones :as bones]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
-   [minusthree.model.gltf-model :as gltf]
    [minusthree.gl.texture :as texture]
+   [minusthree.model.gltf-model :as gltf]
    [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
                                   GL_UNIFORM_BUFFER]]
    [minustwo.gl.shader :as shader]
@@ -44,8 +45,6 @@
      [esse-id ::texture/data tex-data]
      [esse-id ::texture/count tex-count]
      [esse-id ::gltf/primitives primitives]
-     [esse-id ::gltf/joints joints]
-     [esse-id ::gltf/inv-bind-mats inv-bind-mats]
      [esse-id ::anime/pose pose-tree {:then false}]
      ;; need hammock on how to manage ubo
      [:minusthree.stage.sankyuu/skinning-ubo ::ubo skinning-ubo]
@@ -59,16 +58,15 @@
 
 (defn render-biasa
   [{:keys [ctx project view]}
-   {:keys [program-info gl-data tex-data primitives transform
-           joints pose-tree inv-bind-mats skinning-ubo]}]
+   {:keys [program-info gl-data tex-data primitives transform pose-tree skinning-ubo]}]
   (let [vaos (::gl-magic/vao gl-data)]
     (gl ctx useProgram (:program program-info))
     (cljgl/set-uniform ctx program-info :u_projection project)
     (cljgl/set-uniform ctx program-info :u_view view)
     (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
 
-    (when (seq joints)
-      (let [^floats joint-mats (gltf/create-joint-mats-arr joints pose-tree inv-bind-mats)]
+    (when (seq pose-tree)
+      (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
         (when (> (alength joint-mats) 0)
           (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
           (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
