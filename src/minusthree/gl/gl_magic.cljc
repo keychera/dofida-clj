@@ -54,6 +54,7 @@
                  magician)
                (update-in magician [::data ::err] conj (str "[error] attr-loc not found for chant:" chant)))
              (catch #?(:clj Exception :cljs js/Error) err
+               (println "[error] in point-attr" (:point-attr chant) ", cause:" (:cause (Throwable->map err)))
                (update-in magician [::data ::err] conj err)))
 
            [{:bind-texture _ :image _ :tex-unit _}] ;; entry: texture binding
