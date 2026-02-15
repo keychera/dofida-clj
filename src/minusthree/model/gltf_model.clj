@@ -2,16 +2,27 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [fastmath.matrix :as mat]
+   [engine.macros :refer [s->]]
+   [fastmath.matrix :as mat :refer [mat->float-array]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]
+   [minusthree.engine.loading :as loading]
    [minusthree.engine.math :refer [decompose-Mat4x4 quat->mat4 scaling-mat
                                    translation-mat]]
    [minusthree.engine.utils :as utils]
+   [minusthree.engine.world :as world]
+   [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.geom :as geom]
+   [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.texture :as texture]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]])
+   [minusthree.model.model-rendering :as model-rendering]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
+                                  GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
+                                  GL_UNIFORM_BUFFER]]
+   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+   [minustwo.gl.shader :as shader]
+   [odoyle.rules :as o])
   (:import
    [java.nio ByteOrder]))
 
@@ -231,3 +242,79 @@
                    into (map (fn [cid] [cid global-trans]))
                    (:children node)))
          (rf result node))))))
+
+(def default
+  (merge {::model-rendering/render-type ::gltf-model}
+         model-rendering/default-esse))
+
+(declare render-gltf)
+
+(defn init-fn [world _game]
+  (-> world
+      (o/insert ::gltf-model ::model-rendering/render-fn render-gltf)))
+
+(def rules
+  (o/ruleset
+   {::load-gltf
+    [:what
+     [esse-id ::data gltf-data]
+     [esse-id ::bins bins]
+     [esse-id ::loading/state :success]
+     [esse-id ::shader/program-info program-info]
+     :then
+     (let [ctx          nil ; for now, since jvm doesn't need it
+           gltf-chant   (gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
+           summons      (gl-magic/cast-spell ctx esse-id gltf-chant)
+           gl-facts     (::gl-magic/facts summons)
+           gl-data      (::gl-magic/data summons)]
+       (println esse-id "is loaded!")
+       (s-> (reduce o/insert session gl-facts)
+            (o/retract esse-id ::data)
+            (o/retract esse-id ::bins)
+            (o/insert esse-id {::gl-magic/data gl-data})))]
+
+    ::collect-primitives
+    [:what
+     [esse-id ::gl-magic/data gl-data]
+     [esse-id ::primitives primitives]
+     :then
+     (s-> session
+          (o/retract esse-id ::primitives)
+          (o/insert esse-id {::gl-magic/data (assoc gl-data ::primitives primitives)
+                             ::gl-magic/casted? true}))]}))
+
+(def system
+  {::world/init-fn #'init-fn
+   ::world/rules #'rules})
+
+(defn render-gltf
+  [{:keys [ctx project view]}
+   {:keys [program-info gl-data tex-data transform pose-tree skinning-ubo]}]
+  (let [vaos  (::gl-magic/vao gl-data)
+        prims (::primitives gl-data)]
+    (gl ctx useProgram (:program program-info))
+    (cljgl/set-uniform ctx program-info :u_projection project)
+    (cljgl/set-uniform ctx program-info :u_view view)
+    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
+
+    (when (seq pose-tree)
+      (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
+        (when (> (alength joint-mats) 0)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER 0))))
+
+    (doseq [{:keys [indices vao-name tex-name]} prims]
+      (let [vert-count     (:count indices)
+            component-type (:componentType indices)
+            vao            (get vaos vao-name)
+            tex            (get tex-data tex-name)]
+        (when vao
+          (when-let [{:keys [tex-unit gl-texture]} tex]
+            (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+            (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
+            (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
+
+          (gl ctx bindVertexArray vao)
+          (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
+          (gl ctx bindVertexArray 0))))))

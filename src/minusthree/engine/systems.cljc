@@ -5,6 +5,7 @@
    [minusthree.engine.time :as time]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.gl.texture :as texture]
+   [minusthree.model.gltf-model :as gltf]
    [minusthree.model.model-rendering :as model-rendering]
    [minusthree.stage.sankyuu :as sankyuu]))
 
@@ -13,8 +14,9 @@
    loading/system
    texture/system
 
-   model-rendering/system
    t3d/system
+   model-rendering/system
+   gltf/system
 
    ;; anime
    anime/system

@@ -9,7 +9,7 @@
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.model.assimp-lwjgl :refer [load-gltf-fn]]
-   [minusthree.model.model-rendering :as model-rendering]
+   [minusthree.model.gltf-model :as gltf-model]
    [minusthree.model.pmx-model :refer [load-pmx-fn]]
    [minusthree.stage.shaderdef :as shaderdef]
    [minustwo.gl.shader :as shader]))
@@ -22,10 +22,10 @@
         (esse ::miku
               (loading/push (load-pmx-fn ::miku "assets/models/HatsuneMiku/Hatsune Miku.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/pmx-vert shaderdef/pmx-frag)})
-        (esse ::wolfie model-rendering/gltf
+        (esse ::wolfie gltf-model/default
               (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)})
-        (esse ::wirebeing model-rendering/gltf
+        (esse ::wirebeing gltf-model/default
               (loading/push (load-gltf-fn ::wirebeing "assets/wirebeing.glb"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/wirecube-vert shaderdef/wirecube-frag)}))))
 
