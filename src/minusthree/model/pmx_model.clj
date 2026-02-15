@@ -1,15 +1,28 @@
 (ns minusthree.model.pmx-model
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [vars->map]]
+   [engine.macros :refer [s-> vars->map]]
    [engine.sugar :refer [f32-arr i32-arr]]
-   [fastmath.matrix :as mat]
+   [fastmath.matrix :as mat :refer [mat->float-array]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
+   [minusthree.anime.bones :as bones]
    [minusthree.engine.math :refer [translation-mat]]
    [minusthree.engine.utils :refer [get-parent-path]]
+   [minusthree.engine.world :as world]
+   [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.geom :as geom]
-   [minustwo.model.pmx-parser :as pmx-parser]))
+   [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.texture :as texture]
+   [minusthree.model.model-rendering :as model-rendering]
+   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
+                                  GL_FLOAT GL_TEXTURE0 GL_TEXTURE_2D
+                                  GL_TRIANGLES GL_UNIFORM_BUFFER
+                                  GL_UNSIGNED_INT]]
+   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+   [minustwo.gl.shader :as shader]
+   [minustwo.model.pmx-parser :as pmx-parser]
+   [odoyle.rules :as o]))
 
 ;; PMX model
 (s/def ::bones ::geom/transform-tree)
@@ -85,8 +98,10 @@
              updated-bone (-> bone
                               (update-keys (fn [k] (or ({:local-name :name} k) k)))
                               (dissoc :position)
-                              (assoc :translation      local-pos
+                              (assoc ::bones/joint-id idx
+                                     :translation      local-pos
                                      :rotation         q/ONE
+                                     :scale            (v/vec3 1.0 1.0 1.0)
                                      :inv-bind-mat     inv-bind-mat
                                      :global-transform global-trans
                                      :parent-transform (:transform parent)))]
@@ -118,6 +133,116 @@
     (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
                textures materials bones morphs)))
 
+(defn pmx-spell [data shader-program {:keys [esse-id tex-unit-offset]}]
+  (let [textures (:textures data)]
+    (->> [{:bind-vao esse-id}
+          {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
+          {:point-attr :POSITION :use-shader shader-program :count 3 :component-type GL_FLOAT}
+          {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr :NORMAL :use-shader shader-program :count 3 :component-type GL_FLOAT}
+          {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr :TEXCOORD :use-shader shader-program :count 2 :component-type GL_FLOAT}
+
+          {:buffer-data (:WEIGHTS data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr :WEIGHTS :use-shader shader-program :count 4 :component-type GL_FLOAT}
+          {:buffer-data (:JOINTS data) :buffer-type GL_ARRAY_BUFFER}
+          {:point-attr :JOINTS :use-shader shader-program :count 4 :component-type GL_UNSIGNED_INT}
+
+          (eduction
+           (map-indexed (fn [tex-idx img-uri]
+                          {:bind-texture tex-idx
+                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) tex-idx)}))
+           textures)
+
+          {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+          {:unbind-vao true}]
+         flatten (into []))))
+
+(def default
+  (merge {::model-rendering/render-type ::pmx-model}
+         model-rendering/default-esse))
+
+(declare render-pmx)
+
+(defn init-fn [world _game]
+  (-> world
+      (o/insert ::pmx-model ::model-rendering/render-fn render-pmx)))
+
+(def rules
+  (o/ruleset
+   {::load-pmx
+    [:what
+     [esse-id ::data pmx-data]
+     [esse-id ::shader/program-info program-info]
+     :then
+     (println "loading pmx model for" esse-id)
+     (let [pmx-chant (pmx-spell pmx-data program-info
+                                {:esse-id esse-id
+                                          ;; TEXTURE UNIT MISUNDERSTANDING, WE DONT REQUIRE THIS API (I think?)
+                                 :tex-unit-offset 1})
+           summons   (gl-magic/cast-spell nil esse-id pmx-chant)
+           gl-facts  (::gl-magic/facts summons)
+           gl-data   (assoc (::gl-magic/data summons)
+                            :materials (:materials pmx-data))
+           bones     (:bones pmx-data)
+           tex-count (count (:textures pmx-data))]
+       (println "pmx load success! for" esse-id)
+       (cljgl/check-gl-err "after gl-magic")
+       (s-> (reduce o/insert session gl-facts)
+            (o/retract esse-id ::data)
+            (o/insert esse-id {::gl-magic/data gl-data
+                               ::gl-magic/casted? true
+                               ::bones/data bones
+                               ::texture/count tex-count})))]}))
+
+(def system
+  {::world/init-fn #'init-fn
+   ::world/rules #'rules})
+
+(defn render-material [ctx tex-data program-info material]
+  (let [face-count  (:face-count material)
+        face-offset (* 4 (:face-offset material))
+        tex         (get tex-data (:texture-index material))]
+    (when-let [{:keys [tex-unit gl-texture]} tex]
+      (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+      (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
+      (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
+
+    (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
+
+(defn render-pmx
+  [{:keys [ctx project view]}
+   {:keys [esse-id program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
+  (cljgl/check-gl-err "on clear")
+  #_{:clj-kondo/ignore [:inline-def]}
+  (def debug-var match)
+  (let [vaos  (::gl-magic/vao gl-data)
+        ;; ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+        vao   (get vaos esse-id)]
+    (gl ctx useProgram (:program program-info))
+    (cljgl/set-uniform ctx program-info :u_projection project)
+    (cljgl/set-uniform ctx program-info :u_view view)
+    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
+
+    (when (seq pose-tree)
+      (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
+        (when (> (alength joint-mats) 0)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
+          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
+          (gl ctx bindBuffer GL_UNIFORM_BUFFER 0))))
+
+    ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
+    ;; (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
+    ;; (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
+
+    (gl ctx bindVertexArray vao)
+    (doseq [material (:materials gl-data)]
+      (render-material ctx tex-data program-info material))
+    (gl ctx bindVertexArray 0)))
+
 (comment
+  (require '[com.phronemophobic.viscous :as viscous])
+
+  (viscous/inspect debug-var)
 
   (def miku-pmx (load-pmx-model "assets/models/HatsuneMiku/Hatsune Miku.pmx")))

@@ -10,7 +10,7 @@
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.model.assimp-lwjgl :refer [load-gltf-fn]]
    [minusthree.model.gltf-model :as gltf-model]
-   [minusthree.model.pmx-model :refer [load-pmx-fn]]
+   [minusthree.model.pmx-model :as pmx-model :refer [load-pmx-fn]]
    [minusthree.stage.shaderdef :as shaderdef]
    [minustwo.gl.shader :as shader]))
 
@@ -19,7 +19,7 @@
 (defn init-fn [world _game]
   (let [ctx nil]
     (-> world
-        (esse ::miku
+        (esse ::miku pmx-model/default
               (loading/push (load-pmx-fn ::miku "assets/models/HatsuneMiku/Hatsune Miku.pmx"))
               {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/pmx-vert shaderdef/pmx-frag)})
         (esse ::wolfie gltf-model/default
