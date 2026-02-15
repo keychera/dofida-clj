@@ -137,14 +137,20 @@
     [:what
      [tex-name ::texture texture]
      [tex-name ::for esse-id]
+     [esse-id ::count tex-count]
+     [esse-id ::data tex-data {:then false}]
      :then-finally
+     ;; still, this part feels expensive
      (let [all-tex-facts   (o/query-all session ::aggregate)
            esse->tex-facts (group-by :esse-id all-tex-facts)]
        (s-> (reduce-kv
-             (fn [s' esse-id tex-fact]
-               (let [texname->texture (-> (group-by :tex-name tex-fact)
+             (fn [s' esse-id tex-facts]
+               (let [{:keys [tex-count tex-data]} (first tex-facts)
+                     texname->texture (-> (group-by :tex-name tex-facts)
                                           (update-vals (comp :texture first)))]
-                 (o/insert s' esse-id ::data texname->texture)))
+                 (cond-> s'
+                   (and (nil? (seq tex-data)) (= (count texname->texture) tex-count))
+                   (o/insert esse-id ::data texname->texture))))
              session
              esse->tex-facts)))]}))
 
