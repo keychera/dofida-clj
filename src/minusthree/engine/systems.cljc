@@ -5,7 +5,7 @@
    [minusthree.engine.time :as time]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.gl.texture :as texture]
-   [minusthree.stage.model :as model]
+   [minusthree.model.model-rendering :as model-rendering]
    [minusthree.stage.sankyuu :as sankyuu]))
 
 (def all
@@ -13,7 +13,7 @@
    loading/system
    texture/system
 
-   model/system
+   model-rendering/system
    t3d/system
 
    ;; anime

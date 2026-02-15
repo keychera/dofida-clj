@@ -4,14 +4,14 @@
    [fastmath.vector :as v]
    [minusthree.engine.gui.fps-panel :as fps-panel]
    [minusthree.engine.math :refer [look-at perspective]]
+   [minusthree.engine.offscreen :as offscreen]
    [minusthree.engine.world :as world]
-   [minusthree.stage.model :as model]
+   [minusthree.model.model-rendering :as model-rendering]
    [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_FRAMEBUFFER GL_MULTISAMPLE
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-   [minusthree.engine.offscreen :as offscreen]
    [odoyle.rules :as o])
   (:import
    (imgui ImGui)
@@ -119,7 +119,7 @@
     (gl ctx viewport 0 0 w h)
 
     (let [world   (::world/this game)
-          renders (o/query-all world ::model/render-model-biasa)]
+          renders (o/query-all world ::model-rendering/render-model-biasa)]
       (doseq [{:keys [render-fn] :as match} renders]
         (render-fn game match)))
 
