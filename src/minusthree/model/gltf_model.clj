@@ -206,7 +206,9 @@
                                      (comp (map (fn [{node-id :idx :as node}]
                                                   (let [joint-id (get node-id->joint-id node-id)
                                                         ibm      (get inv-bind-mats joint-id)]
-                                                    (when joint-id (assoc node :inv-bind-mat ibm :joint-id joint-id)))))
+                                                    (when joint-id (assoc node
+                                                                          :inv-bind-mat ibm 
+                                                                          ::bones/joint-id joint-id)))))
                                            (filter some?))
                                      transform-tree)]
          [[model-id ::primitives primitives]

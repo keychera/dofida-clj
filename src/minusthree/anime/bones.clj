@@ -39,7 +39,8 @@
 
 (defn create-joint-mats-arr [bones]
   (let [f32s (f32-arr (* 16 (count bones)))]
-    (doseq [{:keys [joint-id inv-bind-mat global-transform]} bones]
+    (doseq [{::keys [joint-id]
+             :keys [inv-bind-mat global-transform]} bones]
       (let [joint-mat (mat/mulm inv-bind-mat global-transform)
             i         (* joint-id 16)]
         (dotimes [j 16]
