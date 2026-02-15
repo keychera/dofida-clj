@@ -103,11 +103,19 @@
                                      :rotation         q/ONE
                                      :scale            (v/vec3 1.0 1.0 1.0)
                                      :inv-bind-mat     inv-bind-mat
-                                     :global-transform global-trans
-                                     :parent-transform (:transform parent)))]
-         (vswap! parents-pos! assoc idx {:position  position
-                                         :transform global-trans})
+                                     :global-transform global-trans))]
+         (vswap! parents-pos! assoc idx {:position  position})
          (rf result updated-bone))))))
+
+(defn build-children [pmx-bones]
+  (reduce
+   (fn [acc-bones [idx bone]]
+     (let [parent-idx (int (:parent-bone-idx bone))]
+       (if (and parent-idx (not= parent-idx -1))
+         (update-in acc-bones [parent-idx :children] (fnil conj []) idx)
+         acc-bones)))
+   pmx-bones
+   (map-indexed vector pmx-bones)))
 
 (defn load-pmx-model [model-path]
   (let [res-path  (str "public/" model-path)
@@ -128,7 +136,7 @@
         bones     (into []
                         (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
                               resolve-pmx-bones)
-                        (:bones pmx-data))
+                        (build-children (:bones pmx-data)))
         morphs    (:morphs pmx-data)]
     (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
                textures materials bones morphs)))
@@ -187,7 +195,6 @@
            bones     (:bones pmx-data)
            tex-count (count (:textures pmx-data))]
        (println "pmx load success! for" esse-id)
-       (cljgl/check-gl-err "after gl-magic")
        (s-> (reduce o/insert session gl-facts)
             (o/retract esse-id ::data)
             (o/insert esse-id {::gl-magic/data gl-data
@@ -213,7 +220,6 @@
 (defn render-pmx
   [{:keys [ctx project view]}
    {:keys [esse-id program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
-  (cljgl/check-gl-err "on clear")
   #_{:clj-kondo/ignore [:inline-def]}
   (def debug-var match)
   (let [vaos  (::gl-magic/vao gl-data)
