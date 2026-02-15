@@ -207,7 +207,7 @@
                                                   (let [joint-id (get node-id->joint-id node-id)
                                                         ibm      (get inv-bind-mats joint-id)]
                                                     (when joint-id (assoc node
-                                                                          :inv-bind-mat ibm 
+                                                                          :inv-bind-mat ibm
                                                                           ::bones/joint-id joint-id)))))
                                            (filter some?))
                                      transform-tree)]
@@ -261,7 +261,9 @@
 
 (defn render-gltf
   [{:keys [ctx project view]}
-   {:keys [program-info gl-data tex-data transform pose-tree skinning-ubo]}]
+   {:keys [program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
+  #_{:clj-kondo/ignore [:inline-def]}
+  (def debug-var match)
   (let [vaos  (::gl-magic/vao gl-data)
         prims (::primitives gl-data)]
     (gl ctx useProgram (:program program-info))
@@ -290,3 +292,8 @@
           (gl ctx bindVertexArray vao)
           (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
           (gl ctx bindVertexArray 0))))))
+
+(comment
+  (require '[com.phronemophobic.viscous :as viscous])
+
+  (viscous/inspect debug-var))

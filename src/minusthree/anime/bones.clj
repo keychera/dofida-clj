@@ -27,10 +27,7 @@
              global-trans (if parent-trans
                             (mat/mulm local-trans parent-trans)
                             local-trans)
-             node         (assoc node
-                                 :local-transform local-trans
-                                 :global-transform global-trans
-                                 :parent-transform parent-trans)]
+             node         (assoc node :global-transform global-trans)]
          (when (:children node)
            (vswap! parents-global-transform!
                    into (map (fn [cid] [cid global-trans]))
