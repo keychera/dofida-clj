@@ -8,7 +8,6 @@
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
    [minusthree.gl.geom :as geom]
-   [minusthree.model.gltf-model :as gltf]
    [odoyle.rules :as o]))
 
 (s/def :translation/out #(instance? fastmath.vector.Vec3 %))
@@ -67,7 +66,7 @@
   (o/ruleset
    {::default-pose
     [:what [esse-id ::bones/data transform-tree]
-     :then (insert! esse-id ::pose (into [] gltf/global-transform-xf transform-tree))]
+     :then (insert! esse-id ::pose (into [] bones/global-transform-xf transform-tree))]
 
     ::anime
     [:what
@@ -78,11 +77,10 @@
      [anime-id ::bone-animes bone-animes]
      :then
      (let [prog (progress (mod tt duration) 0.0 duration)
-           pose (into []
-                      (comp (anime-xf bone-animes prog)
-                            gltf/global-transform-xf)
-                      transform-tree)]
-       (insert! esse-id ::pose pose))]}))
+           pose (eduction (anime-xf bone-animes prog)
+                          bones/global-transform-xf
+                          transform-tree)]
+       (insert! esse-id ::pose (into [] pose)))]}))
 
 (def system
   {::world/rules #'rules})

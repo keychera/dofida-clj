@@ -213,36 +213,6 @@
           [model-id ::bones/data bones]
           [model-id ::texture/count (count images)]])}])))
 
-(defn calc-local-transform [{:keys [translation rotation scale]}]
-  (let [trans-mat    (translation-mat translation)
-        rot-mat      (quat->mat4 rotation)
-        scale-mat    (scaling-mat scale)
-        local-trans  (reduce mat/mulm [scale-mat rot-mat trans-mat])]
-    local-trans))
-
-;; transducer with assumption that parent node will always before child node in a linear seq
-(defn global-transform-xf [rf]
-  (let [parents-global-transform! (volatile! {})]
-    (fn
-      ([] (rf))
-      ([result]
-       (rf result))
-      ([result node]
-       (let [local-trans  (calc-local-transform node)
-             parent-trans (get @parents-global-transform! (:idx node))
-             global-trans (if parent-trans
-                            (mat/mulm local-trans parent-trans)
-                            local-trans)
-             node         (assoc node
-                                 :local-transform local-trans
-                                 :global-transform global-trans
-                                 :parent-transform parent-trans)]
-         (when (:children node)
-           (vswap! parents-global-transform!
-                   into (map (fn [cid] [cid global-trans]))
-                   (:children node)))
-         (rf result node))))))
-
 (def default
   (merge {::model-rendering/render-type ::gltf-model}
          model-rendering/default-esse))
