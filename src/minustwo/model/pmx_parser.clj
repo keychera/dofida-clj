@@ -4,8 +4,7 @@
    [gloss.core :as g :refer [defcodec finite-frame repeated string]]
    [gloss.core.codecs :refer [enum header ordered-map]]
    [gloss.core.structure :refer [compile-frame]]
-   [gloss.io :as gio]
-   [minusthree.engine.utils :refer [get-parent-path]]))
+   [gloss.io :as gio]))
 
 ;; PMX spec
 ;; https://gist.github.com/felixjones/f8a06bd48f9da9a4539f/b3944390bd935f48ddf72dd2fc058ffe87c10708
@@ -360,9 +359,7 @@
     (with-open [raf (java.io.RandomAccessFile. pmx-file "r")
                 ch  (.getChannel raf)]
       (let [buf (.map ch java.nio.channels.FileChannel$MapMode/READ_ONLY 0 (.size ch))]
-        (assoc (gio/decode pmx-codec buf false)
-               ;; I have a feeling this will break if this is in a jar => damn right
-               :parent-dir (get-parent-path pmx-path))))))
+        (gio/decode pmx-codec buf false)))))
 
 (comment
   #_(require '[clj-async-profiler.core :as prof])

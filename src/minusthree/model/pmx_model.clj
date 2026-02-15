@@ -7,6 +7,7 @@
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.engine.math :refer [translation-mat]]
+   [minusthree.engine.utils :refer [get-parent-path]]
    [minusthree.gl.geom :as geom]
    [minustwo.model.pmx-parser :as pmx-parser]))
 
@@ -106,7 +107,7 @@
         WEIGHTS   (:WEIGHTS vert-wj)
         JOINTS    (:JOINTS vert-wj)
         INDICES   (int-array (ccw-face (:faces pmx-data)))
-        parent    (:parent-dir pmx-data)
+        parent    (get-parent-path model-path)
         textures  (into [] (map #(str parent "/" %)) (:textures pmx-data))
         materials (into [] accumulate-face-count (:materials pmx-data))
         bones     (into []

@@ -37,14 +37,16 @@
                       (o/insert esse-id ::state :success)))))
       (let [world    (::world/this game)
             to-loads (into [] (take load-buffer) (o/query-all world ::to-load))]
-        #?(:clj (thread
-                  (doseq [{:keys [esse-id load-fn]} to-loads]
-                    (try
-                      (let [loaded-facts (load-fn)]
-                        (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts}))
-                      (catch #?(:clj Throwable :cljs js/Error) err
-                        (println esse-id "load error =" (.getMessage err))
-                        (>!! loading-ch {:esse-id esse-id :new-facts [[esse-id ::state :error]]}))))))
+        #?(:clj
+           (when (seq to-loads)
+             (thread
+               (doseq [{:keys [esse-id load-fn]} to-loads]
+                 (try
+                   (let [loaded-facts (load-fn)]
+                     (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts}))
+                   (catch #?(:clj Throwable :cljs js/Error) err
+                     (println esse-id "load error =" (.getMessage err))
+                     (>!! loading-ch {:esse-id esse-id :new-facts [[esse-id ::state :error]]})))))))
         (update game ::world/this
                 (fn [world]
                   (reduce (fn [w' {:keys [esse-id]}] (o/insert w' esse-id ::state :loading)) world to-loads)))))))
