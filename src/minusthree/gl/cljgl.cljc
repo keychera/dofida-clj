@@ -139,3 +139,9 @@
       (throw (ex-info (str "Unsupported uniform type: " type) {:type type :loc-keyword loc-keyword})))
     (throw (ex-info (str "no " loc-keyword " found in program")
                     {:program-info program-info}))))
+
+(defn check-gl-err [err-message]
+  (loop [err (gl nil getError)]
+    (when (not= err 0)
+      (println "ERROR" err-message err)
+      (recur (gl nil getError)))))
