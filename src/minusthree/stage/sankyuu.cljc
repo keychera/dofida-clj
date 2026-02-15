@@ -50,6 +50,7 @@
                  {:in 0.75 :out (q/rotation-quaternion (m/radians -30.0) (v/vec3 0.0 0.0 1.0))}
                  {:in 1.0 :out (q/rotation-quaternion (m/radians 0.0) (v/vec3 0.0 0.0 1.0))}]}}]})
       (esse ::wolfie {::anime/use ::be-cute})
+      (esse ::miku {::anime/use ::be-cute})
       (esse ::wirebeing {::t3d/translation (v/vec3 -5.0 8.0 0.0)})))
 
 (def system

@@ -50,30 +50,32 @@ todo:
           
                     ✘ try assimp ourself? @cancelled(25-12-25 00:25)
                        
-            ☐ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something
+            ✔ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something @done(26-02-16 00:27)
 
     re:minusthree, yet still so far:
         ☐ rewrite
             ✔ imguizmo @done(26-02-07 19:44)
-            ☐ do we need refresh? seems repl is enough for now
+            ✔ do we need refresh? seems repl is enough for now @done(26-02-16 00:24) only rules insert for now
+                ☐ refresh rules, curently we rely on restart for rules
             ✔ transform3d @done(26-02-11 23:04)
             ✔ skinning @done(26-02-11 23:04)
-            ☐ pmx
+            ✔ pmx @done(26-02-16 00:23)
             ☐ morph
             ☐ camera
             ☐ particle
-            ☐ anime
+            ✔ anime @done(26-02-16 00:24)
             ☐ loop
             ☐ record
 
         ☐ MY TEX-UNIT MISUNDERSTANDING https://www.reddit.com/r/opengl/comments/o4iryb/comment/h2hknhb/
 
         ☐ the timing
-        ☐ multi track sampling
+        ✔ multi track sampling @done(26-02-16 00:26)
+            ☐ ↑ we flip the data access, later we want to intro the pose def again
         ☐ text
         ☐ motion graphics
             ☐ nanovg?
-        ☐ multi armature
+        ✔ multi armature @done(26-02-16 00:25) wth this is already working
         ☐ shader, lighting
         ☐ props, room
         ☐ post-effect
@@ -152,7 +154,7 @@ todo:
                     ✔ from MMD? (low prio because we wont be using pmx much in our game) @done(26-01-04 15:45) how turntables
                 ✔ the bone hierarchy and its parent-child transformation @done(25-12-15 00:29)
                 ✔ does anime-clj integrate with this?? let's find out @done(26-01-04 15:44) IT DOES, it is all just data after all
-                    ☐ the perf characteristic tho, now down to 100fps
+                    ✔ the perf characteristic tho, now down to 100fps @done(26-02-16 00:29) unsure why we did this badly previously, now with 2 model we are still at screen refresh rate ~165fps
                     ✔ the keyframe/pose interpolation @done(25-12-15 00:30)
                     ✔ I also have a inkling of feelings that transducers will fit in all of this, I think, just a feeling @done(25-12-15 00:30) ok tree-seq transducer is a big win
                         ✔ learn the tree-seq transducer, meld with transducer, profile one, create one, become one @done(26-01-04 15:44) we love transducer
@@ -183,8 +185,8 @@ todo:
         ✔ graalvm @done(26-02-11 23:02) HOLY SHIII
             ☐ lwjgl 3.4.0 cant do graal because we dont know how to work around with org.lwjgl.system.ffm.FFM.ffmGenerate
             ☐ sometimes the exe segfault and we dont know why
-                ☐ the trigger is probably this -> moving imguizmo while model is loading. not 100% tho hmm
-                ☐ no... it seems it is caused by stb_image loading at the same time in multiple threads
+                ✘ the trigger is probably this -> moving imguizmo while model is loading. not 100% tho hmm @cancelled(26-02-16 00:28)
+                ☐ no... it seems it is caused by stb_image loading at the same time in multiple threads, this is more likely, we did something with the loading thread but will hammock more later
             ☐ the model loads block the thread, not graalvm related probably...?
             ✔ other platform???? @done(26-02-12 21:22) wsl ubuntu runs!
             ☐ why size big, around 90-110mb
@@ -196,7 +198,7 @@ todo:
         ✔ recorder @done(26-01-18 16:48)
             ☐ first frame record timing is off, something corrupted image taken
             ☐ timing is confusing
-            ☐ renderplay state is all messed up after one recording. for now we can only restart to restore (using `start-dev/stop`). low prio
+            ✘ renderplay state is all messed up after one recording. for now we can only restart to restore (using `start-dev/stop`). low prio @cancelled(26-02-16 00:27) dropped this abstraction, too complex
 
 
 ✔ sidestream @done(25-11-04 07:25) moved
@@ -305,7 +307,7 @@ error path that breaks the repl dev:
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
-    ☐ sidestream twoway, text as interface
+    ✘ sidestream twoway, text as interface @cancelled(26-02-16 00:31) I think this is a bad idea, pure data instead
     ✔ the init still reload all assets @done(25-11-29 02:11)
         ☐ investigate the implication of reinserting all facts
-    ☐ st/instrument slows down our game
+    ✔ st/instrument slows down our game @done(26-02-16 00:32) we instrument odoyle at dev only for now, the other spec is used for docs
