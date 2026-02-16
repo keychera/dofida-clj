@@ -18,7 +18,8 @@
    (imgui.extension.imguizmo ImGuizmo)
    (imgui.flag ImGuiConfigFlags ImGuiWindowFlags)
    (imgui.gl3 ImGuiImplGl3)
-   (imgui.glfw ImGuiImplGlfw)))
+   (imgui.glfw ImGuiImplGlfw)
+   [org.lwjgl.stb STBImage]))
 
 (def project
   (let [[w h]   [540 540]
@@ -46,6 +47,7 @@
     (gl ctx enable GL_CULL_FACE)
     (gl ctx enable GL_MULTISAMPLE)
     (gl ctx enable GL_DEPTH_TEST)
+    (STBImage/stbi_set_flip_vertically_on_load false)
     (let [{:keys [w h]} (-> game :config :window-conf)
           imGuiGlfw     (ImGuiImplGlfw.)
           imGuiGl3      (ImGuiImplGl3.)

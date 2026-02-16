@@ -304,6 +304,7 @@ error path that breaks the repl dev:
     ✔ inserting wrong type to odoyle @done(26-01-12 14:35)
     ✔ shader compile error stops odoyle @done(26-01-12 14:35)
         ✔ now we catch the error and (viscous/inspect) them, repl should be mostly alive unless native crash @done(26-02-07 19:48)
+    ☐ loading 2 models make stbi_load_from_memory crash the graalvm native-image with
 
 devx:
     ☐ deal with :macos {:jvm-opts ["-XstartOnFirstThread"]}
