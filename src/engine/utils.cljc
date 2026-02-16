@@ -3,10 +3,10 @@
    #?@(:clj [[clojure.java.io :as io]
              [clojure.string :as str]
              [cheshire.core :as json]])
-   [engine.macros :refer [vars->map]] 
    [odoyle.rules :as o]
    [thi.ng.geom.matrix :as mat])
-  #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]))
+  #?(:cljs (:require-macros [engine.utils :refer [load-model-on-compile]]
+                            [engine.macros :refer [vars->map]]))
   #?(:clj (:import
            [java.nio ByteBuffer]
            [org.lwjgl.glfw GLFW]

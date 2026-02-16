@@ -12,10 +12,9 @@
                                   GL_DEPTH_ATTACHMENT GL_DEPTH_COMPONENT24
                                   GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE
                                   GL_NEAREST GL_RENDERBUFFER GL_RGBA
-                                  GL_TEXTURE0 GL_TEXTURE_2D
-                                  GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER
-                                  GL_TEXTURE_WRAP_S GL_TEXTURE_WRAP_T
-                                  GL_UNSIGNED_BYTE]]
+                                  GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER
+                                  GL_TEXTURE_MIN_FILTER GL_TEXTURE_WRAP_S
+                                  GL_TEXTURE_WRAP_T GL_UNSIGNED_BYTE]]
    [odoyle.rules :as o])
   #?(:clj (:import
            [org.lwjgl.stb STBImage])))

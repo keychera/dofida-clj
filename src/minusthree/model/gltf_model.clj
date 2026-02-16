@@ -18,8 +18,7 @@
    [minusthree.gl.texture :as texture]
    [minusthree.model.model-rendering :as model-rendering]
    [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
-                                  GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
-                                  GL_UNIFORM_BUFFER]]
+                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [minustwo.gl.shader :as shader]
    [odoyle.rules :as o])

@@ -1,6 +1,5 @@
 (ns engine.macros
   #?@(:clj [(:require
-             [clojure.java.io :as io]
              [odoyle.rules :as o])])
   #?(:cljs (:require-macros [engine.macros :refer [s-> insert! vars->map]])))
 
