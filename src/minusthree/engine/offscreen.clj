@@ -43,9 +43,9 @@ void main() {
 }"))
 
 (defn prep-offscreen-render
-  ([ctx width height tex-unit] (prep-offscreen-render ctx width height tex-unit {}))
-  ([ctx width height tex-unit conf]
-   (let [fbo-data        (texture/cast-fbo-spell ctx width height tex-unit conf)
+  ([ctx width height] (prep-offscreen-render ctx width height {}))
+  ([ctx width height conf]
+   (let [fbo-data        (texture/cast-fbo-spell ctx width height conf)
          program-info    (cljgl/create-program-info-from-source ctx fbo-vs fbo-fs)
          fbo-program     (:program program-info)
          fbo-attr-loc    (gl ctx getAttribLocation fbo-program "a_pos")
@@ -72,7 +72,6 @@ void main() {
   [ctx
    {source-vao :offscreen-vao
     source-program :program-info
-    source-tex-unit :tex-unit
     source-fbo-tex :fbo-tex}
    {target-width :width
     target-height :height
@@ -89,10 +88,10 @@ void main() {
     (gl ctx bindVertexArray source-vao)
     (gl ctx useProgram (:program source-program))
 
-    (gl ctx activeTexture (+ GL_TEXTURE0 source-tex-unit))
+    (gl ctx activeTexture GL_TEXTURE0)
     (gl ctx bindTexture GL_TEXTURE_2D source-fbo-tex)
     (cljgl/set-uniform ctx source-program :u_model (mat->float-array model))
-    (cljgl/set-uniform ctx source-program :u_tex source-tex-unit)
+    (cljgl/set-uniform ctx source-program :u_tex 0)
 
     (when target-color-attachment
       (gl ctx drawBuffers (int-array [target-color-attachment])))

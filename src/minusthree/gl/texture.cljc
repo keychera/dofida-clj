@@ -21,17 +21,16 @@
            [org.lwjgl.stb STBImage])))
 
 (s/def ::uri-to-load string?)
-(s/def ::tex-unit int?)
 (s/def ::for ::world/esse-id)
 
 (s/def ::image-data some?)
 (s/def ::width int?)
 (s/def ::height int?)
-(s/def ::image (s/keys :req-un [::image-data ::width ::height ::tex-unit]))
+(s/def ::image (s/keys :req-un [::image-data ::width ::height]))
 
 (s/def ::gl-texture some?)
 (s/def ::tex-name some?)
-(s/def ::texture (s/keys :req-un [::gl-texture ::tex-unit]))
+(s/def ::texture (s/keys :req-un [::gl-texture]))
 (s/def ::data (s/map-of ::tex-name ::texture))
 (s/def ::count number?)
 
@@ -46,9 +45,8 @@
     :else
     (throw (ex-info (str "uri not supported: " uri) {}))))
 
-(defn cast-texture-spell [ctx data width height tex-unit]
+(defn cast-texture-spell [ctx data width height]
   (let [texture (gl ctx #?(:clj genTextures :cljs createTexture))]
-    (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
     (gl ctx bindTexture GL_TEXTURE_2D texture)
     #?(:cljs (gl ctx pixelStorei (gl ctx UNPACK_FLIP_Y_WEBGL) false))
 
@@ -71,9 +69,9 @@
     texture))
 
 (defn cast-fbo-spell
-  ([ctx width height tex-unit] (cast-fbo-spell ctx width height tex-unit {}))
-  ([ctx width height tex-unit {:keys [color-attachment] :as conf
-                               :or {color-attachment GL_COLOR_ATTACHMENT0}}]
+  ([ctx width height] (cast-fbo-spell ctx width height {}))
+  ([ctx width height {:keys [color-attachment] :as conf
+                      :or {color-attachment GL_COLOR_ATTACHMENT0}}]
    (let [fbo       (gl ctx #?(:clj genFramebuffers :cljs createFramebuffer))
          _         (gl ctx bindFramebuffer GL_FRAMEBUFFER fbo)
          fbo-tex   (gl ctx #?(:clj genTextures :cljs createTexture))
@@ -81,7 +79,6 @@
 
     ;; bind, do stuff, unbind, hmm hmm
     ;; attach texture
-     (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
      (gl ctx bindTexture GL_TEXTURE_2D fbo-tex)
      (gl ctx texImage2D GL_TEXTURE_2D
          #_:mip-level    0
@@ -108,12 +105,11 @@
        (println "warning: framebuffer creation incomplete"))
      (gl ctx bindFramebuffer GL_FRAMEBUFFER #?(:clj 0 :cljs nil))
 
-     (merge conf (vars->map fbo fbo-tex tex-unit width height)))))
+     (merge conf (vars->map fbo fbo-tex width height)))))
 
-(defn load-texture-fn [tex-name uri tex-unit]
+(defn load-texture-fn [tex-name uri]
   (fn []
-    (let [image (assoc (load-image uri)
-                       :tex-unit tex-unit)]
+    (let [image (load-image uri)]
       [[tex-name ::image image]])))
 
 (def rules
@@ -121,24 +117,22 @@
    {::load-texture
     [:what
      [tex-name ::uri-to-load uri]
-     [tex-name ::tex-unit tex-unit]
      :then
      (let [uri (str/replace uri #"\\" "/")]
        (s-> session
             (o/retract tex-name ::uri-to-load)
-            (o/retract tex-name ::tex-unit)
-            (o/insert tex-name (loading/push (load-texture-fn tex-name uri tex-unit)))))]
+            (o/insert tex-name (loading/push (load-texture-fn tex-name uri)))))]
 
     ::cast-texture
     [:what
      [tex-name ::image data]
      :then
      (let [ctx nil
-           {:keys [image-data width height tex-unit]} data
-           texture (cast-texture-spell ctx image-data width height tex-unit)]
+           {:keys [image-data width height]} data
+           texture (cast-texture-spell ctx image-data width height)]
        (s-> session
             (o/retract tex-name ::image)
-            (o/insert tex-name ::texture {:gl-texture texture :tex-unit tex-unit})))]
+            (o/insert tex-name ::texture {:gl-texture texture})))]
 
     ::aggregate
     [:what

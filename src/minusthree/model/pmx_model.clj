@@ -145,7 +145,7 @@
      (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
                 textures materials bones morphs))))
 
-(defn pmx-spell [data shader-program {:keys [esse-id tex-unit-offset]}]
+(defn pmx-spell [data shader-program {:keys [esse-id]}]
   (let [textures (:textures data)]
     (->> [{:bind-vao esse-id}
           {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
@@ -161,9 +161,7 @@
           {:point-attr :JOINTS :use-shader shader-program :count 4 :component-type GL_UNSIGNED_INT}
 
           (eduction
-           (map-indexed (fn [tex-idx img-uri]
-                          {:bind-texture tex-idx
-                           :image {:uri img-uri} :tex-unit (+ (or tex-unit-offset 0) tex-idx)}))
+           (map-indexed (fn [tex-idx img-uri] {:bind-texture tex-idx :image {:uri img-uri}}))
            textures)
 
           {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
@@ -188,10 +186,7 @@
      [esse-id ::shader/program-info program-info]
      :then
      (println "loading pmx model for" esse-id)
-     (let [pmx-chant (pmx-spell pmx-data program-info
-                                {:esse-id esse-id
-                                          ;; TEXTURE UNIT MISUNDERSTANDING, WE DONT REQUIRE THIS API (I think?)
-                                 :tex-unit-offset 1})
+     (let [pmx-chant (pmx-spell pmx-data program-info {:esse-id esse-id})
            summons   (gl-magic/cast-spell nil esse-id pmx-chant)
            gl-facts  (::gl-magic/facts summons)
            gl-data   (assoc (::gl-magic/data summons)
@@ -214,10 +209,9 @@
   (let [face-count  (:face-count material)
         face-offset (* 4 (:face-offset material))
         tex         (get tex-data (:texture-index material))]
-    (when-let [{:keys [tex-unit gl-texture]} tex]
-      (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+    (when-let [{:keys [gl-texture]} tex]
       (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
-      (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
+      (cljgl/set-uniform ctx program-info :u_mat_diffuse 0))
 
     (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
 

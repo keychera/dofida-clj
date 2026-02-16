@@ -57,13 +57,11 @@
                (println "[error] in point-attr" (:point-attr chant) ", cause:" (:cause (Throwable->map err)))
                (update-in magician [::data ::err] conj err)))
 
-           [{:bind-texture _ :image _ :tex-unit _}] ;; entry: texture binding
+           [{:bind-texture _ :image _}] ;; entry: texture binding
            (let [uri      (-> chant :image :uri)
-                 tex-unit (:tex-unit chant)
                  tex-name (:bind-texture chant)]
              (update magician ::facts conj
                      [tex-name ::texture/uri-to-load uri]
-                     [tex-name ::texture/tex-unit tex-unit]
                      [tex-name ::texture/for esse-id]))
 
            [{:unbind-vao _}]

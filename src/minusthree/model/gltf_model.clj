@@ -45,7 +45,7 @@
      (let [vao-name (format "%s_vao%04d" prefix idx)]
        (assoc primitive :vao-name vao-name)))))
 
-(defn match-textures [tex-unit-offset materials textures images]
+(defn match-textures [materials textures images]
   (map
    (fn [{:keys [material] :as primitive}]
      (let [material (get materials material)
@@ -53,9 +53,7 @@
            texture  (some->> tex-idx (get textures))
            image    (some->> texture :source (nth images))]
        (cond-> primitive
-         image (assoc
-                :tex-name (:tex-name image)
-                :tex-unit (+ tex-unit-offset tex-idx)))))))
+         image (assoc :tex-name (:tex-name image)))))))
 
 (defn primitive-spell [gltf-data result-bin use-shader]
   (let [accessors   (some-> gltf-data :accessors)
@@ -96,7 +94,7 @@
            image    (cond-> image
                       (not (str/starts-with? (:uri image) "data:"))
                       (update :uri (fn [f] (str gltf-dir "/" f))))]
-       (assoc image :image-idx idx :tex-name tex-name)))))
+       (assoc image :tex-name tex-name)))))
 
 (defn get-ibm-inv-mats [gltf-data result-bin]
   ;; assuming only one skin
@@ -166,8 +164,7 @@
 
 (defn gltf-spell
   "magic to pass to gl-magic/cast-spell"
-  [gltf-data result-bin {:keys [model-id use-shader tex-unit-offset]
-                         :or {tex-unit-offset 0}}]
+  [gltf-data result-bin {:keys [model-id use-shader]}]
   (let [gltf-dir   (some-> gltf-data :asset :dir)
         _          (assert gltf-dir "no parent dir data in [:asset :dir]")
         mesh       (some-> gltf-data :meshes first) ;; only handle one mesh for now
@@ -179,15 +176,15 @@
                          (some-> gltf-data :images))
         primitives (eduction
                     (create-vao-names (str model-id "_" (:name mesh)))
-                    (match-textures tex-unit-offset materials textures images)
+                    (match-textures materials textures images)
                     (some-> mesh :primitives))]
     (swap! debug-data* assoc model-id {:gltf-data gltf-data :bin result-bin})
     ;; assume one glb/gltf = one binary for the time being
     (flatten
      [{:buffer-data result-bin :buffer-type GL_ARRAY_BUFFER}
       (eduction
-       (map (fn [{:keys [image-idx tex-name] :as image}]
-              {:bind-texture tex-name :image image :tex-unit (+ tex-unit-offset image-idx)}))
+       (map (fn [{:keys [tex-name] :as image}]
+              {:bind-texture tex-name :image image}))
        images)
 
       (eduction (primitive-spell gltf-data result-bin use-shader) primitives)
@@ -196,7 +193,7 @@
        ;; assuming one skin for now
        (let [node-id->joint-id (into {} (map-indexed (fn [joint-id node-id] [node-id joint-id])) (some-> gltf-data :skins first :joints))
              primitives        (into []
-                                     (comp (map (fn [p] (select-keys p [:indices :tex-name :tex-unit :vao-name])))
+                                     (comp (map (fn [p] (select-keys p [:indices :tex-name :vao-name])))
                                            (map (fn [p] (update p :indices (fn [i] (get accessors i))))))
                                      primitives)
              nodes             (map-indexed (fn [idx node] (assoc node :idx idx)) (:nodes gltf-data))
@@ -284,10 +281,9 @@
             vao            (get vaos vao-name)
             tex            (get tex-data tex-name)]
         (when vao
-          (when-let [{:keys [tex-unit gl-texture]} tex]
-            (gl ctx activeTexture (+ GL_TEXTURE0 tex-unit))
+          (when-let [{:keys [gl-texture]} tex]
             (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
-            (cljgl/set-uniform ctx program-info :u_mat_diffuse tex-unit))
+            (cljgl/set-uniform ctx program-info :u_mat_diffuse 0))
 
           (gl ctx bindVertexArray vao)
           (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)

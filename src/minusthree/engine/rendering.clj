@@ -51,7 +51,7 @@
     (let [{:keys [w h]} (-> game :config :window-conf)
           imGuiGlfw     (ImGuiImplGlfw.)
           imGuiGl3      (ImGuiImplGl3.)
-          screen1       (offscreen/prep-offscreen-render ctx w h 1)]
+          screen1       (offscreen/prep-offscreen-render ctx w h)]
       (ImGui/createContext)
       (doto (ImGui/getIO)
         (.addConfigFlags ImGuiConfigFlags/DockingEnable)

@@ -19,10 +19,10 @@
 (defn init-fn [world _game]
   (let [ctx nil]
     (-> world
-        #_(esse ::wolfie gltf-model/default
-                (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
-                {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)
-                 ::t3d/translation (v/vec3 -5.0 0.0 -5.0)})
+        (esse ::wolfie gltf-model/default
+              (loading/push (load-gltf-fn ::wolfie "assets/models/SilverWolf/SilverWolf.pmx"))
+              {::shader/program-info (cljgl/create-program-info-from-source ctx shaderdef/gltf-vert shaderdef/gltf-frag)
+               ::t3d/translation (v/vec3 -5.0 0.0 -5.0)})
         (esse ::miku pmx-model/default
               (loading/push (load-pmx-fn ::miku "assets/models/HatsuneMiku/Hatsune Miku.pmx"
                                          ;; this is such a weird workaround= in a jar, uri is case-sensitive and this is the only path that is "wrong"
