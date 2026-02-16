@@ -117,10 +117,11 @@
      [tex-name ::uri-to-load uri]
      [tex-name ::tex-unit tex-unit]
      :then
-     (s-> session
-          (o/retract tex-name ::uri-to-load)
-          (o/retract tex-name ::tex-unit)
-          (o/insert tex-name (loading/push (load-texture-fn tex-name uri tex-unit))))]
+     (let [uri (str/replace uri #"\\" "/")]
+       (s-> session
+            (o/retract tex-name ::uri-to-load)
+            (o/retract tex-name ::tex-unit)
+            (o/insert tex-name (loading/push (load-texture-fn tex-name uri tex-unit)))))]
 
     ::cast-texture
     [:what

@@ -30,10 +30,12 @@
 
 (declare load-pmx-model)
 
-(defn load-pmx-fn [esse-id model-path]
-  (fn []
-    (let [pmx-data (load-pmx-model model-path)]
-      [[esse-id ::data pmx-data]])))
+(defn load-pmx-fn
+  ([esse-id model-path] (load-pmx-fn esse-id model-path {}))
+  ([esse-id model-path config]
+   (fn []
+     (let [pmx-data (load-pmx-model model-path config)]
+       [[esse-id ::data pmx-data]]))))
 
 (defn reduce-to-WEIGHTS-and-JOINTS
   "assuming all bones weights are :BDEF1, :BDEF2, or :BDEF4"
@@ -117,29 +119,31 @@
    pmx-bones
    (map-indexed vector pmx-bones)))
 
-(defn load-pmx-model [model-path]
-  (let [res-path  (str "public/" model-path)
-        pmx-data  (time (pmx-parser/parse-pmx res-path))
-        vertices  (:vertices pmx-data)
-        POSITION  (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
-        NORMAL    (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
-        TEXCOORD  (float-array (into [] (mapcat :uv) vertices))
-        vert-wj   (transduce (map :weight)
-                             (reduce-to-WEIGHTS-and-JOINTS (count vertices))
-                             vertices)
-        WEIGHTS   (:WEIGHTS vert-wj)
-        JOINTS    (:JOINTS vert-wj)
-        INDICES   (int-array (ccw-face (:faces pmx-data)))
-        parent    (get-parent-path model-path)
-        textures  (into [] (map #(str parent "/" %)) (:textures pmx-data))
-        materials (into [] accumulate-face-count (:materials pmx-data))
-        bones     (into []
-                        (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
-                              resolve-pmx-bones)
-                        (build-children (:bones pmx-data)))
-        morphs    (:morphs pmx-data)]
-    (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
-               textures materials bones morphs)))
+(defn load-pmx-model
+  ([model-path] (load-pmx-model model-path {}))
+  ([model-path {:keys [resource-fixer]}]
+   (let [res-path  (str "public/" model-path)
+         pmx-data  (time (pmx-parser/parse-pmx res-path))
+         vertices  (:vertices pmx-data)
+         POSITION  (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
+         NORMAL    (float-array (into [] (comp (map :normal) (map pmx-coord->opengl-coord) cat) vertices))
+         TEXCOORD  (float-array (into [] (mapcat :uv) vertices))
+         vert-wj   (transduce (map :weight)
+                              (reduce-to-WEIGHTS-and-JOINTS (count vertices))
+                              vertices)
+         WEIGHTS   (:WEIGHTS vert-wj)
+         JOINTS    (:JOINTS vert-wj)
+         INDICES   (int-array (ccw-face (:faces pmx-data)))
+         parent    (get-parent-path model-path)
+         textures  (into [] (map #(str parent "/" (resource-fixer %))) (:textures pmx-data))
+         materials (into [] accumulate-face-count (:materials pmx-data))
+         bones     (into []
+                         (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
+                               resolve-pmx-bones)
+                         (build-children (:bones pmx-data)))
+         morphs    (:morphs pmx-data)]
+     (vars->map POSITION NORMAL TEXCOORD WEIGHTS JOINTS INDICES
+                textures materials bones morphs))))
 
 (defn pmx-spell [data shader-program {:keys [esse-id tex-unit-offset]}]
   (let [textures (:textures data)]

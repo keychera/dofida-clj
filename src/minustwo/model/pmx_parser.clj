@@ -354,12 +354,11 @@
 (def pmx-codec (header header-codec body-codec-fn identity))
 
 (defn parse-pmx [pmx-path]
-  (let [pmx-file (io/file (io/resource pmx-path))]
-    (println "parsing pmx:" pmx-file)
-    (with-open [raf (java.io.RandomAccessFile. pmx-file "r")
-                ch  (.getChannel raf)]
-      (let [buf (.map ch java.nio.channels.FileChannel$MapMode/READ_ONLY 0 (.size ch))]
-        (gio/decode pmx-codec buf false)))))
+  (println "parsing pmx:" pmx-path)
+  (with-open [is (io/input-stream (io/resource pmx-path))]
+    (let [bytes (.readAllBytes is)
+          buf   (java.nio.ByteBuffer/wrap bytes)]
+      (gio/decode pmx-codec buf false))))
 
 (comment
   #_(require '[clj-async-profiler.core :as prof])
