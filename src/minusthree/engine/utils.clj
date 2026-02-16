@@ -3,9 +3,7 @@
    [clojure.java.io :as io]
    [fastmath.matrix :as mat])
   (:import
-   [java.nio ByteBuffer]
    [java.nio.channels Channels ReadableByteChannel]
-   [org.lwjgl BufferUtils]
    [org.lwjgl.stb STBImage]
    [org.lwjgl.system MemoryStack MemoryUtil]))
 
@@ -20,21 +18,19 @@
   (io/resource (str "public/" res)))
 
 (defn resize-buffer [old-buf new-capacity]
-  (.flip old-buf)
-  (doto ^ByteBuffer (BufferUtils/createByteBuffer new-capacity) (.put old-buf)))
+  (MemoryUtil/memRealloc old-buf new-capacity))
 
  ;; https://github.com/LWJGL/lwjgl3/blob/master/modules/samples/src/test/java/org/lwjgl/demo/util/IOUtil.java#L40
 (defn resource->ByteBuffer [resource-path initial-buf-size]
   (with-open [is  (io/input-stream (io/resource resource-path))
               rbc ^ReadableByteChannel (Channels/newChannel is)]
-    (let [buf (loop [buffer (BufferUtils/createByteBuffer initial-buf-size)]
-                (let [bytes (.read rbc buffer)]
-                  (if (not= bytes -1)
-                    (recur
-                     (if (== (.remaining buffer) 0)
-                       (resize-buffer buffer (* (.capacity buffer) 1.5))
-                       buffer))
-                    buffer)))]
+    (let [buf (loop [buffer (MemoryUtil/memAlloc initial-buf-size)]
+                (if (== (.read rbc buffer) -1)
+                  buffer
+                  (recur
+                   (if (== (.remaining buffer) 0)
+                     (resize-buffer buffer (int (* (.capacity buffer) 1.5)))
+                     buffer))))]
       (.flip buf)
       (MemoryUtil/memSlice buf))))
 
