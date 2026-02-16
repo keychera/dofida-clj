@@ -16,7 +16,9 @@
                                   GL_TEXTURE_MAG_FILTER GL_TEXTURE_MIN_FILTER
                                   GL_TEXTURE_WRAP_S GL_TEXTURE_WRAP_T
                                   GL_UNSIGNED_BYTE]]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o])
+  #?(:clj (:import
+           [org.lwjgl.stb STBImage])))
 
 (s/def ::uri-to-load string?)
 (s/def ::tex-unit int?)
@@ -59,6 +61,10 @@
         #_:src-fmt      GL_RGBA
         #_:src-type     GL_UNSIGNED_BYTE
         data)
+    ;; we free here? https://github.com/LWJGL/lwjgl3/blob/8d12523d40890a78eb11673ce26732a9125971a4/modules/samples/src/test/java/org/lwjgl/demo/stb/Image.java#L222
+    ;; above also have an example to generate mipmap TODO
+    #?(:clj (STBImage/stbi_image_free data))
+    ;; hmm, musing on dropping cljs altogether...
 
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST)
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
