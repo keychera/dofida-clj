@@ -1,27 +1,23 @@
 (ns minusthree.model.assimp-lwjgl
   (:require
    [cheshire.core :as json]
-   [clojure.java.io :as io]
-   [minusthree.engine.utils :refer [get-parent-path get-public-resource]]
+   [minusthree.engine.utils :refer [get-parent-path resource->ByteBuffer!?
+                                    with-mem-free!?]]
    [minusthree.model.gltf-model :as gltf])
   (:import
    [java.nio ByteOrder]
-   [org.lwjgl BufferUtils]
-   [org.lwjgl.assimp Assimp]))
+   [org.lwjgl.assimp AIScene Assimp]))
 
 (defn load-with-assimp
   "load model with assimp and convert to gltf in-memory"
-  [model-path export-format]
-  (let [model-res  (get-public-resource model-path)
-        bytes      (.readAllBytes (io/input-stream model-res))
-        buffer     (doto (BufferUtils/createByteBuffer (count bytes))
-                     (.put bytes)
-                     (.flip))
-        flags      (bit-or Assimp/aiProcess_Triangulate
+  [model-path ^String export-format]
+  (let [flags      (bit-or Assimp/aiProcess_Triangulate
                            Assimp/aiProcess_GenUVCoords
                            Assimp/aiProcess_JoinIdenticalVertices
                            Assimp/aiProcess_SortByPType)
-        aiScene    (Assimp/aiImportFileFromMemory buffer flags (str nil))
+        ^AIScene aiScene
+        (with-mem-free!? [buffer!? (resource->ByteBuffer!? (str "public/" model-path))]
+          (Assimp/aiImportFileFromMemory buffer!? flags (str nil)))
         _          (assert (some? aiScene) (str "aiScene for " model-path " is null!\nerr: " (Assimp/aiGetErrorString)))
         blob       (Assimp/aiExportSceneToBlob aiScene export-format 0)
         ;; we assume only 2 files for now, or rather, convention for ourself
