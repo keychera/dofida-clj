@@ -23,7 +23,8 @@
            org.lwjgl/lwjgl-glfw            {:mvn/version "3.3.6"}
            org.lwjgl/lwjgl-opengl          {:mvn/version "3.3.6"}
            org.lwjgl/lwjgl-stb             {:mvn/version "3.3.6"}
-           org.lwjgl/lwjgl-assimp          {:mvn/version "3.3.6"}}
+           org.lwjgl/lwjgl-assimp          {:mvn/version "3.3.6"}
+           org.lwjgl/lwjgl-par             {:mvn/version "3.3.6"}}
  :aliases {:shadow-cljs {:extra-paths ["src-dev-js"]
                          :extra-deps  {thheller/shadow-cljs {:mvn/version "3.2.1"}
                                        org.mentat/leva.cljs {:mvn/version "0.3.0"}}}
@@ -52,20 +53,12 @@
                                       org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.3.6"}
                                       org.lwjgl/lwjgl-stb$natives-windows    {:mvn/version "3.3.6"}
                                       org.lwjgl/lwjgl-assimp$natives-windows {:mvn/version "3.3.6"}
+                                      org.lwjgl/lwjgl-par$natives-windows    {:mvn/version "3.3.6"}
                                       io.github.spair/imgui-java-natives-windows {:mvn/version "1.89.0"}}}
            :linux       {:extra-deps {org.lwjgl/lwjgl$natives-linux        {:mvn/version "3.3.6"}
                                       org.lwjgl/lwjgl-glfw$natives-linux   {:mvn/version "3.3.6"}
                                       org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.3.6"}
                                       org.lwjgl/lwjgl-stb$natives-linux    {:mvn/version "3.3.6"}
                                       org.lwjgl/lwjgl-assimp$natives-linux {:mvn/version "3.3.6"}
-                                      io.github.spair/imgui-java-natives-linux {:mvn/version "1.89.0"}}}
-           :macos       {:extra-deps {org.lwjgl/lwjgl$natives-macos        {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-glfw$natives-macos   {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-stb$natives-macos    {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-assimp$natives-macos {:mvn/version "3.3.6"}}}
-           :macos-arm64 {:extra-deps {org.lwjgl/lwjgl$natives-macos-arm64        {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-glfw$natives-macos-arm64   {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-stb$natives-macos-arm64    {:mvn/version "3.3.6"}
-                                      org.lwjgl/lwjgl-assimp$natives-macos-arm64 {:mvn/version "3.3.6"}}}}}
+                                      org.lwjgl/lwjgl-par$natives-linux    {:mvn/version "3.3.6"}
+                                      io.github.spair/imgui-java-natives-linux {:mvn/version "1.89.0"}}}}}

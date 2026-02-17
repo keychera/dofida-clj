@@ -3,6 +3,7 @@
    [fastmath.vector :as v]
    [minusthree.engine.offscreen :as offscreen]
    [minusthree.engine.rendering.imgui :as imgui]
+   [minusthree.engine.rendering.par-streamlines :as par-streamlines]
    [minusthree.engine.world :as world]
    [minusthree.model.model-rendering :as model-rendering]
    [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
@@ -26,6 +27,7 @@
       (println "init game")
       (-> game
           (assoc :screen1 screen1)
+          (par-streamlines/init)
           (imgui/init)))))
 
 (defn rendering-zone [game]
@@ -47,6 +49,7 @@
           renders (o/query-all world ::model-rendering/render-model-biasa)]
       (doseq [{:keys [render-fn] :as match} renders]
         (render-fn game match)))
+    (par-streamlines/render game)
 
     (offscreen/render-fbo ctx screen1 {:fbo 0 :width w :height h}
                           {:translation (v/vec3 0.0 0.0 0.0)
@@ -55,4 +58,5 @@
 
 (defn destroy [game]
   (println "destroy game")
+  (par-streamlines/destroy game)
   (imgui/destroy game))
