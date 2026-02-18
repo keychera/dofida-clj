@@ -56,16 +56,26 @@ todo:
         ☐ rewrite
             ✔ imguizmo @done(26-02-07 19:44)
             ✔ do we need refresh? seems repl is enough for now @done(26-02-16 00:24) only rules insert for now
-                ☐ refresh rules, curently we rely on restart for rules
+               
             ✔ transform3d @done(26-02-11 23:04)
             ✔ skinning @done(26-02-11 23:04)
             ✔ pmx @done(26-02-16 00:23)
-            ☐ morph
-            ☐ camera
-            ☐ particle
+
             ✔ anime @done(26-02-16 00:24)
-            ☐ loop
-            ☐ record
+        
+    uished, nativeshed:
+        ☐ skija
+        ☐ membrane
+        ☐ coffi
+        ☐ jolt physics
+
+        ☐ refresh rules, curently we rely on restart for rules
+        ☐ morph
+        ☐ camera
+        ☐ particle
+
+        ☐ loop
+        ☐ record
 
         ✔ MY TEX-UNIT MISUNDERSTANDING https://www.reddit.com/r/opengl/comments/o4iryb/comment/h2hknhb/ @done(26-02-16 22:36)
 
