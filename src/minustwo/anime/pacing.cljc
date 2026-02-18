@@ -69,8 +69,9 @@
                        s)))
             (o/insert ::world/global ::progress progress)))]
 
-    ::new-loop
+    ::progress
     [:what
+     [::world/global ::progress progress]
      [::world/global ::loop loop-counter]]
 
     ::debug

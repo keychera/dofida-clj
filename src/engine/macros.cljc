@@ -1,9 +1,6 @@
 (ns engine.macros
   #?@(:clj [(:require
-             [clojure.java.io :as io]
-             [odoyle.rules :as o])
-            (:import
-             [java.nio.file Paths])])
+             [odoyle.rules :as o])])
   #?(:cljs (:require-macros [engine.macros :refer [s-> insert! vars->map]])))
 
 #?(:clj
@@ -28,6 +25,3 @@
 #?(:clj
    (defmacro vars->map [& vars]
      (zipmap (map (comp keyword name) vars) vars)))
-
-;; this is loading resource on compile-time, hence cljs can have access to java stuff
-#?(:clj (def public-resource-path (Paths/get (.toURI (io/resource "public")))))

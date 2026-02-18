@@ -48,7 +48,9 @@
            vertex-index-size
            texture-index-size
            bone-index-size] :as root-header}]
-  (when (not= magic "PMX ") (throw (ex-info (str "no PMX magic detected! magic = '" magic "'") {})))
+  ;; only check the first three char? 
+  ;; https://github.com/MMD-Blender/blender_mmd_tools/blob/b5fe56193f375a305627e8ab646bdf192895d214/mmd_tools/core/pmx/__init__.py#L265C24-L265C41
+  (when (not= (subs magic 0 3) "PMX") (throw (ex-info (str "no PMX magic detected! magic = '" magic "'") {})))
   (let [text_f        (finite-frame int_f (string encoding))
         vertex-idx_f  (keyword vertex-index-size)
         bone-idx_f    (keyword bone-index-size)
@@ -352,14 +354,11 @@
 (def pmx-codec (header header-codec body-codec-fn identity))
 
 (defn parse-pmx [pmx-path]
-  (let [pmx-file (io/file (io/resource pmx-path))]
-    (println "parsing pmx:" pmx-file)
-    (with-open [raf (java.io.RandomAccessFile. pmx-file "r")
-                ch  (.getChannel raf)]
-      (let [buf (.map ch java.nio.channels.FileChannel$MapMode/READ_ONLY 0 (.size ch))]
-        (assoc (gio/decode pmx-codec buf false)
-               ;; I have a feeling this will break if this is in a jar
-               :parent-dir (.getParent pmx-file))))))
+  (println "parsing pmx:" pmx-path)
+  (with-open [is (io/input-stream (io/resource pmx-path))]
+    (let [bytes (.readAllBytes is)
+          buf   (java.nio.ByteBuffer/wrap bytes)]
+      (gio/decode pmx-codec buf false))))
 
 (comment
   #_(require '[clj-async-profiler.core :as prof])

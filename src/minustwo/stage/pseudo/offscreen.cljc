@@ -12,7 +12,7 @@
                                   GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
                                   GL_TRIANGLES]]
    [minustwo.gl.texture :as texture]
-   [rules.primitives :refer [plane3d-uvs plane3d-vertices]]
+   [engine.math.primitives :refer [plane3d-uvs plane3d-vertices]]
    [thi.ng.math.core :as m]))
 
 (def fbo-vs

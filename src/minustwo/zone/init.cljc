@@ -18,7 +18,7 @@
     (let [ctx (gl-ctx game)]
       (gl ctx enable GL_BLEND)
       (gl ctx enable GL_CULL_FACE)
-      (gl ctx enable GL_MULTISAMPLE)
+      #?(:clj (gl ctx enable GL_MULTISAMPLE))
       (gl ctx enable GL_DEPTH_TEST))
     (let [{:keys [all-rules before-fns init-fns after-fns render-fns]} (world/build-systems systems/all)]
       (some-> (::game/render-fns* game) (reset! render-fns))

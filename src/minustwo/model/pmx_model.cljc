@@ -1,13 +1,14 @@
 (ns minustwo.model.pmx-model
   (:require
+   #?(:clj [minustwo.model.pmx-parser :refer [parse-pmx]])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [engine.math :as m-ext]
    [engine.sugar :refer [f32-arr i32-arr]]
+   [engine.utils :refer [get-public-resource]]
    [engine.world :as world]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.texture :as texture]
-   #?(:clj [minustwo.model.pmx-parser :refer [parse-pmx]])
    [odoyle.rules :as o]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.quaternion :as q]
@@ -121,7 +122,7 @@
 
 #?(:clj
    (defn load-pmx-model [model-path]
-     (let [res-path  (str "public" java.io.File/separator model-path)
+     (let [res-path  (get-public-resource model-path)
            pmx-data  (time (parse-pmx res-path))
            vertices  (:vertices pmx-data)
            POSITION  (float-array (into [] (comp (map :position) (map pmx-coord->opengl-coord) cat) vertices))
@@ -134,7 +135,7 @@
            JOINTS    (:JOINTS vert-wj)
            INDICES   (int-array (ccw-face (:faces pmx-data)))
            parent    (:parent-dir pmx-data)
-           textures  (into [] (map #(str parent java.io.File/separator %)) (:textures pmx-data))
+           textures  (into [] (map #(str parent "/" %)) (:textures pmx-data))
            materials (into [] accumulate-face-count (:materials pmx-data))
            bones     (into []
                            (comp (map-indexed (fn [idx bone] (assoc bone :idx idx)))
