@@ -50,6 +50,7 @@
         (reset! stop* true))
       (catch Throwable e
         (reset! stop* true)
+        (println "[error] cause:" (:cause (Throwable->map e)))
         (viscous/inspect (update (Throwable->map e) :cause
                                  (fn [txt] (some-> txt (str/split-lines)))))))))
 
