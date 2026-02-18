@@ -29,7 +29,7 @@
                  buffer-type (:buffer-type chant)
                  buffer-data (:buffer-data chant)]
              (gl ctx bindBuffer buffer-type buffer)
-             (gl ctx bufferData buffer-type buffer-data GL_STATIC_DRAW)
+             (gl ctx bufferData buffer-type buffer-data (or (:usage chant) GL_STATIC_DRAW))
              (cond-> magician
                (:buffer-name chant) (assoc-in [::data ::shader/buffer (:buffer-name chant)] buffer)
                true (update :state assoc :current-buffer buffer :buffer-type buffer-type)))

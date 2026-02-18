@@ -4,7 +4,9 @@
 
 ;; Primitive types
 (def ^:const GL_TRUE 1)
+(def ^:const GL_LINES 1)
 (def ^:const GL_TRIANGLES 4)
+
 
 ;; Shader
 (def ^:const GL_FRAGMENT_SHADER 35632)
