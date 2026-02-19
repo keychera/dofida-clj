@@ -1,16 +1,25 @@
 (ns minusthree.engine.offscreen
   (:require
-   [engine.macros :refer [vars->map]]
-   [engine.math.primitives :refer [plane3d-uvs plane3d-vertices]]
+   [minusthree.engine.macros :refer [vars->map]]
    [fastmath.matrix :as mat :refer [mat->float-array]]
    [minusthree.engine.math :refer [scaling-mat translation-mat]]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.texture :as texture]
    [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_FRAMEBUFFER
-                                  GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                  GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
-                                  GL_TRIANGLES]]
+                                    GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
+                                    GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
+                                    GL_TRIANGLES]]
    [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]))
+
+(def plane3d-vertices
+  (float-array
+   [-1.0 -1.0 0.0,  1.0 -1.0 0.0, -1.0  1.0 0.0,
+    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0]))
+
+(def plane3d-uvs
+  (float-array
+   [0.0 0.0, 1.0 0.0, 0.0 1.0,
+    0.0 1.0, 1.0 0.0, 1.0 1.0]))
 
 (def fbo-vs
   (str cljgl/version-str

@@ -4,7 +4,7 @@
    #?(:clj [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
       :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [vars->map]]
+   [minusthree.engine.macros :refer [vars->map]]
    [iglu.core :as iglu]
    [minusthree.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
                                   GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]

@@ -2,7 +2,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [engine.macros :refer [s->]]
+   [minusthree.engine.macros :refer [s->]]
    [fastmath.matrix :as mat :refer [mat->float-array]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]

@@ -1,7 +1,6 @@
 (ns minusthree.anime.bones
   (:require
    [clojure.spec.alpha :as s]
-   [engine.sugar :refer [f32-arr]]
    [fastmath.matrix :as mat]
    [minusthree.engine.math :refer [quat->mat4 scaling-mat translation-mat]]))
 
@@ -35,7 +34,7 @@
          (rf result node))))))
 
 (defn create-joint-mats-arr [bones]
-  (let [f32s (f32-arr (* 16 (count bones)))]
+  (let [f32s (float-array (* 16 (count bones)))]
     (doseq [{::keys [joint-id]
              :keys [inv-bind-mat global-transform]} bones]
       (let [joint-mat (mat/mulm inv-bind-mat global-transform)

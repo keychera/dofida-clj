@@ -4,7 +4,7 @@
       :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [engine.macros :refer [s-> vars->map]]
+   [minusthree.engine.macros :refer [s-> vars->map]]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.utils :as utils]
    [minusthree.engine.world :as world]

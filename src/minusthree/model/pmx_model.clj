@@ -1,8 +1,7 @@
 (ns minusthree.model.pmx-model
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [s-> vars->map]]
-   [engine.sugar :refer [f32-arr i32-arr]]
+   [minusthree.engine.macros :refer [s-> vars->map]]
    [fastmath.matrix :as mat :refer [mat->float-array]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
@@ -16,8 +15,8 @@
    [minusthree.gl.texture :as texture]
    [minusthree.model.model-rendering :as model-rendering]
    [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
-                                  GL_FLOAT GL_TEXTURE_2D GL_TRIANGLES
-                                  GL_UNIFORM_BUFFER GL_UNSIGNED_INT]]
+                                    GL_FLOAT GL_TEXTURE_2D GL_TRIANGLES
+                                    GL_UNIFORM_BUFFER GL_UNSIGNED_INT]]
    [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [minusthree.gl.shader :as shader]
    [minusthree.model.pmx-parser :as pmx-parser]
@@ -39,8 +38,8 @@
 (defn reduce-to-WEIGHTS-and-JOINTS
   "assuming all bones weights are :BDEF1, :BDEF2, or :BDEF4"
   [len]
-  (let [WEIGHTS (f32-arr (* 4 len))
-        JOINTS  (i32-arr (* 4 len))]
+  (let [WEIGHTS (float-array (* 4 len))
+        JOINTS  (int-array (* 4 len))]
     (fn
       ([] 0)
       ([_counter] (vars->map WEIGHTS JOINTS))
