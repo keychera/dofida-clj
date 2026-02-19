@@ -8,7 +8,7 @@
    [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture]
    [minusthree.stage.shaderdef :as shaderdef]
-   [odoyle.rules :as o]) 
+   [odoyle.rules :as o])
   (:import
    [org.lwjgl.opengl GL45]))
 
@@ -20,7 +20,7 @@
   (merge {::texture/data {}}
          t3d/default))
 
-(defn create-ubo [ctx size to-index]
+(defn create-ubo [size to-index]
   (let [ubo (GL45/glGenBuffers)]
     (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER ubo)
     (GL45/glBufferData GL45/GL_UNIFORM_BUFFER size GL45/GL_DYNAMIC_DRAW)
@@ -30,7 +30,7 @@
 
 (defn init-fn [world _game]
   (-> world
-      (esse ::skinning-ubo {::ubo (create-ubo nil (* shaderdef/MAX_JOINTS 16 4) 0)})))
+      (esse ::skinning-ubo {::ubo (create-ubo (* shaderdef/MAX_JOINTS 16 4) 0)})))
 
 (def rules
   (o/ruleset

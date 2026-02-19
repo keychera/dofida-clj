@@ -1,19 +1,14 @@
 (ns minusthree.gl.cljgl
   (:require
    [clojure.spec.alpha :as s]
-   [iglu.core :as iglu]
-   [minusthree.engine.macros :refer [vars->map]]
    [minusthree.gl.shader :as shader])
   (:import
    [org.lwjgl.opengl GL45]))
 
-(s/def ::context any?)
 (def glsl-version "330")
 (def version-str (str "#version " glsl-version))
 
-(defn create-buffer [ctx] (GL45/glGenBuffers))
-
-(defn create-shader [ctx type source]
+(defn create-shader [type source]
   (let [shader (GL45/glCreateShader type)]
     (GL45/glShaderSource shader source)
     (GL45/glCompileShader shader)
@@ -22,13 +17,12 @@
       (throw (ex-info (GL45/glGetShaderInfoLog shader) {})))))
 
 (s/fdef create-program
-  :args (s/cat :ctx ::context
-               :vs-source string?
+  :args (s/cat :vs-source string?
                :fs-source string?)
   :ret ::shader/program)
-(defn create-program [ctx vs-source fs-source]
-  (let [vertex-shader   (create-shader ctx GL45/GL_VERTEX_SHADER vs-source)
-        fragment-shader (create-shader ctx GL45/GL_FRAGMENT_SHADER fs-source)
+(defn create-program [vs-source fs-source]
+  (let [vertex-shader   (create-shader GL45/GL_VERTEX_SHADER vs-source)
+        fragment-shader (create-shader GL45/GL_FRAGMENT_SHADER fs-source)
         program         (GL45/glCreateProgram)]
     (GL45/glAttachShader program vertex-shader)
     (GL45/glAttachShader program fragment-shader)
@@ -42,8 +36,8 @@
 ;; inspired by twgl.js interface
 (s/fdef create-program-info-from-source
   :ret ::shader/program-info)
-(defn create-program-info-from-source [ctx vs-source fs-source]
-  (let [program    (create-program ctx vs-source fs-source)
+(defn create-program-info-from-source [vs-source fs-source]
+  (let [program    (create-program vs-source fs-source)
         vs-members (-> vs-source shader/get-header-source shader/parse-header)
         fs-members (-> fs-source shader/get-header-source shader/parse-header)
         members    (concat vs-members fs-members)
@@ -68,47 +62,11 @@
      :attr-locs  attr-locs
      :uni-locs   uni-locs}))
 
-(s/fdef gather-locs
-  :args (s/cat :ctx ::context
-               :program ::shader/program
-               :iglu-vert-shader map?
-               :iglu-frag-shader map?)
-  :ret map?)
-(defn gather-locs-from-iglu [ctx program iglu-vert-shader iglu-frag-shader]
-  (let [both-shader [iglu-vert-shader iglu-frag-shader]
-        attr-locs   (->> (transduce (map :inputs) merge both-shader)
-                         (into {} (map (fn [[attr-name attr-type]]
-                                         [(keyword attr-name)
-                                          {:type     (keyword attr-type)
-                                           :attr-loc (GL45/glGetAttribLocation program (str attr-name))}]))))
-        uni-locs    (->> (transduce (map :uniforms) merge both-shader)
-                         (into {} (map (fn [[uni-name uni-type]]
-                                         [(keyword uni-name)
-                                          {:type    (keyword uni-type)
-                                           :uni-loc (GL45/glGetUniformLocation program (str uni-name))}]))))]
-    (vars->map attr-locs uni-locs)))
-
-(s/fdef create-program-info-from-iglu
-  :args (s/cat :ctx any?
-               :iglu-vert-shader map?
-               :iglu-frag-shader map?)
-  :ret ::shader/program-info)
-(defn create-program-info-from-iglu
-  ([ctx iglu-vert-shader iglu-frag-shader]
-   (let [vs-source (or (:raw iglu-vert-shader)
-                       (iglu/iglu->glsl (merge {:version glsl-version} iglu-vert-shader)))
-         fs-source (or (:raw iglu-frag-shader)
-                       (iglu/iglu->glsl (merge {:version glsl-version} iglu-frag-shader)))
-         program   (create-program ctx vs-source fs-source)
-         locs      (gather-locs-from-iglu ctx program iglu-vert-shader iglu-frag-shader)]
-     (merge {:program program} locs))))
-
 (s/fdef set-uniform
-  :args (s/cat :ctx ::context
-               :program-info ::shader/program-info
+  :args (s/cat :program-info ::shader/program-info
                :loc-keyword keyword?
                :value any?))
-(defn set-uniform [ctx program-info loc-keyword value]
+(defn set-uniform [program-info loc-keyword value]
   (if-let [{:keys [uni-loc type]} (get (:uni-locs program-info) loc-keyword)]
     (case type
       :float     (GL45/glUniform1f uni-loc value)

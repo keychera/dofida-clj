@@ -11,23 +11,21 @@
    [org.lwjgl.stb STBImage]))
 
 (defn init [game]
-  (let [ctx nil]
-    (GL45/glEnable GL45/GL_BLEND)
-    (GL45/glEnable GL45/GL_BLEND)
-    (GL45/glEnable GL45/GL_CULL_FACE)
-    (GL45/glEnable GL45/GL_MULTISAMPLE)
-    (GL45/glEnable GL45/GL_DEPTH_TEST)
-    (STBImage/stbi_set_flip_vertically_on_load false)
-    (let [{:keys [w h]} (-> game :config :window-conf)
-          screen1       (offscreen/prep-offscreen-render ctx w h)]
-      (println "init game")
-      (-> game
-          (assoc :screen1 screen1)
-          (imgui/init)))))
+  (GL45/glEnable GL45/GL_BLEND)
+  (GL45/glEnable GL45/GL_BLEND)
+  (GL45/glEnable GL45/GL_CULL_FACE)
+  (GL45/glEnable GL45/GL_MULTISAMPLE)
+  (GL45/glEnable GL45/GL_DEPTH_TEST)
+  (STBImage/stbi_set_flip_vertically_on_load false)
+  (let [{:keys [w h]} (-> game :config :window-conf)
+        screen1       (offscreen/prep-offscreen-render w h)]
+    (println "init game")
+    (-> game
+        (assoc :screen1 screen1)
+        (imgui/init))))
 
 (defn rendering-zone [game]
-  (let [ctx                      nil
-        {:keys [config screen1]} game
+  (let [{:keys [config screen1]} game
         {:keys [w h]}            (:window-conf config)]
     (GL45/glBlendFunc GL45/GL_SRC_ALPHA GL45/GL_ONE_MINUS_SRC_ALPHA)
     (GL45/glClearColor 0.02 0.02 0.12 1.0)
@@ -46,7 +44,7 @@
         (render-fn game match)))
 
 
-    (offscreen/render-fbo ctx screen1 {:fbo 0 :width w :height h}
+    (offscreen/render-fbo screen1 {:fbo 0 :width w :height h}
                           {:translation (v/vec3 0.0 0.0 0.0)
                            :scale       (v/vec3 1.0 1.0 1.0)}))
   game)

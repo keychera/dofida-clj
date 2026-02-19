@@ -228,9 +228,8 @@
      [esse-id ::loading/state :success]
      [esse-id ::shader/program-info program-info]
      :then
-     (let [ctx          nil ; for now, since jvm doesn't need it
-           gltf-chant   (gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
-           summons      (gl-magic/cast-spell ctx esse-id gltf-chant)
+     (let [gltf-chant   (gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
+           summons      (gl-magic/cast-spell esse-id gltf-chant)
            gl-facts     (::gl-magic/facts summons)
            gl-data      (::gl-magic/data summons)]
        (println esse-id "is loaded!")
@@ -254,16 +253,16 @@
    ::world/rules #'rules})
 
 (defn render-gltf
-  [{:keys [ctx project view]}
+  [{:keys [project view]}
    {:keys [program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
   #_{:clj-kondo/ignore [:inline-def]}
   (def debug-var match)
   (let [vaos  (::gl-magic/vao gl-data)
         prims (::primitives gl-data)]
     (GL45/glUseProgram (:program program-info))
-    (cljgl/set-uniform ctx program-info :u_projection project)
-    (cljgl/set-uniform ctx program-info :u_view view)
-    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
+    (cljgl/set-uniform program-info :u_projection project)
+    (cljgl/set-uniform program-info :u_view view)
+    (cljgl/set-uniform program-info :u_model (mat->float-array transform))
 
     (when (seq pose-tree)
       (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
@@ -280,7 +279,7 @@
         (when vao
           (when-let [{:keys [gl-texture]} tex]
             (GL45/glBindTexture GL45/GL_TEXTURE_2D gl-texture)
-            (cljgl/set-uniform ctx program-info :u_mat_diffuse 0))
+            (cljgl/set-uniform program-info :u_mat_diffuse 0))
 
           (GL45/glBindVertexArray vao)
           (GL45/glDrawElements GL45/GL_TRIANGLES vert-count component-type 0)

@@ -49,20 +49,20 @@ void main() {
 }"))
 
 (defn prep-offscreen-render
-  ([ctx width height] (prep-offscreen-render ctx width height {}))
-  ([ctx width height conf]
-   (let [fbo-data        (texture/cast-fbo-spell ctx width height conf)
-         program-info    (cljgl/create-program-info-from-source ctx fbo-vs fbo-fs)
+  ([width height] (prep-offscreen-render width height {}))
+  ([width height conf]
+   (let [fbo-data        (texture/cast-fbo-spell width height conf)
+         program-info    (cljgl/create-program-info-from-source fbo-vs fbo-fs)
          fbo-program     (:program program-info)
          fbo-attr-loc    (GL45/glGetAttribLocation fbo-program "a_pos")
          fbo-uv-attr-loc (GL45/glGetAttribLocation fbo-program "a_uv")
          offscreen-vao   (GL45/glGenVertexArrays)
          _               (GL45/glBindVertexArray offscreen-vao)
-         offscreen-vbo   (cljgl/create-buffer ctx)
+         offscreen-vbo   (GL45/glGenBuffers)
          _               (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER offscreen-vbo)
          _               (GL45/glBufferData GL45/GL_ARRAY_BUFFER plane3d-vertices GL45/GL_STATIC_DRAW)
 
-         off-uv-buffer   (cljgl/create-buffer ctx)
+         off-uv-buffer   (GL45/glGenBuffers)
          _               (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER off-uv-buffer)
          _               (GL45/glBufferData GL45/GL_ARRAY_BUFFER plane3d-uvs GL45/GL_STATIC_DRAW)]
      (GL45/glEnableVertexAttribArray fbo-attr-loc)
@@ -75,8 +75,7 @@ void main() {
      (merge fbo-data (vars->map program-info offscreen-vao offscreen-vbo)))))
 
 (defn render-fbo
-  [ctx
-   {source-vao :offscreen-vao
+  [{source-vao :offscreen-vao
     source-program :program-info
     source-fbo-tex :fbo-tex}
    {target-width :width
@@ -96,8 +95,8 @@ void main() {
 
     (GL45/glActiveTexture GL45/GL_TEXTURE0)
     (GL45/glBindTexture GL45/GL_TEXTURE_2D source-fbo-tex)
-    (cljgl/set-uniform ctx source-program :u_model (mat->float-array model))
-    (cljgl/set-uniform ctx source-program :u_tex 0)
+    (cljgl/set-uniform source-program :u_model (mat->float-array model))
+    (cljgl/set-uniform source-program :u_tex 0)
 
     (when target-color-attachment
       (GL45/glDrawBuffers (int-array [target-color-attachment])))

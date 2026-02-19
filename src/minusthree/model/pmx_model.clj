@@ -183,7 +183,7 @@
      :then
      (println "loading pmx model for" esse-id)
      (let [pmx-chant (pmx-spell pmx-data program-info {:esse-id esse-id})
-           summons   (gl-magic/cast-spell nil esse-id pmx-chant)
+           summons   (gl-magic/cast-spell esse-id pmx-chant)
            gl-facts  (::gl-magic/facts summons)
            gl-data   (assoc (::gl-magic/data summons)
                             :materials (:materials pmx-data))
@@ -201,28 +201,28 @@
   {::world/init-fn #'init-fn
    ::world/rules #'rules})
 
-(defn render-material [ctx tex-data program-info material]
+(defn render-material [tex-data program-info material]
   (let [face-count  (:face-count material)
         face-offset (* 4 (:face-offset material))
         tex         (get tex-data (:texture-index material))]
     (when-let [{:keys [gl-texture]} tex]
       (GL45/glBindTexture GL45/GL_TEXTURE_2D gl-texture)
-      (cljgl/set-uniform ctx program-info :u_mat_diffuse 0))
+      (cljgl/set-uniform program-info :u_mat_diffuse 0))
 
     (GL45/glDrawElements GL45/GL_TRIANGLES face-count GL45/GL_UNSIGNED_INT face-offset)))
 
 (defn render-pmx
-  [{:keys [ctx project view]}
+  [{:keys [project view]}
    {:keys [esse-id program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
   #_{:clj-kondo/ignore [:inline-def]}
   (def debug-var match)
   (let [vaos  (::gl-magic/vao gl-data)
-        ;; ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+        ;; ^floats POSITION   (:POSITION pmx-data) ;; morphs mutate this in a mutable way!
         vao   (get vaos esse-id)]
     (GL45/glUseProgram (:program program-info))
-    (cljgl/set-uniform ctx program-info :u_projection project)
-    (cljgl/set-uniform ctx program-info :u_view view)
-    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
+    (cljgl/set-uniform program-info :u_projection project)
+    (cljgl/set-uniform program-info :u_view view)
+    (cljgl/set-uniform program-info :u_model (mat->float-array transform))
 
     (when (seq pose-tree)
       (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
@@ -237,7 +237,7 @@
 
     (GL45/glBindVertexArray vao)
     (doseq [material (:materials gl-data)]
-      (render-material ctx tex-data program-info material))
+      (render-material tex-data program-info material))
     (GL45/glBindVertexArray 0)))
 
 (comment

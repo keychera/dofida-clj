@@ -2,7 +2,6 @@
   (:require
    [clojure.core.match :as match]
    [clojure.spec.alpha :as s]
-   [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture])
   (:import
@@ -13,7 +12,7 @@
 (s/def ::facts some?)
 (s/def ::vao some?)
 
-(defn cast-spell [ctx esse-id spell-chants]
+(defn cast-spell [esse-id spell-chants]
   (-> (reduce
        (fn [{:keys [state] :as magician} chant]
          (match/match [chant]
@@ -23,7 +22,7 @@
              (assoc-in magician [::data ::vao (:bind-vao chant)] vao))
 
            [{:buffer-data _ :buffer-type _}] ;; entry: buffer binding
-           (let [buffer (cljgl/create-buffer ctx)
+           (let [buffer (GL45/glGenBuffers)
                  buffer-type (:buffer-type chant)
                  buffer-data (:buffer-data chant)]
              (GL45/glBindBuffer buffer-type buffer)

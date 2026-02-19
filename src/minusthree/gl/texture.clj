@@ -36,7 +36,7 @@
     :else
     (throw (ex-info (str "uri not supported: " uri) {}))))
 
-(defn cast-texture-spell [ctx data width height]
+(defn cast-texture-spell [data width height]
   (let [texture (GL45/glGenTextures)]
     (GL45/glBindTexture GL45/GL_TEXTURE_2D texture)
 
@@ -59,9 +59,9 @@
     texture))
 
 (defn cast-fbo-spell
-  ([ctx width height] (cast-fbo-spell ctx width height {}))
-  ([ctx width height {:keys [color-attachment] :as conf
-                      :or {color-attachment GL45/GL_COLOR_ATTACHMENT0}}]
+  ([width height] (cast-fbo-spell width height {}))
+  ([width height {:keys [color-attachment] :as conf
+                  :or {color-attachment GL45/GL_COLOR_ATTACHMENT0}}]
    (let [fbo       (GL45/glGenFramebuffers)
          _         (GL45/glBindFramebuffer GL45/GL_FRAMEBUFFER fbo)
          fbo-tex   (GL45/glGenTextures)
@@ -117,9 +117,8 @@
     [:what
      [tex-name ::image data]
      :then
-     (let [ctx nil
-           {:keys [image-data width height]} data
-           texture (cast-texture-spell ctx image-data width height)]
+     (let [{:keys [image-data width height]} data
+           texture (cast-texture-spell image-data width height)]
        (s-> session
             (o/retract tex-name ::image)
             (o/insert tex-name ::texture {:gl-texture texture})))]
