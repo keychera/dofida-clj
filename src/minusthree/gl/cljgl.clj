@@ -1,27 +1,24 @@
 (ns minusthree.gl.cljgl
-  #_{:clj-kondo/ignore [:unused-referred-var]}
   (:require
-   #?(:clj [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.spec.alpha :as s]
    [minusthree.engine.macros :refer [vars->map]]
    [iglu.core :as iglu]
    [minusthree.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
-                                  GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]
+                                    GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]
    [minusthree.gl.shader :as shader]))
 
-(s/def ::context #?(:clj any? :cljs #(instance? js/WebGL2RenderingContext %)))
-(def glsl-version #?(:clj "330" :cljs "300 es"))
+(s/def ::context any?)
+(def glsl-version "330")
 (def version-str (str "#version " glsl-version))
 
-(defn create-buffer [ctx] (gl ctx #?(:clj genBuffers :cljs createBuffer)))
+(defn create-buffer [ctx] (gl ctx genBuffers))
 
 (defn create-shader [ctx type source]
   (let [shader (gl ctx createShader type)]
     (gl ctx shaderSource shader source)
     (gl ctx compileShader shader)
-    (if #?(:clj (= GL_TRUE (gl ctx getShaderi shader GL_COMPILE_STATUS))
-           :cljs (gl ctx getShaderParameter shader GL_COMPILE_STATUS))
+    (if (= GL_TRUE (gl ctx getShaderi shader GL_COMPILE_STATUS))
       shader
       (throw (ex-info (gl ctx getShaderInfoLog shader) {})))))
 
@@ -39,8 +36,7 @@
     (gl ctx linkProgram program)
     (gl ctx deleteShader vertex-shader)
     (gl ctx deleteShader fragment-shader)
-    (if #?(:clj (= GL_TRUE (gl ctx getProgrami program GL_LINK_STATUS))
-           :cljs (gl ctx getProgramParameter program GL_LINK_STATUS))
+    (if (= GL_TRUE (gl ctx getProgrami program GL_LINK_STATUS))
       program
       (throw (ex-info (gl ctx getProgramInfoLog program) {})))))
 

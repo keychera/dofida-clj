@@ -1,7 +1,6 @@
 (ns minusthree.model.model-rendering
   (:require
-   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.spec.alpha :as s]
    [minusthree.anime.anime :as anime]
    [minusthree.engine.transform3d :as t3d]
@@ -26,7 +25,7 @@
     (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
     (gl ctx bufferData GL_UNIFORM_BUFFER size GL_DYNAMIC_DRAW)
     (gl ctx bindBufferBase GL_UNIFORM_BUFFER to-index ubo)
-    (gl ctx bindBuffer GL_UNIFORM_BUFFER #?(:clj 0 :cljs nil))
+    (gl ctx bindBuffer GL_UNIFORM_BUFFER 0)
     ubo))
 
 (defn init-fn [world _game]

@@ -1,9 +1,8 @@
 (ns minusthree.engine.loading
   (:require
-   [clojure.core.async :refer [#?@(:clj [>!! thread]) chan
-                               poll!]]
+   [clojure.core.async :refer [>!! thread chan poll!]]
    [clojure.spec.alpha :as s]
-   #?(:clj [clojure.stacktrace :refer [print-stack-trace]])
+   [clojure.stacktrace :refer [print-stack-trace]]
    [minusthree.engine.world :as world]
    [odoyle.rules :as o]))
 
@@ -39,17 +38,16 @@
                       (o/insert esse-id ::state :success)))))
       (let [world    (::world/this game)
             to-loads (into [] (take load-buffer) (o/query-all world ::to-load))]
-        #?(:clj
-           (when (seq to-loads)
-             (thread
-               (doseq [{:keys [esse-id load-fn]} to-loads]
-                 (try
-                   (let [loaded-facts (load-fn)]
-                     (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts}))
-                   (catch #?(:clj Throwable :cljs js/Error) err
-                     (println esse-id "load error!")
-                     (print-stack-trace err)
-                     (>!! loading-ch {:esse-id esse-id :new-facts [[esse-id ::state :error]]})))))))
+        (when (seq to-loads)
+          (thread
+            (doseq [{:keys [esse-id load-fn]} to-loads]
+              (try
+                (let [loaded-facts (load-fn)]
+                  (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts}))
+                (catch Throwable err
+                  (println esse-id "load error!")
+                  (print-stack-trace err)
+                  (>!! loading-ch {:esse-id esse-id :new-facts [[esse-id ::state :error]]}))))))
         (update game ::world/this
                 (fn [world]
                   (reduce (fn [w' {:keys [esse-id]}] (o/insert w' esse-id ::state :loading)) world to-loads)))))))

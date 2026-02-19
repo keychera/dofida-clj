@@ -1,7 +1,6 @@
 (ns minusthree.gl.texture
   (:require
-   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [minusthree.engine.macros :refer [s-> vars->map]]
@@ -9,15 +8,15 @@
    [minusthree.engine.utils :as utils]
    [minusthree.engine.world :as world]
    [minusthree.gl.constants :refer [GL_CLAMP_TO_EDGE GL_COLOR_ATTACHMENT0
-                                  GL_DEPTH_ATTACHMENT GL_DEPTH_COMPONENT24
-                                  GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE
-                                  GL_NEAREST GL_RENDERBUFFER GL_RGBA
-                                  GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER
-                                  GL_TEXTURE_MIN_FILTER GL_TEXTURE_WRAP_S
-                                  GL_TEXTURE_WRAP_T GL_UNSIGNED_BYTE]]
+                                    GL_DEPTH_ATTACHMENT GL_DEPTH_COMPONENT24
+                                    GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE
+                                    GL_NEAREST GL_RENDERBUFFER GL_RGBA
+                                    GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER
+                                    GL_TEXTURE_MIN_FILTER GL_TEXTURE_WRAP_S
+                                    GL_TEXTURE_WRAP_T GL_UNSIGNED_BYTE]]
    [odoyle.rules :as o])
-  #?(:clj (:import
-           [org.lwjgl.stb STBImage])))
+  (:import
+   [org.lwjgl.stb STBImage]))
 
 (s/def ::uri-to-load string?)
 (s/def ::for ::world/esse-id)
@@ -45,9 +44,8 @@
     (throw (ex-info (str "uri not supported: " uri) {}))))
 
 (defn cast-texture-spell [ctx data width height]
-  (let [texture (gl ctx #?(:clj genTextures :cljs createTexture))]
+  (let [texture (gl ctx genTextures)]
     (gl ctx bindTexture GL_TEXTURE_2D texture)
-    #?(:cljs (gl ctx pixelStorei (gl ctx UNPACK_FLIP_Y_WEBGL) false))
 
     (gl ctx texImage2D GL_TEXTURE_2D
         #_:mip-level    0
@@ -60,7 +58,7 @@
         data)
     ;; we free here? https://github.com/LWJGL/lwjgl3/blob/8d12523d40890a78eb11673ce26732a9125971a4/modules/samples/src/test/java/org/lwjgl/demo/stb/Image.java#L222
     ;; above also have an example to generate mipmap TODO
-    #?(:clj (STBImage/stbi_image_free data))
+    (STBImage/stbi_image_free data)
     ;; hmm, musing on dropping cljs altogether...
 
     (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST)
@@ -71,13 +69,13 @@
   ([ctx width height] (cast-fbo-spell ctx width height {}))
   ([ctx width height {:keys [color-attachment] :as conf
                       :or {color-attachment GL_COLOR_ATTACHMENT0}}]
-   (let [fbo       (gl ctx #?(:clj genFramebuffers :cljs createFramebuffer))
+   (let [fbo       (gl ctx genFramebuffers)
          _         (gl ctx bindFramebuffer GL_FRAMEBUFFER fbo)
-         fbo-tex   (gl ctx #?(:clj genTextures :cljs createTexture))
-         depth-buf (gl ctx #?(:clj genRenderbuffers :cljs createRenderbuffer))]
+         fbo-tex   (gl ctx genTextures)
+         depth-buf (gl ctx genRenderbuffers)]
 
-    ;; bind, do stuff, unbind, hmm hmm
-    ;; attach texture
+     ;; bind, do stuff, unbind, hmm hmm
+     ;; attach texture
      (gl ctx bindTexture GL_TEXTURE_2D fbo-tex)
      (gl ctx texImage2D GL_TEXTURE_2D
          #_:mip-level    0
@@ -87,22 +85,22 @@
          #_:border       0
          #_:src-fmt      GL_RGBA
          #_:src-type     GL_UNSIGNED_BYTE
-         #?(:clj 0 :cljs nil))
+         0)
      (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST)
      (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST)
      (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE)
      (gl ctx texParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE)
-     (gl ctx bindTexture GL_TEXTURE_2D #?(:clj 0 :cljs nil))
+     (gl ctx bindTexture GL_TEXTURE_2D 0)
      (gl ctx framebufferTexture2D GL_FRAMEBUFFER color-attachment GL_TEXTURE_2D fbo-tex 0)
 
-    ;; attach depth buffer, will parameterize later or never if not needed 
+     ;; attach depth buffer, will parameterize later or never if not needed 
      (gl ctx bindRenderbuffer GL_RENDERBUFFER depth-buf);
      (gl ctx renderbufferStorage GL_RENDERBUFFER GL_DEPTH_COMPONENT24 width height);
      (gl ctx framebufferRenderbuffer GL_FRAMEBUFFER GL_DEPTH_ATTACHMENT GL_RENDERBUFFER depth-buf);
 
      (when (not= (gl ctx checkFramebufferStatus GL_FRAMEBUFFER) GL_FRAMEBUFFER_COMPLETE)
        (println "warning: framebuffer creation incomplete"))
-     (gl ctx bindFramebuffer GL_FRAMEBUFFER #?(:clj 0 :cljs nil))
+     (gl ctx bindFramebuffer GL_FRAMEBUFFER 0)
 
      (merge conf (vars->map fbo fbo-tex width height)))))
 

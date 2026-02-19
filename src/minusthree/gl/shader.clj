@@ -1,8 +1,10 @@
 (ns minusthree.gl.shader
   (:require
    [clojure.spec.alpha :as s]
-   [instaparse.core :as insta]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [instaparse.core :as insta])
+  (:import
+   [java.lang Integer]))
 
 (s/def ::glsl-type #{:float :int :uint :bool
                      :vec2 :vec3 :vec4
@@ -14,22 +16,19 @@
 (s/def ::type (s/or :raw-type ::glsl-type
                     :arr-type (s/cat :type ::glsl-type :dimension int?)))
 
-(s/def ::program #?(:clj int? :cljs #(instance? js/WebGLProgram %)))
+(s/def ::program int?)
 
 (s/def ::attr-loc int?)
 (s/def ::attr (s/keys :req-un [::type ::attr-loc]))
 (s/def ::attr-locs (s/map-of keyword? ::attr))
 
-(s/def ::uni-loc #?(:clj int? :cljs #(instance? js/WebGLUniformLocation %)))
+(s/def ::uni-loc int?)
 (s/def ::uni (s/keys :req-un [::type ::uni-loc]))
 (s/def ::uni-locs (s/map-of keyword? ::uni))
 
 (s/def ::program-info (s/keys :req-un [::program ::attr-locs ::uni-locs]))
-(s/def ::all (s/map-of some? ::program-info))
 
 (s/def ::buffer some?)
-(s/def ::ubo some?)
-(s/def ::use some?)
 
 (def shader-header-grammar
   "
@@ -77,7 +76,7 @@ Number = #'[0-9]+'
                 {:TypeSpec           keyword
                  :MemberName         (fn [[_ member-name]] [:member-name (keyword member-name)])
                  :BlockName          (fn [[_ member-name]] [:member-name (keyword member-name)])
-                 :ArraySpec          (comp #?(:clj Integer/parseInt :cljs js/parseInt) second)
+                 :ArraySpec          (comp Integer/parseInt second)
                  :TypeDecl           (fn [& nodes]
                                        (let [member-type (into [] nodes)
                                              member-type (if (= (count member-type) 1) (first member-type) member-type)]

@@ -11,7 +11,7 @@
 
 ;; dev-only
 (defn resolve-var [v]
-  (if (instance? #?(:clj clojure.lang.Var :cljs Var) v) (deref v) v))
+  (if (instance? clojure.lang.Var v) (deref v) v))
 
 (defn prepare-world [world game all-rules init-fns]
   (let [world  (reduce o/add-rule (or world (o/->session)) all-rules)

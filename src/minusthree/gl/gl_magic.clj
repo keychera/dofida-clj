@@ -1,13 +1,12 @@
 (ns minusthree.gl.gl-magic
   (:require
-   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.core.match :as match]
    [clojure.spec.alpha :as s]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.texture :as texture]
    [minusthree.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
-                                  GL_UNSIGNED_SHORT]]
+                                    GL_UNSIGNED_SHORT]]
    [minusthree.gl.shader :as shader]))
 
 (s/def ::casted? boolean?)
@@ -20,7 +19,7 @@
        (fn [{:keys [state] :as magician} chant]
          (match/match [chant]
            [{:bind-vao _}] ;; entry: vao binding
-           (let [vao (gl ctx #?(:clj genVertexArrays :cljs createVertexArray))]
+           (let [vao (gl ctx genVertexArrays)]
              (gl ctx bindVertexArray vao)
              (assoc-in magician [::data ::vao (:bind-vao chant)] vao))
 
@@ -53,7 +52,7 @@
                  (gl ctx enableVertexAttribArray attr-loc)
                  magician)
                (update-in magician [::data ::err] conj (str "[error] attr-loc not found for chant:" chant)))
-             (catch #?(:clj Exception :cljs js/Error) err
+             (catch Throwable err
                (println "[error] in point-attr" (:point-attr chant) ", cause:" (:cause (Throwable->map err)))
                (update-in magician [::data ::err] conj err)))
 
@@ -65,7 +64,7 @@
                      [tex-name ::texture/for esse-id]))
 
            [{:unbind-vao _}]
-           (do (gl ctx bindVertexArray #?(:clj 0 :cljs nil))
+           (do (gl ctx bindVertexArray 0)
                magician)
 
            [{:insert-facts _}]

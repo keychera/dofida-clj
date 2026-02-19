@@ -2,7 +2,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [minusthree.engine.loading :as loading]
-   #?(:clj [minusthree.engine.rendering :as rendering])
+   [minusthree.engine.rendering :as rendering]
    [minusthree.engine.systems :as systems]
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
@@ -13,7 +13,7 @@
 (defn init [game]
   (->> (world/init-world game systems/all)
        (loading/init-channel)
-       #?(:clj (rendering/init))
+       (rendering/init)
        (s/assert ::init-game)))
 
 (defn tick [{:keys [refresh-flag*] :as game}]
@@ -23,8 +23,8 @@
       refresh? (world/post-world)
       true     (update ::world/this o/fire-rules)
       true     (loading/loading-zone)
-      #?@(:clj [true (rendering/rendering-zone)]))))
+      true     (rendering/rendering-zone))))
 
 (defn destroy [game]
   (-> game
-      #?(:clj (rendering/destroy))))
+      (rendering/destroy)))
