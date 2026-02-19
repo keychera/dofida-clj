@@ -8,7 +8,7 @@
    [minusthree.gl.texture :as texture]
    [minusthree.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
                                   GL_UNSIGNED_SHORT]]
-   [minustwo.gl.shader :as shader]))
+   [minusthree.gl.shader :as shader]))
 
 (s/def ::casted? boolean?)
 (s/def ::data some?)

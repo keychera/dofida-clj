@@ -1,4 +1,4 @@
-(ns minustwo.gl.shader
+(ns minusthree.gl.shader
   (:require
    [clojure.spec.alpha :as s]
    [instaparse.core :as insta]

@@ -2,7 +2,7 @@
   (:require
    [engine.world :as world]
    [minustwo.gl.gl-system :as gl-system]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
    [minustwo.gl.vao :as vao]
    [minustwo.systems.view.camera :as camera]

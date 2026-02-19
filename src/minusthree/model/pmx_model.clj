@@ -19,7 +19,7 @@
                                   GL_FLOAT GL_TEXTURE_2D GL_TRIANGLES
                                   GL_UNIFORM_BUFFER GL_UNSIGNED_INT]]
    [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.model.pmx-parser :as pmx-parser]
    [odoyle.rules :as o]))
 

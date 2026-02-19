@@ -4,7 +4,7 @@
    [engine.world :as world :refer [esse]]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.model.assimp :as assimp]
    [minustwo.stage.gltf-renderer :as gltf-renderer]
    [minustwo.systems.transform3d :as t3d]))

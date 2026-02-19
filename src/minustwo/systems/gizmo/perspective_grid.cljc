@@ -12,7 +12,7 @@
                                   GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.systems.view.room :as room]
    [odoyle.rules :as o]
    [thi.ng.math.core :as m]))

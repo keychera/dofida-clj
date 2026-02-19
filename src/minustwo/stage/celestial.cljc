@@ -12,7 +12,7 @@
    [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_TRIANGLES]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.systems.transform3d :as t3d]
    [minustwo.systems.view.room :as room]
    [minustwo.zone.render :as render]

@@ -12,7 +12,7 @@
    [minusthree.model.gltf-model :as gltf-model]
    [minusthree.model.pmx-model :as pmx-model :refer [load-pmx-fn]]
    [minusthree.stage.shaderdef :as shaderdef]
-   [minustwo.gl.shader :as shader]))
+   [minusthree.gl.shader :as shader]))
 
 ;; 39
 

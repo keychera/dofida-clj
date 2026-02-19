@@ -3,7 +3,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert!]]
    [engine.world :as world]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [odoyle.rules :as o]))
 
 (s/def ::context #?(:clj some? :cljs #(instance? js/WebGL2RenderingContext %)))

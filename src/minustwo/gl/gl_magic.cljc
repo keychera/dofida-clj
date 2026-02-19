@@ -11,7 +11,7 @@
    [minusthree.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
                                   GL_UNSIGNED_SHORT]]
    [minustwo.gl.gltf :as gltf]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.gl.texture :as texture]
    [minustwo.model.assimp :as assimp]
    [minustwo.systems.view.room :as room]

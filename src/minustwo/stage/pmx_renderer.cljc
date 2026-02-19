@@ -16,7 +16,7 @@
                                   GL_UNSIGNED_INT]]
    [minustwo.gl.geom :as geom]
    [minustwo.gl.gl-magic :as gl-magic]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [minustwo.model.pmx-model :as pmx-model]
    [minustwo.stage.esse-model :as esse-model]
    [minustwo.stage.pseudo.bones :as bones]

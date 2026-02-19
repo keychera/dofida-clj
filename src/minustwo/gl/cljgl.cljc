@@ -9,7 +9,7 @@
    [minustwo.gl.gl-system :as gl-system]
    [minusthree.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
                                   GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]
-   [minustwo.gl.shader :as shader]))
+   [minusthree.gl.shader :as shader]))
 
 (def glsl-version #?(:clj "330" :cljs "300 es"))
 (def version-str (str "#version " glsl-version))

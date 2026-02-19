@@ -10,7 +10,7 @@
    [minusthree.gl.texture :as texture]
    [minusthree.stage.shaderdef :as shaderdef]
    [minusthree.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
-   [minustwo.gl.shader :as shader]
+   [minusthree.gl.shader :as shader]
    [odoyle.rules :as o]))
 
 (s/def ::render-type qualified-keyword?)
