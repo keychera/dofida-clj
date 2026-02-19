@@ -1,13 +1,12 @@
 (ns minusthree.gl.gl-magic
   (:require
-   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.core.match :as match]
    [clojure.spec.alpha :as s]
    [minusthree.gl.cljgl :as cljgl]
-   [minusthree.gl.texture :as texture]
-   [minusthree.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
-                                    GL_UNSIGNED_SHORT]]
-   [minusthree.gl.shader :as shader]))
+   [minusthree.gl.shader :as shader]
+   [minusthree.gl.texture :as texture])
+  (:import
+   [org.lwjgl.opengl GL45]))
 
 (s/def ::casted? boolean?)
 (s/def ::data some?)
@@ -19,16 +18,16 @@
        (fn [{:keys [state] :as magician} chant]
          (match/match [chant]
            [{:bind-vao _}] ;; entry: vao binding
-           (let [vao (gl ctx genVertexArrays)]
-             (gl ctx bindVertexArray vao)
+           (let [vao (GL45/glGenVertexArrays)]
+             (GL45/glBindVertexArray vao)
              (assoc-in magician [::data ::vao (:bind-vao chant)] vao))
 
            [{:buffer-data _ :buffer-type _}] ;; entry: buffer binding
            (let [buffer (cljgl/create-buffer ctx)
                  buffer-type (:buffer-type chant)
                  buffer-data (:buffer-data chant)]
-             (gl ctx bindBuffer buffer-type buffer)
-             (gl ctx bufferData buffer-type buffer-data (or (:usage chant) GL_STATIC_DRAW))
+             (GL45/glBindBuffer buffer-type buffer)
+             (GL45/glBufferData buffer-type buffer-data (or (:usage chant) GL45/GL_STATIC_DRAW))
              (cond-> magician
                (:buffer-name chant) (assoc-in [::data ::shader/buffer (:buffer-name chant)] buffer)
                true (update :state assoc :current-buffer buffer :buffer-type buffer-type)))
@@ -36,7 +35,7 @@
            [{:bind-current-buffer _}]
            (let [current-buffer (:current-buffer state)
                  buffer-type    (:buffer-type state)]
-             (gl ctx bindBuffer buffer-type current-buffer)
+             (GL45/glBindBuffer buffer-type current-buffer)
              magician)
 
            ;; entry: attrib pointing, some keywords follows gltf accessor keys 
@@ -46,10 +45,10 @@
              (if-let [attr-loc (get-in (:use-shader chant) [:attr-locs (:point-attr chant) :attr-loc])]
                (let [{:keys [count component-type stride offset] :or {stride 0 offset 0}} chant]
                  (condp = component-type
-                   GL_UNSIGNED_SHORT (gl ctx vertexAttribIPointer attr-loc count component-type stride offset)
-                   GL_UNSIGNED_INT   (gl ctx vertexAttribIPointer attr-loc count component-type stride offset)
-                   (gl ctx vertexAttribPointer attr-loc count component-type false stride offset))
-                 (gl ctx enableVertexAttribArray attr-loc)
+                   GL45/GL_UNSIGNED_SHORT (GL45/glVertexAttribIPointer attr-loc count component-type stride offset)
+                   GL45/GL_UNSIGNED_INT   (GL45/glVertexAttribIPointer attr-loc count component-type stride offset)
+                   (GL45/glVertexAttribPointer attr-loc count component-type false stride offset))
+                 (GL45/glEnableVertexAttribArray attr-loc)
                  magician)
                (update-in magician [::data ::err] conj (str "[error] attr-loc not found for chant:" chant)))
              (catch Throwable err
@@ -64,7 +63,7 @@
                      [tex-name ::texture/for esse-id]))
 
            [{:unbind-vao _}]
-           (do (gl ctx bindVertexArray 0)
+           (do (GL45/glBindVertexArray 0)
                magician)
 
            [{:insert-facts _}]

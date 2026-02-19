@@ -1,3 +1,0 @@
-{:linters {:dofida/angry {:level :error}}
- :hooks   {:analyze-call {minusthree.gl.macros/lwjgl hooks/gl-hook
-                          minusthree.gl.macros/webgl hooks/gl-hook}}}

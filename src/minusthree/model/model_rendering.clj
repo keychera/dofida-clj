@@ -1,16 +1,16 @@
 (ns minusthree.model.model-rendering
   (:require
-   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.spec.alpha :as s]
    [minusthree.anime.anime :as anime]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.engine.world :as world :refer [esse]]
    [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture]
    [minusthree.stage.shaderdef :as shaderdef]
-   [minusthree.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
-   [minusthree.gl.shader :as shader]
-   [odoyle.rules :as o]))
+   [odoyle.rules :as o]) 
+  (:import
+   [org.lwjgl.opengl GL45]))
 
 (s/def ::render-type qualified-keyword?)
 (s/def ::render-fn fn?)
@@ -21,11 +21,11 @@
          t3d/default))
 
 (defn create-ubo [ctx size to-index]
-  (let [ubo (gl ctx genBuffers)]
-    (gl ctx bindBuffer GL_UNIFORM_BUFFER ubo)
-    (gl ctx bufferData GL_UNIFORM_BUFFER size GL_DYNAMIC_DRAW)
-    (gl ctx bindBufferBase GL_UNIFORM_BUFFER to-index ubo)
-    (gl ctx bindBuffer GL_UNIFORM_BUFFER 0)
+  (let [ubo (GL45/glGenBuffers)]
+    (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER ubo)
+    (GL45/glBufferData GL45/GL_UNIFORM_BUFFER size GL45/GL_DYNAMIC_DRAW)
+    (GL45/glBindBufferBase GL45/GL_UNIFORM_BUFFER to-index ubo)
+    (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER 0)
     ubo))
 
 (defn init-fn [world _game]

@@ -1,15 +1,12 @@
 (ns minusthree.engine.offscreen
   (:require
-   [minusthree.engine.macros :refer [vars->map]]
    [fastmath.matrix :as mat :refer [mat->float-array]]
+   [minusthree.engine.macros :refer [vars->map]]
    [minusthree.engine.math :refer [scaling-mat translation-mat]]
    [minusthree.gl.cljgl :as cljgl]
-   [minusthree.gl.texture :as texture]
-   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_FRAMEBUFFER
-                                    GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
-                                    GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
-                                    GL_TRIANGLES]]
-   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]))
+   [minusthree.gl.texture :as texture])
+  (:import
+   [org.lwjgl.opengl GL45]))
 
 (def plane3d-vertices
   (float-array
@@ -57,24 +54,24 @@ void main() {
    (let [fbo-data        (texture/cast-fbo-spell ctx width height conf)
          program-info    (cljgl/create-program-info-from-source ctx fbo-vs fbo-fs)
          fbo-program     (:program program-info)
-         fbo-attr-loc    (gl ctx getAttribLocation fbo-program "a_pos")
-         fbo-uv-attr-loc (gl ctx getAttribLocation fbo-program "a_uv")
-         offscreen-vao   (gl ctx genVertexArrays)
-         _               (gl ctx bindVertexArray offscreen-vao)
+         fbo-attr-loc    (GL45/glGetAttribLocation fbo-program "a_pos")
+         fbo-uv-attr-loc (GL45/glGetAttribLocation fbo-program "a_uv")
+         offscreen-vao   (GL45/glGenVertexArrays)
+         _               (GL45/glBindVertexArray offscreen-vao)
          offscreen-vbo   (cljgl/create-buffer ctx)
-         _               (gl ctx bindBuffer GL_ARRAY_BUFFER offscreen-vbo)
-         _               (gl ctx bufferData GL_ARRAY_BUFFER plane3d-vertices GL_STATIC_DRAW)
+         _               (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER offscreen-vbo)
+         _               (GL45/glBufferData GL45/GL_ARRAY_BUFFER plane3d-vertices GL45/GL_STATIC_DRAW)
 
          off-uv-buffer   (cljgl/create-buffer ctx)
-         _               (gl ctx bindBuffer GL_ARRAY_BUFFER off-uv-buffer)
-         _               (gl ctx bufferData GL_ARRAY_BUFFER plane3d-uvs GL_STATIC_DRAW)]
-     (gl ctx enableVertexAttribArray fbo-attr-loc)
-     (gl ctx bindBuffer GL_ARRAY_BUFFER offscreen-vbo)
-     (gl ctx vertexAttribPointer fbo-attr-loc 3 GL_FLOAT false 0 0)
+         _               (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER off-uv-buffer)
+         _               (GL45/glBufferData GL45/GL_ARRAY_BUFFER plane3d-uvs GL45/GL_STATIC_DRAW)]
+     (GL45/glEnableVertexAttribArray fbo-attr-loc)
+     (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER offscreen-vbo)
+     (GL45/glVertexAttribPointer fbo-attr-loc 3 GL45/GL_FLOAT false 0 0)
 
-     (gl ctx enableVertexAttribArray fbo-uv-attr-loc)
-     (gl ctx bindBuffer GL_ARRAY_BUFFER off-uv-buffer)
-     (gl ctx vertexAttribPointer fbo-uv-attr-loc 2 GL_FLOAT false 0 0)
+     (GL45/glEnableVertexAttribArray fbo-uv-attr-loc)
+     (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER off-uv-buffer)
+     (GL45/glVertexAttribPointer fbo-uv-attr-loc 2 GL45/GL_FLOAT false 0 0)
      (merge fbo-data (vars->map program-info offscreen-vao offscreen-vbo)))))
 
 (defn render-fbo
@@ -89,19 +86,19 @@ void main() {
    {:keys [translation scale]}]
   (let [model (mat/mulm (scaling-mat scale)
                         (translation-mat translation))]
-    (gl ctx bindFramebuffer GL_FRAMEBUFFER target-fbo)
-    (gl ctx blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
+    (GL45/glBindFramebuffer GL45/GL_FRAMEBUFFER target-fbo)
+    (GL45/glBlendFunc GL45/GL_SRC_ALPHA GL45/GL_ONE_MINUS_SRC_ALPHA)
 
-    (gl ctx viewport 0 0 target-width target-height)
+    (GL45/glViewport 0 0 target-width target-height)
 
-    (gl ctx bindVertexArray source-vao)
-    (gl ctx useProgram (:program source-program))
+    (GL45/glBindVertexArray source-vao)
+    (GL45/glUseProgram (:program source-program))
 
-    (gl ctx activeTexture GL_TEXTURE0)
-    (gl ctx bindTexture GL_TEXTURE_2D source-fbo-tex)
+    (GL45/glActiveTexture GL45/GL_TEXTURE0)
+    (GL45/glBindTexture GL45/GL_TEXTURE_2D source-fbo-tex)
     (cljgl/set-uniform ctx source-program :u_model (mat->float-array model))
     (cljgl/set-uniform ctx source-program :u_tex 0)
 
     (when target-color-attachment
-      (gl ctx drawBuffers (int-array [target-color-attachment])))
-    (gl ctx drawArrays GL_TRIANGLES 0 6)))
+      (GL45/glDrawBuffers (int-array [target-color-attachment])))
+    (GL45/glDrawArrays GL45/GL_TRIANGLES 0 6)))

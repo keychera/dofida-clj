@@ -1,26 +1,25 @@
 (ns minusthree.gl.cljgl
   (:require
-   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.spec.alpha :as s]
-   [minusthree.engine.macros :refer [vars->map]]
    [iglu.core :as iglu]
-   [minusthree.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
-                                    GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]
-   [minusthree.gl.shader :as shader]))
+   [minusthree.engine.macros :refer [vars->map]]
+   [minusthree.gl.shader :as shader])
+  (:import
+   [org.lwjgl.opengl GL45]))
 
 (s/def ::context any?)
 (def glsl-version "330")
 (def version-str (str "#version " glsl-version))
 
-(defn create-buffer [ctx] (gl ctx genBuffers))
+(defn create-buffer [ctx] (GL45/glGenBuffers))
 
 (defn create-shader [ctx type source]
-  (let [shader (gl ctx createShader type)]
-    (gl ctx shaderSource shader source)
-    (gl ctx compileShader shader)
-    (if (= GL_TRUE (gl ctx getShaderi shader GL_COMPILE_STATUS))
+  (let [shader (GL45/glCreateShader type)]
+    (GL45/glShaderSource shader source)
+    (GL45/glCompileShader shader)
+    (if (= GL45/GL_TRUE (GL45/glGetShaderi shader GL45/GL_COMPILE_STATUS))
       shader
-      (throw (ex-info (gl ctx getShaderInfoLog shader) {})))))
+      (throw (ex-info (GL45/glGetShaderInfoLog shader) {})))))
 
 (s/fdef create-program
   :args (s/cat :ctx ::context
@@ -28,17 +27,17 @@
                :fs-source string?)
   :ret ::shader/program)
 (defn create-program [ctx vs-source fs-source]
-  (let [vertex-shader   (create-shader ctx GL_VERTEX_SHADER vs-source)
-        fragment-shader (create-shader ctx GL_FRAGMENT_SHADER fs-source)
-        program         (gl ctx createProgram)]
-    (gl ctx attachShader program vertex-shader)
-    (gl ctx attachShader program fragment-shader)
-    (gl ctx linkProgram program)
-    (gl ctx deleteShader vertex-shader)
-    (gl ctx deleteShader fragment-shader)
-    (if (= GL_TRUE (gl ctx getProgrami program GL_LINK_STATUS))
+  (let [vertex-shader   (create-shader ctx GL45/GL_VERTEX_SHADER vs-source)
+        fragment-shader (create-shader ctx GL45/GL_FRAGMENT_SHADER fs-source)
+        program         (GL45/glCreateProgram)]
+    (GL45/glAttachShader program vertex-shader)
+    (GL45/glAttachShader program fragment-shader)
+    (GL45/glLinkProgram program)
+    (GL45/glDeleteShader vertex-shader)
+    (GL45/glDeleteShader fragment-shader)
+    (if (= GL45/GL_TRUE (GL45/glGetProgrami program GL45/GL_LINK_STATUS))
       program
-      (throw (ex-info (gl ctx getProgramInfoLog program) {})))))
+      (throw (ex-info (GL45/glGetProgramInfoLog program) {})))))
 
 ;; inspired by twgl.js interface
 (s/fdef create-program-info-from-source
@@ -53,18 +52,18 @@
                               (comp (filter :in)
                                     (map (fn [{:keys [member-type member-name]}]
                                            [member-name {:type     member-type
-                                                         :attr-loc (gl ctx getAttribLocation program (name member-name))}])))))
+                                                         :attr-loc (GL45/glGetAttribLocation program (name member-name))}])))))
         uni-locs   (->> members
                         (into {}
                               (comp (filter :uniform)
                                     (map (fn [{:keys [member-type member-name]}]
                                            [member-name {:type    member-type
-                                                         :uni-loc (gl ctx getUniformLocation program (name member-name))}])))))]
+                                                         :uni-loc (GL45/glGetUniformLocation program (name member-name))}])))))]
     (doseq [uni-block (filter :uniform-block members)]
       (let [{:keys [member-name]} uni-block
-            block-index (gl ctx getUniformBlockIndex program (name member-name))]
+            block-index (GL45/glGetUniformBlockIndex program (name member-name))]
         ;; not sure why zero
-        (gl ctx uniformBlockBinding program block-index 0)))
+        (GL45/glUniformBlockBinding program block-index 0)))
     {:program    program
      :attr-locs  attr-locs
      :uni-locs   uni-locs}))
@@ -81,12 +80,12 @@
                          (into {} (map (fn [[attr-name attr-type]]
                                          [(keyword attr-name)
                                           {:type     (keyword attr-type)
-                                           :attr-loc (gl ctx getAttribLocation program (str attr-name))}]))))
+                                           :attr-loc (GL45/glGetAttribLocation program (str attr-name))}]))))
         uni-locs    (->> (transduce (map :uniforms) merge both-shader)
                          (into {} (map (fn [[uni-name uni-type]]
                                          [(keyword uni-name)
                                           {:type    (keyword uni-type)
-                                           :uni-loc (gl ctx getUniformLocation program (str uni-name))}]))))]
+                                           :uni-loc (GL45/glGetUniformLocation program (str uni-name))}]))))]
     (vars->map attr-locs uni-locs)))
 
 (s/fdef create-program-info-from-iglu
@@ -112,32 +111,26 @@
 (defn set-uniform [ctx program-info loc-keyword value]
   (if-let [{:keys [uni-loc type]} (get (:uni-locs program-info) loc-keyword)]
     (case type
-      :float     (gl ctx uniform1f uni-loc value)
-      :int       (gl ctx uniform1i uni-loc value)
-      :uint      (gl ctx uniform1ui uni-loc value)
-      :bool      (gl ctx uniform1i uni-loc (if value 1 0))
-      :vec2      (gl ctx uniform2fv uni-loc value)
-      :vec3      (gl ctx uniform3fv uni-loc value)
-      :vec4      (gl ctx uniform4fv uni-loc value)
-      :ivec2     (gl ctx uniform2iv uni-loc value)
-      :ivec3     (gl ctx uniform3iv uni-loc value)
-      :ivec4     (gl ctx uniform4iv uni-loc value)
-      :uvec2     (gl ctx uniform2uiv uni-loc value)
-      :uvec3     (gl ctx uniform3uiv uni-loc value)
-      :uvec4     (gl ctx uniform4uiv uni-loc value)
-      :bvec2     (gl ctx uniform2iv uni-loc (mapv #(if % 1 0) value))
-      :bvec3     (gl ctx uniform3iv uni-loc (mapv #(if % 1 0) value))
-      :bvec4     (gl ctx uniform4iv uni-loc (mapv #(if % 1 0) value))
-      :mat2      (gl ctx uniformMatrix2fv uni-loc false value)
-      :mat3      (gl ctx uniformMatrix3fv uni-loc false value)
-      :mat4      (gl ctx uniformMatrix4fv uni-loc false value)
-      :sampler2D (gl ctx uniform1i uni-loc value)
+      :float     (GL45/glUniform1f uni-loc value)
+      :int       (GL45/glUniform1i uni-loc value)
+      :uint      (GL45/glUniform1ui uni-loc value)
+      :bool      (GL45/glUniform1i uni-loc (if value 1 0))
+      :vec2      (GL45/glUniform2fv uni-loc value)
+      :vec3      (GL45/glUniform3fv uni-loc value)
+      :vec4      (GL45/glUniform4fv uni-loc value)
+      :ivec2     (GL45/glUniform2iv uni-loc value)
+      :ivec3     (GL45/glUniform3iv uni-loc value)
+      :ivec4     (GL45/glUniform4iv uni-loc value)
+      :uvec2     (GL45/glUniform2uiv uni-loc value)
+      :uvec3     (GL45/glUniform3uiv uni-loc value)
+      :uvec4     (GL45/glUniform4uiv uni-loc value)
+      :bvec2     (GL45/glUniform2iv uni-loc (mapv #(if % 1 0) value))
+      :bvec3     (GL45/glUniform3iv uni-loc (mapv #(if % 1 0) value))
+      :bvec4     (GL45/glUniform4iv uni-loc (mapv #(if % 1 0) value))
+      :mat2      (GL45/glUniformMatrix2fv uni-loc false value)
+      :mat3      (GL45/glUniformMatrix3fv uni-loc false value)
+      :mat4      (GL45/glUniformMatrix4fv uni-loc false value)
+      :sampler2D (GL45/glUniform1i uni-loc value)
       (throw (ex-info (str "Unsupported uniform type: " type) {:type type :loc-keyword loc-keyword})))
     (throw (ex-info (str "no " loc-keyword " found in program")
                     {:program-info program-info}))))
-
-(defn check-gl-err [err-message]
-  (loop [err (gl nil getError)]
-    (when (not= err 0)
-      (println "ERROR" err-message err)
-      (recur (gl nil getError)))))
