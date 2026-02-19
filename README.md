@@ -64,33 +64,9 @@ jvm desktop with repl and imgui
 clj -T:build repl
 ```
 
-### js
-
-js shadow-cljs dev
-```bash
-bun install
-Calva Jack-in
-```
-
-js release
-```bash
-bun install
-bun shadow-cljs release game
-clj -M:serve :port 1339 :dir "resources/public"
-```
-
 ## docs
 
 jvm docs    https://javadoc.lwjgl.org/org/lwjgl/opengl/GL33.html
-
-webgl docs  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
-
-
-## ffmpeg
-
-```
-ffmpeg -framerate 24 -i render-%04d.png -c:v libx264 -pix_fmt yuv420p output.mp4
-```
 
 ## caution
 

@@ -52,7 +52,6 @@
     ;; we free here? https://github.com/LWJGL/lwjgl3/blob/8d12523d40890a78eb11673ce26732a9125971a4/modules/samples/src/test/java/org/lwjgl/demo/stb/Image.java#L222
     ;; above also have an example to generate mipmap TODO
     (STBImage/stbi_image_free data)
-    ;; hmm, musing on dropping cljs altogether...
 
     (GL45/glTexParameteri GL45/GL_TEXTURE_2D GL45/GL_TEXTURE_MAG_FILTER GL45/GL_NEAREST)
     (GL45/glTexParameteri GL45/GL_TEXTURE_2D GL45/GL_TEXTURE_MIN_FILTER GL45/GL_NEAREST)
