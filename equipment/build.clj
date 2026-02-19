@@ -1,4 +1,4 @@
-(ns build
+(ns equipment.build
   (:require
    [clojure.java.io :as io]
    [clojure.string :as str]
