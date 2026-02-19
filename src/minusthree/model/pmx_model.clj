@@ -20,7 +20,7 @@
                                   GL_UNIFORM_BUFFER GL_UNSIGNED_INT]]
    [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [minusthree.gl.shader :as shader]
-   [minustwo.model.pmx-parser :as pmx-parser]
+   [minusthree.model.pmx-parser :as pmx-parser]
    [odoyle.rules :as o]))
 
 ;; PMX model

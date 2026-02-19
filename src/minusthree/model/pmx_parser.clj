@@ -1,4 +1,4 @@
-(ns minustwo.model.pmx-parser
+(ns minusthree.model.pmx-parser
   (:require
    [clojure.java.io :as io]
    [gloss.core :as g :refer [defcodec finite-frame repeated string]]

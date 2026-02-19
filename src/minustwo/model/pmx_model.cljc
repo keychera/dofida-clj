@@ -1,6 +1,6 @@
 (ns minustwo.model.pmx-model
   (:require
-   #?(:clj [minustwo.model.pmx-parser :refer [parse-pmx]])
+   #?(:clj [minusthree.model.pmx-parser :refer [parse-pmx]])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [engine.math :as m-ext]
