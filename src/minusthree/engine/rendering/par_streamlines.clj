@@ -2,7 +2,7 @@
   (:require
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_LINES
                                   GL_TRIANGLES GL_UNSIGNED_SHORT]]
    [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}])

@@ -7,7 +7,7 @@
    [engine.macros :refer [vars->map]]
    [engine.utils :as utils #?@(:cljs [:refer [data-uri->ImageBitmap]])]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_CLAMP_TO_EDGE GL_COLOR_ATTACHMENT0
+   [minusthree.gl.constants :refer [GL_CLAMP_TO_EDGE GL_COLOR_ATTACHMENT0
                                   GL_DEPTH_ATTACHMENT GL_DEPTH_COMPONENT24
                                   GL_FRAMEBUFFER GL_FRAMEBUFFER_COMPLETE
                                   GL_NEAREST GL_RENDERBUFFER GL_RGBA

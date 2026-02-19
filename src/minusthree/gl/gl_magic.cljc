@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.texture :as texture]
-   [minustwo.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
+   [minusthree.gl.constants :refer [GL_STATIC_DRAW GL_UNSIGNED_INT
                                   GL_UNSIGNED_SHORT]]
    [minustwo.gl.shader :as shader]))
 

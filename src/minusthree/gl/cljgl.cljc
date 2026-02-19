@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [engine.macros :refer [vars->map]]
    [iglu.core :as iglu]
-   [minustwo.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
+   [minusthree.gl.constants :refer [GL_COMPILE_STATUS GL_FRAGMENT_SHADER
                                   GL_LINK_STATUS GL_TRUE GL_VERTEX_SHADER]]
    [minustwo.gl.shader :as shader]))
 

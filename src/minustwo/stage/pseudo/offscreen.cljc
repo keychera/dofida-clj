@@ -6,7 +6,7 @@
    [engine.math :as m-ext]
    [engine.sugar :refer [vec->f32-arr]]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_ATTACHMENT0
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_COLOR_ATTACHMENT0
                                   GL_FLOAT GL_FRAMEBUFFER
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D

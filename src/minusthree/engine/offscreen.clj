@@ -6,7 +6,7 @@
    [minusthree.engine.math :refer [scaling-mat translation-mat]]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.texture :as texture]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_FRAMEBUFFER
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_FRAMEBUFFER
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
                                   GL_TRIANGLES]]

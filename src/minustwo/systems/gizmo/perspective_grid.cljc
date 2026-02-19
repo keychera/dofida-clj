@@ -7,7 +7,7 @@
    [engine.utils :as utils]
    [engine.world :as world :refer [esse]]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_DEPTH_TEST
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT
                                   GL_TRIANGLES GL_UNSIGNED_INT]]
    [minustwo.gl.gl-magic :as gl-magic]

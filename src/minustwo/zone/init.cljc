@@ -4,7 +4,7 @@
       :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :as game :refer [gl-ctx]]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_DEPTH_TEST
+   [minusthree.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_DEPTH_TEST
                                   GL_MULTISAMPLE]]
    [minustwo.systems :as systems]
    [odoyle.rules :as o]))

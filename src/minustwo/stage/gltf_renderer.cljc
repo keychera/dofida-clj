@@ -9,7 +9,7 @@
    [engine.world :as world]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
+   [minusthree.gl.constants :refer [GL_TEXTURE0 GL_TEXTURE_2D GL_TRIANGLES
                                   GL_UNIFORM_BUFFER]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]

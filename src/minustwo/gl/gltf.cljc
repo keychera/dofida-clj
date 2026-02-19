@@ -5,7 +5,7 @@
    [engine.math :as m-ext :refer [decompose-matrix44]]
    [engine.sugar :refer [f32-arr]]
    [engine.utils :as utils]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER]]
    [minustwo.gl.geom :as geom]
    [thi.ng.geom.core :as g]
    [thi.ng.geom.matrix :as mat]

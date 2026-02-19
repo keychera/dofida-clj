@@ -9,7 +9,7 @@
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.texture :as texture]
    [minusthree.stage.shaderdef :as shaderdef]
-   [minustwo.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
+   [minusthree.gl.constants :refer [GL_DYNAMIC_DRAW GL_UNIFORM_BUFFER]]
    [minustwo.gl.shader :as shader]
    [odoyle.rules :as o]))
 

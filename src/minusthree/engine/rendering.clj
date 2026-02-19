@@ -5,7 +5,7 @@
    [minusthree.engine.rendering.imgui :as imgui]
    [minusthree.engine.world :as world]
    [minusthree.model.model-rendering :as model-rendering]
-   [minustwo.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
+   [minusthree.gl.constants :refer [GL_BLEND GL_COLOR_BUFFER_BIT GL_CULL_FACE
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_FRAMEBUFFER GL_MULTISAMPLE
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]

@@ -10,7 +10,7 @@
    [minustwo.anime.morph :as morph]
    [minustwo.anime.pose :as pose]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_TEXTURE0
                                   GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER
                                   GL_UNSIGNED_INT]]

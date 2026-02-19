@@ -1,4 +1,4 @@
-(ns minustwo.gl.constants)
+(ns minusthree.gl.constants)
 
 ;; https://javagl.github.io/GLConstantsTranslator/GLConstantsTranslator.html
 

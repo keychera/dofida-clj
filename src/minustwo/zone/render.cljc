@@ -5,7 +5,7 @@
    [engine.game :as game]
    [engine.utils :as utils]
    [engine.world :as world]
-   [minustwo.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT
+   [minusthree.gl.constants :refer [GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
    [minustwo.systems.time :as time]
    [minustwo.systems.view.room :as room]

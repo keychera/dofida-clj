@@ -9,7 +9,7 @@
    [engine.world :as world :refer [esse]]
    [minustwo.anime.pacing :as pacing]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_TRIANGLES]]
+   [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_FLOAT GL_TRIANGLES]]
    [minustwo.gl.gl-magic :as gl-magic]
    [minustwo.gl.gltf :as gltf]
    [minustwo.gl.shader :as shader]

@@ -9,7 +9,7 @@
    [engine.types :as types]
    [engine.world :as world]
    [minustwo.gl.cljgl :as cljgl]
-   [minustwo.gl.constants :refer [GL_TRIANGLES]]
+   [minusthree.gl.constants :refer [GL_TRIANGLES]]
    [minustwo.systems.time :as time]
    [minustwo.systems.uuid-instance :as inst :refer [esse-inst remove-esse-inst]]
    [odoyle.rules :as o]
