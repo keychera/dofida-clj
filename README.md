@@ -52,6 +52,20 @@ sudo apt-get install build-essential zlib1g-dev
 # lastly just use out clojure tools.build command above (prepare -> graal)
 ```
 
+### c
+
+need gcc, [bb](https://github.com/babashka/babashka)
+
+compile
+```
+bb -x bb/c
+```
+
+run
+```
+bb -x bb/runc
+```
+
 ### jvm
 
 jvm desktop
