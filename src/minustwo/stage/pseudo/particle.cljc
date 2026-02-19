@@ -1,7 +1,7 @@
 (ns minustwo.stage.pseudo.particle
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [engine.macros :refer [s->]]
    [engine.math :as m-ext]

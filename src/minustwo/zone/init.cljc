@@ -1,7 +1,7 @@
 (ns minustwo.zone.init
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :as game :refer [gl-ctx]]
    [engine.world :as world]
    [minusthree.gl.constants :refer [GL_BLEND GL_CULL_FACE GL_DEPTH_TEST

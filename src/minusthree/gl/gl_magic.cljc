@@ -1,7 +1,7 @@
 (ns minusthree.gl.gl-magic
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.core.match :as match]
    [clojure.spec.alpha :as s]
    [minusthree.gl.cljgl :as cljgl]

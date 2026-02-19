@@ -1,7 +1,7 @@
 (ns minusthree.model.model-rendering
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [clojure.spec.alpha :as s]
    [minusthree.anime.anime :as anime]
    [minusthree.engine.transform3d :as t3d]

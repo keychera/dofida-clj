@@ -1,6 +1,6 @@
-(ns minustwo.gl.macros
+(ns minusthree.gl.macros
   "gl wrapper macros inspired by play-cljc"
-  #?(:cljs (:require-macros [minustwo.gl.macros :refer [webgl]])))
+  #?(:cljs (:require-macros [minusthree.gl.macros :refer [webgl]])))
 
 #?(:clj
    (defmacro lwjgl

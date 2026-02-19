@@ -5,7 +5,7 @@
    [minusthree.gl.constants :refer [GL_ARRAY_BUFFER GL_DYNAMIC_DRAW
                                   GL_ELEMENT_ARRAY_BUFFER GL_FLOAT GL_LINES
                                   GL_TRIANGLES GL_UNSIGNED_SHORT]]
-   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}])
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}])
   (:import
    [java.nio Buffer]
    [org.lwjgl.system MemoryUtil NativeResource Struct]

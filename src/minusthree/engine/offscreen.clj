@@ -10,7 +10,7 @@
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
                                   GL_STATIC_DRAW GL_TEXTURE0 GL_TEXTURE_2D
                                   GL_TRIANGLES]]
-   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]))
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]))
 
 (def fbo-vs
   (str cljgl/version-str

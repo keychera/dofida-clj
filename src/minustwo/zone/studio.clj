@@ -1,6 +1,6 @@
 (ns minustwo.zone.studio
   (:require
-   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
    [engine.macros :refer [insert! s->]]

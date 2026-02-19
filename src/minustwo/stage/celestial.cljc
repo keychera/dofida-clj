@@ -1,7 +1,7 @@
 (ns minustwo.stage.celestial
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :refer [gl-ctx]]
    [engine.math.primitives :as primitives]
    [engine.sugar :refer [vec->f32-arr]]

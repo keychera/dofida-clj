@@ -1,7 +1,7 @@
 (ns minustwo.stage.pmx-renderer
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :refer [gl-ctx]]
    [engine.macros :refer [insert! s->]]
    [engine.sugar :refer [f32-arr vec->f32-arr]]

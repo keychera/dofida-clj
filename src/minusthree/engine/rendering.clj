@@ -9,7 +9,7 @@
                                   GL_DEPTH_BUFFER_BIT GL_DEPTH_TEST
                                   GL_FRAMEBUFFER GL_MULTISAMPLE
                                   GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA]]
-   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+   [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
    [odoyle.rules :as o])
   (:import
    [org.lwjgl.stb STBImage]))

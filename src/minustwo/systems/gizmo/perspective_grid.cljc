@@ -1,7 +1,7 @@
 (ns minustwo.systems.gizmo.perspective-grid
   (:require
-   #?(:clj  [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-      :cljs [minustwo.gl.macros :refer [webgl] :rename {webgl gl}])
+   #?(:clj  [minusthree.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
+      :cljs [minusthree.gl.macros :refer [webgl] :rename {webgl gl}])
    [engine.game :refer [gl-ctx]]
    [engine.sugar :refer [vec->f32-arr vec->i32-arr]]
    [engine.utils :as utils]
