@@ -1,8 +1,10 @@
 (ns minusthree.platform.jvm.glfw
   (:require
+   [minusthree.engine.ffm.arena :as arena]
    [minusthree.engine.engine :as engine]
    [minusthree.engine.time :as time])
   (:import
+   [java.lang.foreign Arena]
    [org.lwjgl.glfw Callbacks GLFW GLFWErrorCallback]
    [org.lwjgl.opengl GL GL42]))
 
@@ -36,23 +38,25 @@
 
 (defn start-glfw-loop
   ([glfw-window {:keys [stop-flag* :refresh-flag*] :as config}]
-   (println "hello -3 + glfw")
+   (println "hello -3 + glfw + panama")
    (try
      (GLFW/glfwShowWindow glfw-window)
-     (loop [game (engine/init {::time/total 0.0
-                               :config (dissoc config :stop-flag*)
-                               :glfw-window glfw-window
-                               :refresh-flag* refresh-flag*})]
-       (if-not (or (GLFW/glfwWindowShouldClose glfw-window)
-                   (and (some? stop-flag*) @stop-flag*))
-         (let [total (* (GLFW/glfwGetTime) 1000)
-               delta (- total (::time/total game))
-               game  (time/update-time game total delta)]
-           (GLFW/glfwSwapBuffers glfw-window)
-           (GLFW/glfwPollEvents)
-           (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " delta))
-           (recur (engine/tick game)))
-         (engine/destroy game)))
+     (with-open [game-arena (Arena/ofConfined)]
+       (loop [game (engine/init {::time/total 0.0
+                                 ::arena/game-arena game-arena
+                                 :config (dissoc config :stop-flag*)
+                                 :glfw-window glfw-window
+                                 :refresh-flag* refresh-flag*})]
+         (if-not (or (GLFW/glfwWindowShouldClose glfw-window)
+                     (and (some? stop-flag*) @stop-flag*))
+           (let [total (* (GLFW/glfwGetTime) 1000)
+                 delta (- total (::time/total game))
+                 game  (time/update-time game total delta)]
+             (GLFW/glfwSwapBuffers glfw-window)
+             (GLFW/glfwPollEvents)
+             (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " delta))
+             (recur (engine/tick game)))
+           (engine/destroy game))))
      (finally
        (Callbacks/glfwFreeCallbacks glfw-window)
        (GLFW/glfwDestroyWindow glfw-window)

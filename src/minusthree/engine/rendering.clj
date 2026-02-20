@@ -3,6 +3,7 @@
    [fastmath.vector :as v]
    [minusthree.engine.offscreen :as offscreen]
    [minusthree.engine.rendering.imgui :as imgui]
+   [minusthree.engine.rendering.par-streamlines :as par-streamlines]
    [minusthree.engine.world :as world]
    [minusthree.model.model-rendering :as model-rendering]
    [odoyle.rules :as o])
@@ -22,6 +23,7 @@
     (println "init game")
     (-> game
         (assoc :screen1 screen1)
+        (par-streamlines/init)
         (imgui/init))))
 
 (defn rendering-zone [game]
@@ -32,6 +34,7 @@
     (GL45/glClear (bit-or GL45/GL_COLOR_BUFFER_BIT GL45/GL_DEPTH_BUFFER_BIT))
 
     (imgui/frame game)
+    (par-streamlines/render game)
 
     (GL45/glBindFramebuffer GL45/GL_FRAMEBUFFER (:fbo screen1))
     (GL45/glClearColor 0.0 0.0 0.0 0.0)
@@ -51,4 +54,5 @@
 
 (defn destroy [game]
   (println "destroy game")
+  (par-streamlines/destroy game)
   (imgui/destroy game))
