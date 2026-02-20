@@ -1,7 +1,7 @@
 (ns minusthree.anime.anime
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [insert!]]
+   [minusthree.engine.macros :refer [insert!]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]

@@ -1,0 +1,2 @@
+{:paths ["c"]
+ :deps {io.github.babashka/tools.bbuild {:git/sha "4493ba83664bdbfcaf932845fbd2f2183cdb7c1d"}}}

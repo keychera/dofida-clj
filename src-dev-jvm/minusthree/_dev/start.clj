@@ -55,6 +55,17 @@
                                  (fn [txt] (some-> txt (str/split-lines)))))))))
 
 (comment
+
+  (import [org.unix stdio_h$printf]
+          [java.lang.foreign Arena MemoryLayout])
+
+  (with-open [arena (Arena/ofConfined)]
+    (let [c-string (.allocateFrom arena "hello native from clojure!\n")]
+      (-> (stdio_h$printf/makeInvoker (into-array MemoryLayout []))
+          (.apply c-string (into-array Object [])))))
+  
+  ;; oh no, it's awesome...
+
   (toggle-stop)
   (refresh)
 

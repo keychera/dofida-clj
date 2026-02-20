@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "shadow-cljs": "^3.1.7"
-  },
-  "dependencies": {
-    "leva": "^0.10.0"
-  }
-}

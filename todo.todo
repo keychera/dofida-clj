@@ -53,7 +53,7 @@ todo:
             ✔ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something @done(26-02-16 00:27)
 
     re:minusthree, yet still so far:
-        ☐ rewrite
+        ✔ rewrite @done(26-02-19 19:28)
             ✔ imguizmo @done(26-02-07 19:44)
             ✔ do we need refresh? seems repl is enough for now @done(26-02-16 00:24) only rules insert for now
                
@@ -64,12 +64,18 @@ todo:
             ✔ anime @done(26-02-16 00:24)
         
     uished, nativeshed:
-        ☐ skija
+        ☐ to jvm, goodbye js
+        ☐ drop graalvm (for now), embrace sdl3
+
         ☐ membrane
+        ☐ yoga
+        ☐ skija
         ☐ coffi
         ☐ jolt physics
+        
 
         ☐ refresh rules, curently we rely on restart for rules
+        ☐ pose anime
         ☐ morph
         ☐ camera
         ☐ particle

@@ -3,7 +3,7 @@
            com.rpl.specter/defmacroalias clojure.core/def
            com.rpl.specter/defnav clojure.core/defn
            com.rpl.specter/defrichnav clojure.core/defn
-           engine.macros/s-> clojure.core/->
            gloss.core/defcodec clojure.core/def
+           minusthree.engine.macros/s-> clojure.core/->
            minusthree.engine.utils/with-mem-free!? clojure.core/with-open}
  :config-paths ["../resources/clj-kondo.exports/chera/dofida"]}

@@ -2,12 +2,12 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [engine.macros :refer [s->]]
    [fastmath.matrix :as mat :refer [mat->float-array]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]
    [minusthree.engine.loading :as loading]
+   [minusthree.engine.macros :refer [s->]]
    [minusthree.engine.math :refer [decompose-Mat4x4 quat->mat4 scaling-mat
                                    translation-mat]]
    [minusthree.engine.utils :as utils]
@@ -15,15 +15,13 @@
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.geom :as geom]
    [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture]
    [minusthree.model.model-rendering :as model-rendering]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
-                                  GL_TEXTURE_2D GL_TRIANGLES GL_UNIFORM_BUFFER]]
-   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-   [minustwo.gl.shader :as shader]
    [odoyle.rules :as o])
   (:import
-   [java.nio ByteOrder]))
+   [java.nio ByteOrder]
+   [org.lwjgl.opengl GL45]))
 
 (def gltf-type->num-of-component
   {"SCALAR" 1
@@ -78,7 +76,7 @@
               id-bufferView (get bufferViews (:bufferView id-accessor))
               id-byteOffset (:byteOffset id-bufferView)
               id-byteLength (:byteLength id-bufferView)]
-          {:buffer-type GL_ELEMENT_ARRAY_BUFFER
+          {:buffer-type GL45/GL_ELEMENT_ARRAY_BUFFER
            :buffer-data (let [slice (doto (.duplicate result-bin)
                                       (.position id-byteOffset)
                                       (.limit (+ id-byteLength id-byteOffset)))]
@@ -180,7 +178,7 @@
     (swap! debug-data* assoc model-id {:gltf-data gltf-data :bin result-bin})
     ;; assume one glb/gltf = one binary for the time being
     (flatten
-     [{:buffer-data result-bin :buffer-type GL_ARRAY_BUFFER}
+     [{:buffer-data result-bin :buffer-type GL45/GL_ARRAY_BUFFER}
       (eduction
        (map (fn [{:keys [tex-name] :as image}]
               {:bind-texture tex-name :image image}))
@@ -230,9 +228,8 @@
      [esse-id ::loading/state :success]
      [esse-id ::shader/program-info program-info]
      :then
-     (let [ctx          nil ; for now, since jvm doesn't need it
-           gltf-chant   (gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
-           summons      (gl-magic/cast-spell ctx esse-id gltf-chant)
+     (let [gltf-chant   (gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
+           summons      (gl-magic/cast-spell esse-id gltf-chant)
            gl-facts     (::gl-magic/facts summons)
            gl-data      (::gl-magic/data summons)]
        (println esse-id "is loaded!")
@@ -256,23 +253,23 @@
    ::world/rules #'rules})
 
 (defn render-gltf
-  [{:keys [ctx project view]}
+  [{:keys [project view]}
    {:keys [program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
   #_{:clj-kondo/ignore [:inline-def]}
   (def debug-var match)
   (let [vaos  (::gl-magic/vao gl-data)
         prims (::primitives gl-data)]
-    (gl ctx useProgram (:program program-info))
-    (cljgl/set-uniform ctx program-info :u_projection project)
-    (cljgl/set-uniform ctx program-info :u_view view)
-    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
+    (GL45/glUseProgram (:program program-info))
+    (cljgl/set-uniform program-info :u_projection project)
+    (cljgl/set-uniform program-info :u_view view)
+    (cljgl/set-uniform program-info :u_model (mat->float-array transform))
 
     (when (seq pose-tree)
       (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
         (when (> (alength joint-mats) 0)
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
-          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER 0))))
+          (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER skinning-ubo)
+          (GL45/glBufferSubData GL45/GL_UNIFORM_BUFFER 0 joint-mats)
+          (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER 0))))
 
     (doseq [{:keys [indices vao-name tex-name]} prims]
       (let [vert-count     (:count indices)
@@ -281,12 +278,12 @@
             tex            (get tex-data tex-name)]
         (when vao
           (when-let [{:keys [gl-texture]} tex]
-            (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
-            (cljgl/set-uniform ctx program-info :u_mat_diffuse 0))
+            (GL45/glBindTexture GL45/GL_TEXTURE_2D gl-texture)
+            (cljgl/set-uniform program-info :u_mat_diffuse 0))
 
-          (gl ctx bindVertexArray vao)
-          (gl ctx drawElements GL_TRIANGLES vert-count component-type 0)
-          (gl ctx bindVertexArray 0))))))
+          (GL45/glBindVertexArray vao)
+          (GL45/glDrawElements GL45/GL_TRIANGLES vert-count component-type 0)
+          (GL45/glBindVertexArray 0))))))
 
 (comment
   (require '[com.phronemophobic.viscous :as viscous])

@@ -1,7 +1,7 @@
 (ns minusthree.engine.time
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [s->]]
+   [minusthree.engine.macros :refer [s->]]
    [minusthree.engine.world :as world]
    [odoyle.rules :as o]))
 

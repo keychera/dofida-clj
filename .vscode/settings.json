@@ -1,18 +1,6 @@
 {
     "calva.replConnectSequences": [
         {
-            "name": "webgl game dev",
-            "projectType": "deps.edn",
-            "cljsType": "shadow-cljs",
-            "autoSelectForJackIn": true,
-            "menuSelections": {
-                "cljAliases": [
-                    "shadow-cljs"
-                ],
-                "cljsDefaultBuild": ":game"
-            }
-        },
-        {
             "name": "lwjgl game dev",
             "projectType": "generic",
             "cljsType": "none",
@@ -23,5 +11,4 @@
         }
     ],
     "html.format.wrapAttributes": "preserve-aligned",
-    "calva.refreshNssAfterFn": "engine.refresh/set-refresh",
 }
