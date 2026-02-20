@@ -1,11 +1,12 @@
 (ns bb
   (:require
    [clojure.tools.build.api :as b]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io]
+   [clojure.string :as str]))
 
 ;; https://foojay.io/today/project-panama-for-newbies-part-1/
 
-(defn clean [& _]
+(defn clean "clean" [& _]
   (b/delete {:path "c/j"})
   (b/delete {:path "c/o"}))
 
@@ -14,22 +15,45 @@
   (println "compiling...")
   (b/process {:dir "c" :command-args ["gcc" "-o" "o/hello.exe" "s/hello.c"]}))
 
-(defn findc [& _]
-  (b/process {:dir "c" :command-args ["gcc" "-H" "-fsyntax-only" "s/hello.c"]}))
+(defn strip [aname]
+  (-> (first (str/split aname #"\."))
+      (str/replace  #"[\.-]" "_")))
 
-(defn jx [& _]
+(def jextract-runner "jextract.bat")
+
+(defn jextract [qualifier lib-path]
   (io/make-parents "c/j/gen/x")
   (io/make-parents "c/j/classes/x")
-  (let [jextract "jextract.bat"]
-    (println "jextracting...")
-    (b/process {:dir "c" :command-args
-                [jextract
-                 "--output" "j/gen"
-                 "-t" "org.unix"
-                 "-I" "C:/msys64/ucrt64/include"
-                 "C:/msys64/ucrt64/include/stdio.h"]})
-    (println "jompiling...")
-    (b/javac {:src-dirs ["c/j/gen"] :class-dir "c/j/classes"})))
+  (println "jextracting [" qualifier "]" lib-path "...")
+  (b/process {:dir "c" :command-args [jextract-runner "--output" "j/gen" "-t" qualifier lib-path]}))
+
+(defn- build-par-streamlines [& _]
+  (let [qualifier "par"
+        libname "par_streamlines.h"
+        lib-path (str "lib/" libname)
+        out-path (str "o/" qualifier "/" (strip libname) ".dll")]
+    (io/make-parents (str "c/" out-path))
+    (println "charing" libname "...")
+    (b/process {:dir "c" :command-args ["gcc" "-shared" "-o" out-path lib-path]})
+    (jextract qualifier lib-path)))
+
+(defn build-stdio [& _]
+  (io/make-parents "c/j/gen/x")
+  (io/make-parents "c/j/classes/x")
+  (println "jextracting...")
+  (b/process {:dir "c" :command-args [jextract-runner "--output" "j/gen" "-t" "org.unix" "-I" "C:/msys64/ucrt64/include" "C:/msys64/ucrt64/include/stdio.h"]}))
+
+(defn compile-gen-java [& _]
+  (println "jompiling...")
+  (b/javac {:src-dirs ["c/j/gen"] :class-dir "c/j/classes"}))
+
+(defn prep "build libs + jextract" [& _]
+  (build-stdio)
+  (build-par-streamlines)
+  (compile-gen-java))
+
+(defn findc [& _]
+  (b/process {:dir "c" :command-args ["gcc" "-H" "-fsyntax-only" "s/hello.c"]}))
 
 (defn runc [& _]
   (b/process {:command-args ["c/o/hello.exe"] :out :inherit}))

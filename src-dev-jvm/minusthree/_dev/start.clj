@@ -57,13 +57,21 @@
 (comment
 
   (import [org.unix stdio_h$printf]
-          [java.lang.foreign Arena MemoryLayout])
+          [java.lang.foreign Arena MemoryLayout]
+          [par parsl_position])
+
+  (with-open [arena (Arena/ofConfined)]
+    (let [parsl-pos (.allocate arena (parsl_position/layout))]
+      (parsl_position/x parsl-pos 34)
+      (parsl_position/y parsl-pos -42)
+      [(parsl_position/x parsl-pos)
+       (parsl_position/y parsl-pos)]))
 
   (with-open [arena (Arena/ofConfined)]
     (let [c-string (.allocateFrom arena "hello native from clojure!\n")]
       (-> (stdio_h$printf/makeInvoker (into-array MemoryLayout []))
           (.apply c-string (into-array Object [])))))
-  
+
   ;; oh no, it's awesome...
 
   (toggle-stop)
