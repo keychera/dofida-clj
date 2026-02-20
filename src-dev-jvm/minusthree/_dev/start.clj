@@ -59,13 +59,30 @@
   (import [org.unix stdio_h$printf]
           [java.lang.foreign Arena MemoryLayout]
           [par parsl_position])
+  
+  ;; one global arena for our game-loop? wait a minute.... I can have two arena, cant i??
+  ;; https://mccue.dev/pages/12-26-24-sdl3-java
+  ;; https://foojay.io/today/project-panama-for-newbies-part-3/
+  
+  (with-open [arena (Arena/ofConfined)]
+    (let [parsl-pos-arr|| (parsl_position/allocateArray 10 arena)]
+      (parsl_position/x parsl-pos-arr|| 34)
+      (parsl_position/y parsl-pos-arr|| -42)
+      [(parsl_position/x parsl-pos-arr||)
+       (parsl_position/y parsl-pos-arr||)]))
 
   (with-open [arena (Arena/ofConfined)]
-    (let [parsl-pos (.allocate arena (parsl_position/layout))]
-      (parsl_position/x parsl-pos 34)
-      (parsl_position/y parsl-pos -42)
-      [(parsl_position/x parsl-pos)
-       (parsl_position/y parsl-pos)]))
+    (let [arr-len 10
+          parsl-pos-arr|| (parsl_position/allocateArray arr-len arena)]
+      (loop [i 0 acc []]
+        (if (< i arr-len)
+          (let [element||  (parsl_position/asSlice parsl-pos-arr|| i)
+                _          (parsl_position/x element|| i)
+                _          (parsl_position/y element|| (- i))
+                val-from-c  [(parsl_position/x element||)
+                             (parsl_position/y element||)]]
+            (recur (inc i) (conj acc val-from-c)))
+          acc))))
 
   (with-open [arena (Arena/ofConfined)]
     (let [c-string (.allocateFrom arena "hello native from clojure!\n")]
