@@ -34,7 +34,6 @@
     (GL45/glClear (bit-or GL45/GL_COLOR_BUFFER_BIT GL45/GL_DEPTH_BUFFER_BIT))
 
     (imgui/frame game)
-    (par-streamlines/render game)
 
     (GL45/glBindFramebuffer GL45/GL_FRAMEBUFFER (:fbo screen1))
     (GL45/glClearColor 0.0 0.0 0.0 0.0)
@@ -46,6 +45,7 @@
       (doseq [{:keys [render-fn] :as match} renders]
         (render-fn game match)))
 
+    (par-streamlines/render game)
 
     (offscreen/render-fbo screen1 {:fbo 0 :width w :height h}
                           {:translation (v/vec3 0.0 0.0 0.0)
