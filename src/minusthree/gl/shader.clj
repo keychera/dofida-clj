@@ -38,12 +38,14 @@ Block = InDecl
       | OutDecl
       | UniformDecl
       | InterfaceBlockDecl
+      | ConstDecl
 
 MemberDecl = TypeDecl MemberName <';'>
 MemberName = Ident
 InDecl = Layout? 'in' MemberDecl
 OutDecl = Layout? 'out' MemberDecl
 UniformDecl = Layout? 'uniform' MemberDecl
+ConstDecl = 'const' TypeDecl MemberName <'='> Anything+ <';'>
 
 InterfaceBlockDecl = Layout? StorageQualifier BlockName
   <'{'> InterfaceMembers <'}'> InstanceName? <';'>
@@ -61,7 +63,9 @@ TypeDecl = TypeSpec ArraySpec?
 TypeSpec = #'(void|int|float|(u*(vec|mat)[234])|sampler2D)'
 ArraySpec = <'['> Number <']'>
 Ident = #'[a-zA-Z_][a-zA-Z0-9_]*'
-Number = #'[0-9]+'
+Number = #'[0-9.]+'
+Operator = #'[+*-/]'
+Anything = Ident | Number | Operator
 ")
 
 (def ^:private whitespace (insta/parser "whitespace = #'\\s+'"))
@@ -98,7 +102,7 @@ Number = #'[0-9]+'
 
 (defn get-header-source [source]
   ;; just a heuristic split that works for now
-  (let [[_ body] (str/split source #"precision mediump float;\n")
+  (let [[_ body] (str/split source #"precision \w* float;\n")
         [header _] (str/split body #"(void|int|float|(u*(vec|mat)[234])|sampler[23]D)\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(")]
     header))
 
@@ -116,7 +120,9 @@ layout(std140) uniform matrix {
 layout(std140) uniform Skinning {
     mat4[500] u_joint_mats;
 };
-in vec3 POSITION;
+const float radius = 15.0;
+const float radius2 = radius * radius;
+layout(location=0) in vec3 POSITION;
 in vec3 NORMAL;
 in vec2 TEXCOORD_0;
 in vec4 WEIGHTS_0;
