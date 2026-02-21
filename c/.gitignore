@@ -1,3 +1,4 @@
 j
 o
 lib/*
+!lib/*.c
