@@ -21,21 +21,28 @@
 
 (def jextract-runner "jextract.bat")
 
-(defn jextract [qualifier lib-path]
-  (io/make-parents "c/j/gen/x")
-  (io/make-parents "c/j/classes/x")
-  (println "jextracting [" qualifier "]" lib-path "...")
-  (b/process {:dir "c" :command-args [jextract-runner "--output" "j/gen" "-t" qualifier lib-path]}))
+(defn jextract [qualifier libname]
+  (let [lib-path (str "lib/" libname)]
+    (io/make-parents "c/j/gen/x")
+    (io/make-parents "c/j/classes/x")
+    (println "jextracting [" qualifier "]" lib-path "...")
+    (b/process {:dir "c"
+                :command-args
+                [jextract-runner
+                 "--output" "j/gen"
+                 "--library" (strip libname)
+                 "-t" qualifier
+                 lib-path]})))
 
 (defn- build-par-streamlines [& _]
   (let [qualifier "par"
-        libname "par_streamlines.h"
+        libname "par_streamlines.c"
         lib-path (str "lib/" libname)
         out-path (str "o/" qualifier "/" (strip libname) ".dll")]
     (io/make-parents (str "c/" out-path))
     (println "charing" libname "...")
     (b/process {:dir "c" :command-args ["gcc" "-shared" "-o" out-path lib-path]})
-    (jextract qualifier lib-path)))
+    (jextract qualifier libname)))
 
 (defn build-stdio [& _]
   (io/make-parents "c/j/gen/x")
@@ -53,7 +60,7 @@
   (compile-gen-java))
 
 (defn findc [& _]
-  (b/process {:dir "c" :command-args ["gcc" "-H" "-fsyntax-only" "s/hello.c"]}))
+  (b/process {:dir "c" :command-args ["gcc" "-H" "-fsyntax-only" "lib/par_streamlines.c"]}))
 
 (defn runc [& _]
   (b/process {:command-args ["c/o/hello.exe"] :out :inherit}))
