@@ -53,7 +53,8 @@ BlockName = Ident
 InstanceName = Ident
 
 Layout = <'layout'> <'('> LayoutQualifier+ <')'>
-LayoutQualifier = Ident
+LayoutQualifier = Ident | LocationDecl
+LocationDecl = #'location=[0-9]+'
 
 TypeDecl = TypeSpec ArraySpec?
 
@@ -69,9 +70,11 @@ Number = #'[0-9]+'
 (defn parse-header [source]
   (let [tree (parser source)
         tree (insta/transform
-              (letfn [(qualify [qualifier member]
-                        (assoc member (keyword qualifier) true))
-
+              (letfn [(qualify
+                        ([qualifier member]
+                         (assoc member (keyword qualifier) true))
+                        ([_layout qualifier member]
+                         (assoc member (keyword qualifier) true)))
                       (mapify [& nodes] (into {} nodes))]
                 {:TypeSpec           keyword
                  :MemberName         (fn [[_ member-name]] [:member-name (keyword member-name)])
