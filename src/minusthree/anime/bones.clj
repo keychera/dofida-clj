@@ -4,6 +4,7 @@
    [fastmath.matrix :as mat]
    [minusthree.engine.math :refer [quat->mat4 scaling-mat translation-mat]]))
 
+(s/def ::name string?)
 (s/def ::data vector?)
 
 (defn calc-local-transform [{:keys [translation rotation scale]}]
