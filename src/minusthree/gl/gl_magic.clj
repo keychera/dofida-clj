@@ -12,7 +12,7 @@
 (s/def ::facts some?)
 (s/def ::vao some?)
 
-(defn cast-spell [esse-id spell-chants]
+(defn cast-spell [spell-chants]
   (-> (reduce
        (fn [{:keys [state] :as magician} chant]
          (match/match [chant]
@@ -54,12 +54,12 @@
                (println "[error] in point-attr" (:point-attr chant) ", cause:" (:cause (Throwable->map err)))
                (update-in magician [::data ::err] conj err)))
 
-           [{:bind-texture _ :image _}] ;; entry: texture binding
+           [{:bind-texture _ :image _ :for-esse _}] ;; entry: texture binding
            (let [uri      (-> chant :image :uri)
                  tex-name (:bind-texture chant)]
              (update magician ::facts conj
                      [tex-name ::texture/uri-to-load uri]
-                     [tex-name ::texture/for esse-id]))
+                     [tex-name ::texture/for (:for-esse chant)]))
 
            [{:unbind-vao _}]
            (do (GL45/glBindVertexArray 0)

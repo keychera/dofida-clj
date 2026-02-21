@@ -76,8 +76,7 @@ void main() {
                  {:point-attr :ANNOTATIONS :use-shader shader :count 4 :component-type GL45/GL_FLOAT}
                  {:buffer-data indices :buffer-type GL45/GL_ELEMENT_ARRAY_BUFFER}
                  {:unbind-vao true}]
-        ;; cast-spell kinda have a lil complected api with esse-id
-        summons (gl-magic/cast-spell nil spell)
+        summons (gl-magic/cast-spell spell)
         vao     (-> summons ::gl-magic/data ::gl-magic/vao (get vao-id))]
 
     {:vao vao :program-info shader}))
@@ -129,7 +128,7 @@ void main() {
                                 (MemoryLayout/sequenceLayout num-tri parsl/C_INT))
         annotations|| (.asSlice (parsl_mesh/annotations mesh||) 0
                                 (MemoryLayout/sequenceLayout (parsl_mesh/num_vertices mesh||) (parsl_annotation/layout)))
-        gl-data       (gl-stuff (.asByteBuffer positions||) 
+        gl-data       (gl-stuff (.asByteBuffer positions||)
                                 (.asByteBuffer tri-indices||)
                                 (.asByteBuffer annotations||))]
     (println (vec (.toArray annotations|| parsl/C_FLOAT)))

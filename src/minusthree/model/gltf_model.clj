@@ -181,7 +181,7 @@
      [{:buffer-data result-bin :buffer-type GL45/GL_ARRAY_BUFFER}
       (eduction
        (map (fn [{:keys [tex-name] :as image}]
-              {:bind-texture tex-name :image image}))
+              {:bind-texture tex-name :image image :for-esse model-id}))
        images)
 
       (eduction (primitive-spell gltf-data result-bin use-shader) primitives)
@@ -229,7 +229,7 @@
      [esse-id ::shader/program-info program-info]
      :then
      (let [gltf-chant   (gltf-spell gltf-data (first bins) {:model-id esse-id :use-shader program-info})
-           summons      (gl-magic/cast-spell esse-id gltf-chant)
+           summons      (gl-magic/cast-spell gltf-chant)
            gl-facts     (::gl-magic/facts summons)
            gl-data      (::gl-magic/data summons)]
        (println esse-id "is loaded!")

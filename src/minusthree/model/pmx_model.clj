@@ -157,7 +157,7 @@
           {:point-attr :JOINTS :use-shader shader-program :count 4 :component-type GL45/GL_UNSIGNED_INT}
 
           (eduction
-           (map-indexed (fn [tex-idx img-uri] {:bind-texture tex-idx :image {:uri img-uri}}))
+           (map-indexed (fn [tex-idx img-uri] {:bind-texture tex-idx :image {:uri img-uri} :for-esse esse-id}))
            textures)
 
           {:buffer-data (:INDICES data) :buffer-type GL45/GL_ELEMENT_ARRAY_BUFFER}
@@ -183,7 +183,7 @@
      :then
      (println "loading pmx model for" esse-id)
      (let [pmx-chant (pmx-spell pmx-data program-info {:esse-id esse-id})
-           summons   (gl-magic/cast-spell esse-id pmx-chant)
+           summons   (gl-magic/cast-spell pmx-chant)
            gl-facts  (::gl-magic/facts summons)
            gl-data   (assoc (::gl-magic/data summons)
                             :materials (:materials pmx-data))
