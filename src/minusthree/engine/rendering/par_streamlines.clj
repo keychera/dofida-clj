@@ -11,6 +11,7 @@
    [org.lwjgl.opengl GL45]
    [par
     parsl
+    parsl_annotation
     parsl_config
     parsl_context
     parsl_mesh
@@ -30,7 +31,7 @@
     (println "loading" obj "...")
     (with-open [in  (io/input-stream o-res)
                 out (io/output-stream obj-file)]
-      (io/copy in out)) 
+      (io/copy in out))
     (.deleteOnExit obj-file)
     (System/load (str (.toAbsolutePath obj-path)))))
 
@@ -43,27 +44,36 @@
 precision mediump float;
 uniform vec2 resolution;
 layout(location=0) in vec2 POSITION;
+layout(location=1) in vec4 ANNOTATIONS;
+out vec4 annotations;
+
 void main() {
   vec2 p = 2.0 * POSITION * resolution.xy - 1.0;
   gl_Position = vec4(p, 0.0, 1.0);
+  annotations = ANNOTATIONS;
 }"))
 
 (def sl-fs
   (str cljgl/version-str
        "
 precision mediump float;
+in vec4 annotations;
 out vec4 o_color;
 
 void main() {
-  o_color = vec4(0.9, 0.2, 0.9, 0.7);
+  float t = annotations.x;
+  vec3 color = mix(vec3(0.0, 0.0, 0.8), vec3(0.0, 0.8, 0.0), t);
+  o_color = vec4(color, 1.0);
 }"))
 
-(defn gl-stuff [positions indices]
+(defn gl-stuff [positions indices annotations]
   (let [shader  (cljgl/create-program-info-from-source sl-vs sl-fs)
         vao-id  "streamline"
         spell   [{:bind-vao vao-id}
                  {:buffer-data positions :buffer-type GL45/GL_ARRAY_BUFFER :usage GL45/GL_DYNAMIC_DRAW}
                  {:point-attr :POSITION :use-shader shader :count 2 :component-type GL45/GL_FLOAT}
+                 {:buffer-data annotations :buffer-type GL45/GL_ARRAY_BUFFER :usage GL45/GL_DYNAMIC_DRAW}
+                 {:point-attr :ANNOTATIONS :use-shader shader :count 4 :component-type GL45/GL_FLOAT}
                  {:buffer-data indices :buffer-type GL45/GL_ELEMENT_ARRAY_BUFFER}
                  {:unbind-vao true}]
         ;; cast-spell kinda have a lil complected api with esse-id
@@ -117,7 +127,12 @@ void main() {
         num-tri       (* 3 (parsl_mesh/num_triangles mesh||))
         tri-indices|| (.asSlice (parsl_mesh/triangle_indices mesh||) 0
                                 (MemoryLayout/sequenceLayout num-tri parsl/C_INT))
-        gl-data       (gl-stuff (.asByteBuffer positions||) (.asByteBuffer tri-indices||))]
+        annotations|| (.asSlice (parsl_mesh/annotations mesh||) 0
+                                (MemoryLayout/sequenceLayout (parsl_mesh/num_vertices mesh||) (parsl_annotation/layout)))
+        gl-data       (gl-stuff (.asByteBuffer positions||) 
+                                (.asByteBuffer tri-indices||)
+                                (.asByteBuffer annotations||))]
+    (println (vec (.toArray annotations|| parsl/C_FLOAT)))
     (assoc game
            :resolution resolution
            :num-tri num-tri
