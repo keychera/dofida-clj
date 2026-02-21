@@ -38,11 +38,11 @@
 
 (defn jextract
   ([qualifier] (jextract qualifier {}))
-  ([qualifier {:keys [single-header include
+  ([qualifier {:keys [single-header include-dir
                       library header-class-name symbols-class-name]}]
    (io/make-parents "c/j/gen/x")
    (io/make-parents "c/j/classes/x")
-   (println "jextracting [" qualifier "]" (or single-header include) "...")
+   (println "jextracting [" qualifier "]" (or single-header include-dir) "...")
    (b/process {:command-args
                (build-cmd
                 [jextract-runner
@@ -52,7 +52,7 @@
                  (when (not (str/blank? header-class-name))  ["--header-class-name" header-class-name])
                  (when (not (str/blank? symbols-class-name)) ["--symbols-class-name" symbols-class-name])
                  (or single-header
-                     (list-header-files include))])})))
+                     (list-header-files include-dir))])})))
 
 (defn- build-par-streamlines [& _]
   (let [qualifier "par"
@@ -64,24 +64,37 @@
     (io/make-parents out-path)
     (println "charing" libsource "...")
     (b/process {:command-args ["gcc" "-shared" "-o" out-path lib-path]})
-    (jextract qualifier {:single-header lib-path :library libname :header-class-name "parsl" :symbols-class-name "parsl_r"})
-    (b/copy-file {:src out-path :target (str "resources/public/libs/" libname-o)})))
+    (b/copy-file {:src out-path :target (str "resources/public/libs/" libname-o)})
+    (jextract qualifier {:single-header lib-path :library libname :header-class-name "parsl"})))
 
 (defn build-box2d [& _]
-  ;; we add -DBUILD_SHARED_LIBS=ON manually for now in build.sh 
-  (b/process {:env {"PATH" (System/getenv "PATH")}
-              :dir "../box2d"
-              :command-args ["cmd" "/c" "build.sh"] :out :inherit})
   (let [box2d-home    "../box2d"
         box2d-shared  "box2dd.dll"
         box2d-include (str box2d-home "/include/box2d")
         box2d-o       (str box2d-home "/build/bin/debug/" box2d-shared)]
+    ;; we add -DBUILD_SHARED_LIBS=ON manually for now in build.sh  
+    (b/process {:dir box2d-home :command-args ["cmd" "/c" "build.sh"] :out :inherit})
     (b/copy-file {:src    box2d-o
                   :target (str "resources/public/libs/" box2d-shared)})
     (jextract "box2d"
-              {:include            box2d-include
-               :header-class-name  "b2d"
-               :symbols-class-name "b2d_r"})))
+              {:include-dir         box2d-include
+               :header-class-name  "b2d"})))
+
+(defn build-thorvg [& _]
+  (let [out           "c/o/thorvg"
+        builddir      "builddir"
+        thorvg-home   "../thorvg"
+        thorvg-shared "libthorvg-1.dll"
+        thorvg-capi   (str out "/include/thorvg-1/thorvg_capi.h")
+        out-dir       (.getAbsolutePath (io/file out))]
+    (io/make-parents out)
+    (b/process {:dir thorvg-home :command-args ["meson" "setup" "--reconfigure" (str "--prefix=" out-dir) builddir "-Dbindings=\"capi\""] :out :inherit})
+    (b/process {:dir thorvg-home :command-args ["ninja" "-C" builddir "install"] :out :inherit})
+    (b/copy-file {:src (str out "/bin/libthorvg-1.dll")
+                  :target (str "resources/public/libs/" thorvg-shared)})
+    (jextract "thorvg"
+              {:single-header      thorvg-capi
+               :header-class-name  "tvg"})))
 
 (defn build-stdio [& _]
   (io/make-parents "c/j/gen/x")
@@ -96,6 +109,7 @@
 (defn prep "build libs + jextract" [& _]
   (build-par-streamlines)
   (build-box2d)
+  (build-thorvg)
   (compile-gen-java))
 
 (defn findc [& _]
