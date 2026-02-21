@@ -25,32 +25,37 @@
   (into [] (remove nil?) (flatten cmd-coll)))
 
 (defn jextract
-  ([qualifier libname] (jextract qualifier libname {}))
-  ([qualifier libname {:keys [header-class-name symbols-class-name]}]
-   (let [lib-path (str "lib/" libname)]
-     (io/make-parents "c/j/gen/x")
-     (io/make-parents "c/j/classes/x")
-     (println "jextracting [" qualifier "]" lib-path "...")
-     (b/process {:dir "c"
-                 :command-args
-                 (build-cmd
-                  [jextract-runner
-                   "--output" "j/gen"
-                   "--library" (strip libname)
-                   "-t" qualifier
-                   (when (not (str/blank? header-class-name))  ["--header-class-name" header-class-name])
-                   (when (not (str/blank? symbols-class-name)) ["--symbols-class-name" symbols-class-name])
-                   lib-path])}))))
+  ([qualifier lib-path] (jextract qualifier lib-path {}))
+  ([qualifier lib-path {:keys [library header-class-name symbols-class-name]}]
+   (io/make-parents "c/j/gen/x")
+   (io/make-parents "c/j/classes/x")
+   (println "jextracting [" qualifier "]" lib-path "...")
+   (b/process {:dir "c"
+               :command-args
+               (build-cmd
+                [jextract-runner
+                 "--output" "j/gen"
+                 "-t" qualifier
+                 (when library ["--library" library])
+                 (when (not (str/blank? header-class-name))  ["--header-class-name" header-class-name])
+                 (when (not (str/blank? symbols-class-name)) ["--symbols-class-name" symbols-class-name])
+                 lib-path])})))
 
 (defn- build-par-streamlines [& _]
   (let [qualifier "par"
-        libname "par_streamlines.c"
-        lib-path (str "lib/" libname)
-        out-path (str "o/" qualifier "/" (strip libname) ".dll")]
-    (io/make-parents (str "c/" out-path))
-    (println "charing" libname "...")
-    (b/process {:dir "c" :command-args ["gcc" "-shared" "-o" out-path lib-path]})
-    (jextract qualifier libname {:header-class-name "parsl" :symbols-class-name "parsl_r"})))
+        libsource "par_streamlines.c"
+        libname   (strip libsource)
+        libname-o (str libname ".dll")
+        lib-path  (str "lib/" libsource)
+        out-path  (str "o/" qualifier "/" libname-o)
+        abs-out   (str "c/" out-path)]
+    (io/make-parents abs-out)
+    (println "charing" libsource "...")
+    (b/process {:dir          "c"
+                :command-args ["gcc" "-shared" "-o" out-path lib-path]})
+    (jextract qualifier lib-path {:library libname :header-class-name "parsl" :symbols-class-name "parsl_r"})
+    (b/copy-file {:src    abs-out
+                  :target (str "resources/public/libs/" libname-o)})))
 
 (defn build-stdio [& _]
   (io/make-parents "c/j/gen/x")
@@ -73,7 +78,7 @@
 (defn runc [& _]
   (b/process {:command-args ["c/o/hello.exe"] :out :inherit}))
 
-(def minusthree-dev-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :windows :repl :profile]})))
+(def minusthree-dev-basis (delay (b/create-basis {:project "deps.edn" :aliases [:imgui :windows :native :repl :profile]})))
 
 (defn min3 [& _]
   (println "running -3")
