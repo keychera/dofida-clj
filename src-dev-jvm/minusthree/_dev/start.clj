@@ -55,15 +55,13 @@
                                  (fn [txt] (some-> txt (str/split-lines)))))))))
 
 (comment
-
-  (import [org.unix stdio_h$printf]
-          [java.lang.foreign Arena MemoryLayout]
+  (import [java.lang.foreign Arena]
           [par parsl_position])
-  
+
   ;; one global arena for our game-loop? wait a minute.... I can have two arena, cant i??
   ;; https://mccue.dev/pages/12-26-24-sdl3-java
   ;; https://foojay.io/today/project-panama-for-newbies-part-3/
-  
+
   (with-open [arena (Arena/ofConfined)]
     (let [parsl-pos-arr|| (parsl_position/allocateArray 10 arena)]
       (parsl_position/x parsl-pos-arr|| 34)
@@ -83,11 +81,6 @@
                              (parsl_position/y element||)]]
             (recur (inc i) (conj acc val-from-c)))
           acc))))
-
-  (with-open [arena (Arena/ofConfined)]
-    (let [c-string (.allocateFrom arena "hello native from clojure!\n")]
-      (-> (stdio_h$printf/makeInvoker (into-array MemoryLayout []))
-          (.apply c-string (into-array Object [])))))
 
   ;; oh no, it's awesome...
 

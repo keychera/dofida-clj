@@ -2,7 +2,9 @@
   (:require
    [clojure.tools.build.api :as b]
    [clojure.java.io :as io]
-   [clojure.string :as str]))
+   [clojure.string :as str])
+  (:import
+   [java.io File]))
 
 ;; https://foojay.io/today/project-panama-for-newbies-part-1/
 
@@ -24,38 +26,62 @@
 (defn build-cmd [cmd-coll]
   (into [] (remove nil?) (flatten cmd-coll)))
 
+(defn list-header-files [dirpath]
+  (into []
+        (comp (filter File/.isFile)
+              (map File/.getPath)
+              (filter #(= ".h" (subs % (- (count %) 2)))))
+        (file-seq (io/file dirpath))))
+
+(comment
+  (list-header-files "../box2d/include/box2d"))
+
 (defn jextract
-  ([qualifier lib-path] (jextract qualifier lib-path {}))
-  ([qualifier lib-path {:keys [library header-class-name symbols-class-name]}]
+  ([qualifier] (jextract qualifier {}))
+  ([qualifier {:keys [single-header include
+                      library header-class-name symbols-class-name]}]
    (io/make-parents "c/j/gen/x")
    (io/make-parents "c/j/classes/x")
-   (println "jextracting [" qualifier "]" lib-path "...")
-   (b/process {:dir "c"
-               :command-args
+   (println "jextracting [" qualifier "]" (or single-header include) "...")
+   (b/process {:command-args
                (build-cmd
                 [jextract-runner
-                 "--output" "j/gen"
+                 "--output" "c/j/gen"
                  "-t" qualifier
                  (when library ["--library" library])
                  (when (not (str/blank? header-class-name))  ["--header-class-name" header-class-name])
                  (when (not (str/blank? symbols-class-name)) ["--symbols-class-name" symbols-class-name])
-                 lib-path])})))
+                 (or single-header
+                     (list-header-files include))])})))
 
 (defn- build-par-streamlines [& _]
   (let [qualifier "par"
         libsource "par_streamlines.c"
         libname   (strip libsource)
         libname-o (str libname ".dll")
-        lib-path  (str "lib/" libsource)
-        out-path  (str "o/" qualifier "/" libname-o)
-        abs-out   (str "c/" out-path)]
-    (io/make-parents abs-out)
+        lib-path  (str "c/lib/" libsource)
+        out-path  (str "c/o/" qualifier "/" libname-o)]
+    (io/make-parents out-path)
     (println "charing" libsource "...")
-    (b/process {:dir          "c"
-                :command-args ["gcc" "-shared" "-o" out-path lib-path]})
-    (jextract qualifier lib-path {:library libname :header-class-name "parsl" :symbols-class-name "parsl_r"})
-    (b/copy-file {:src    abs-out
-                  :target (str "resources/public/libs/" libname-o)})))
+    (b/process {:command-args ["gcc" "-shared" "-o" out-path lib-path]})
+    (jextract qualifier {:single-header lib-path :library libname :header-class-name "parsl" :symbols-class-name "parsl_r"})
+    (b/copy-file {:src out-path :target (str "resources/public/libs/" libname-o)})))
+
+(defn build-box2d [& _]
+  ;; we add -DBUILD_SHARED_LIBS=ON manually for now in build.sh 
+  (b/process {:env {"PATH" (System/getenv "PATH")}
+              :dir "../box2d"
+              :command-args ["cmd" "/c" "build.sh"] :out :inherit})
+  (let [box2d-home    "../box2d"
+        box2d-shared  "box2dd.dll"
+        box2d-include (str box2d-home "/include/box2d")
+        box2d-o       (str box2d-home "/build/bin/debug/" box2d-shared)]
+    (b/copy-file {:src    box2d-o
+                  :target (str "resources/public/libs/" box2d-shared)})
+    (jextract "box2d"
+              {:include            box2d-include
+               :header-class-name  "b2d"
+               :symbols-class-name "b2d_r"})))
 
 (defn build-stdio [& _]
   (io/make-parents "c/j/gen/x")
@@ -68,8 +94,8 @@
   (b/javac {:src-dirs ["c/j/gen"] :class-dir "c/j/classes"}))
 
 (defn prep "build libs + jextract" [& _]
-  (build-stdio)
   (build-par-streamlines)
+  (build-box2d)
   (compile-gen-java))
 
 (defn findc [& _]

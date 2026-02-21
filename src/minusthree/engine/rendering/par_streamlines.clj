@@ -1,15 +1,13 @@
 (ns minusthree.engine.rendering.par-streamlines
   (:require
-   [clojure.java.io :as io]
    [minusthree.engine.ffm.arena :as arena]
+   [minusthree.engine.loader :as loader]
    [minusthree.engine.time :as time]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.shader :as shader])
   (:import
    [java.lang.foreign Arena MemoryLayout MemorySegment]
-   [java.nio.file Files]
-   [java.nio.file.attribute FileAttribute]
    [org.lwjgl.opengl GL45]
    [par
     parsl
@@ -23,22 +21,8 @@
 (set! *warn-on-reflection* true)
 ;; https://prideout.net/blog/par_streamlines/
 
-(defn load-libs [libname]
-  (let [obj      (str libname ".dll")
-        path     (str "public/libs/" obj)
-        o-res    (io/resource path)
-        temp-dir (Files/createTempDirectory "dofidalibs-" (into-array FileAttribute []))
-        obj-path (.resolve temp-dir obj)
-        obj-file (.toFile obj-path)]
-    (println "loading" obj "...")
-    (with-open [in  (io/input-stream o-res)
-                out (io/output-stream obj-file)]
-      (io/copy in out))
-    (.deleteOnExit obj-file)
-    (System/load (str (.toAbsolutePath obj-path)))))
-
 (defonce _loadlib
-  (load-libs "par_streamlines"))
+  (loader/load-libs "par_streamlines"))
 
 (def sl-vs
   (str cljgl/version-str
