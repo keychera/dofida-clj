@@ -21,18 +21,26 @@
 
 (def jextract-runner "jextract.bat")
 
-(defn jextract [qualifier libname]
-  (let [lib-path (str "lib/" libname)]
-    (io/make-parents "c/j/gen/x")
-    (io/make-parents "c/j/classes/x")
-    (println "jextracting [" qualifier "]" lib-path "...")
-    (b/process {:dir "c"
-                :command-args
-                [jextract-runner
-                 "--output" "j/gen"
-                 "--library" (strip libname)
-                 "-t" qualifier
-                 lib-path]})))
+(defn build-cmd [cmd-coll]
+  (into [] (remove nil?) (flatten cmd-coll)))
+
+(defn jextract
+  ([qualifier libname] (jextract qualifier libname {}))
+  ([qualifier libname {:keys [header-class-name symbols-class-name]}]
+   (let [lib-path (str "lib/" libname)]
+     (io/make-parents "c/j/gen/x")
+     (io/make-parents "c/j/classes/x")
+     (println "jextracting [" qualifier "]" lib-path "...")
+     (b/process {:dir "c"
+                 :command-args
+                 (build-cmd
+                  [jextract-runner
+                   "--output" "j/gen"
+                   "--library" (strip libname)
+                   "-t" qualifier
+                   (when (not (str/blank? header-class-name))  ["--header-class-name" header-class-name])
+                   (when (not (str/blank? symbols-class-name)) ["--symbols-class-name" symbols-class-name])
+                   lib-path])}))))
 
 (defn- build-par-streamlines [& _]
   (let [qualifier "par"
@@ -42,7 +50,7 @@
     (io/make-parents (str "c/" out-path))
     (println "charing" libname "...")
     (b/process {:dir "c" :command-args ["gcc" "-shared" "-o" out-path lib-path]})
-    (jextract qualifier libname)))
+    (jextract qualifier libname {:header-class-name "parsl" :symbols-class-name "parsl_r"})))
 
 (defn build-stdio [& _]
   (io/make-parents "c/j/gen/x")

@@ -7,8 +7,7 @@
    [java.lang.foreign Arena MemoryLayout MemorySegment]
    [org.lwjgl.opengl GL45]
    [par
-    par_streamlines_c
-    par_streamlines_c$shared
+    parsl
     parsl_config
     parsl_context
     parsl_mesh
@@ -65,7 +64,7 @@ void main() {
     vertices||))
 
 (defn make-spine-lengths|| ^MemorySegment [^Arena arena ^shorts lengths]
-  (.allocateFrom arena par_streamlines_c$shared/C_SHORT (short-array lengths)))
+  (.allocateFrom arena parsl/C_SHORT (short-array lengths)))
 
 (defn make-spine-list|| ^MemorySegment [^Arena arena verts spine-lengths]
   (let [num-vert        (int (count verts))
@@ -82,9 +81,9 @@ void main() {
 (defn parsl-context|| ^MemorySegment [^Arena arena]
   (let [config||  (doto (parsl_config/allocate arena)
                     (parsl_config/thickness 15.0)
-                    (parsl_config/flags par_streamlines_c/PARSL_FLAG_ANNOTATIONS))
-        context|| (par_streamlines_c/parsl_create_context config||)]
-    (parsl_context/reinterpret context|| arena par_streamlines_c/parsl_destroy_context)))
+                    (parsl_config/flags (parsl/PARSL_FLAG_ANNOTATIONS)))
+        context|| (parsl/parsl_create_context config||)]
+    (parsl_context/reinterpret context|| arena parsl/parsl_destroy_context)))
 
 (defn init [{::arena/keys [game-arena] :as game}]
   (let [app-width     600
@@ -95,12 +94,12 @@ void main() {
         spine-length  [3 2]
         spine-list||  (make-spine-list|| game-arena verts spine-length)
         context||     (parsl-context|| game-arena)
-        mesh||        (par_streamlines_c/parsl_mesh_from_lines context|| spine-list||)
+        mesh||        (parsl/parsl_mesh_from_lines context|| spine-list||)
         positions||   (.asSlice (parsl_mesh/positions mesh||) 0
                                 (MemoryLayout/sequenceLayout (parsl_mesh/num_vertices mesh||) (parsl_position/layout)))
         num-tri       (* 3 (parsl_mesh/num_triangles mesh||))
         tri-indices|| (.asSlice (parsl_mesh/triangle_indices mesh||) 0
-                                (MemoryLayout/sequenceLayout num-tri par_streamlines_c$shared/C_INT))
+                                (MemoryLayout/sequenceLayout num-tri parsl/C_INT))
         gl-data       (gl-stuff (.asByteBuffer positions||) (.asByteBuffer tri-indices||))]
     (assoc game
            :resolution resolution
