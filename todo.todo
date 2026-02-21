@@ -64,15 +64,18 @@ todo:
             ✔ anime @done(26-02-16 00:24)
         
     uished, nativeshed:
-        ☐ to jvm, goodbye js
+        ✔ to jvm, goodbye js @done(26-02-21 22:37)
         ☐ drop graalvm (for now), embrace sdl3
 
         ☐ membrane
         ☐ yoga
         ☐ skija
         ☐ coffi
+            ✔ par_streamlines.h @done(26-02-21 22:38)
+            ✔ we ended up explored panama directly @done(26-02-21 22:37)
+            ☐ par_shapes
         ☐ jolt physics
-        
+        ☐ box2d
 
         ☐ refresh rules, curently we rely on restart for rules
         ☐ pose anime
@@ -120,7 +123,7 @@ todo:
         ☐ multi-mesh, multi-scene
 
         ☐ we still dont understand UBO yet, weird stuff when we load more than 1 models
-        ☐ automatic tex unit counter
+        ✘ automatic tex unit counter @cancelled(26-02-21 22:39) we dont need this
         ✔ gltf and pmx renderer @done(26-01-18 16:47)
 
         ☐ jank exploration?
