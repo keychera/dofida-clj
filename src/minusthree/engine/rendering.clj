@@ -48,6 +48,7 @@
         (render-fn game match)))
 
     (par-streamlines/render game)
+    (playground/render game)
 
     (offscreen/render-fbo screen1 {:fbo 0 :width w :height h}
                           {:translation (v/vec3 0.0 0.0 0.0)
