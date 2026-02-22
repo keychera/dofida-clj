@@ -60,6 +60,9 @@ void main() {
 (defn b2dvec2 [arena x y]
   (doto (b2Vec2/allocate arena) (b2Vec2/x x) (b2Vec2/y y)))
 
+(defn ub [v]
+  (unchecked-byte v))
+
 (defn init [{:keys [::arena/game-arena] :as game}]
   (with-open [ia #_init-arena (Arena/ofConfined)]
     (tvg/tvg_engine_init 4)
@@ -95,11 +98,11 @@ void main() {
           ;; thorvg https://www.thorvg.org/native-tutorial
           buffer||       (.allocate ^Arena game-arena (MemoryLayout/sequenceLayout (* WIDTH HEIGHT) tvg/C_INT))
           canvas||       (doto (tvg/tvg_swcanvas_create (tvg/TVG_ENGINE_OPTION_DEFAULT))
-                           (tvg/tvg_swcanvas_set_target buffer|| WIDTH WIDTH HEIGHT (tvg/TVG_COLORSPACE_ABGR8888)))
+                           (tvg/tvg_swcanvas_set_target buffer|| WIDTH WIDTH HEIGHT (tvg/TVG_COLORSPACE_ABGR8888S)))
           rect||         (doto (tvg/tvg_shape_new)
                            (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
                            ;; unsure why the color is dimmed rn
-                           (tvg/tvg_shape_set_fill_color #_rgba 127 0 0 127))  ;; not 255 since java use unsigned bytes  -128 .. 127 
+                           (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 255) (ub 255) (ub 255)))
           _              (doto canvas||
                            (tvg/tvg_canvas_add rect||)
                            (tvg/tvg_canvas_update)
@@ -145,18 +148,18 @@ void main() {
   (let [program (:program program-info)]
     (b2d/b2World_Step b2d-world-id|| 1/60 4)
 
-    (let [position (b2d/b2Body_GetPosition game-arena body-id||)
-          rotation (b2d/b2Body_GetRotation game-arena body-id||)
-          x (b2Vec2/x position)
-          y (b2Vec2/y position)]
-      #_{:clj-kondo/ignore [:inline-def]}
-      (def debug-var [(b2Vec2/x position) (b2Vec2/y position) (b2Rot->angle rotation)])
+    (let [b2vec2|| (b2d/b2Body_GetPosition game-arena body-id||)
+          b2rot||  (b2d/b2Body_GetRotation game-arena body-id||)
+          x        (b2Vec2/x b2vec2||)
+          y        (b2Vec2/y b2vec2||)
+          rot      (b2Rot->angle b2rot||)]
       (doto rect||
+        (tvg/tvg_paint_rotate rot)
         (tvg/tvg_paint_translate (+ 100 (* 10 x)) (+ 100 (* 10 y)))))
 
     (doto canvas||
       (tvg/tvg_canvas_update)
-      (tvg/tvg_canvas_draw #_clear true)
+      (tvg/tvg_canvas_draw #_clear false)
       (tvg/tvg_canvas_sync))
 
     (GL45/glUseProgram program)
@@ -185,6 +188,7 @@ void main() {
 
   (eduction
    (filter (comp not zero?))
+   (drop 128)
    (take 64)
    (map (fn [rgba] (map #(bit-and 0xff %)
                         [rgba
