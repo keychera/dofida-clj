@@ -31,8 +31,8 @@
   ::do-we-refresh? ;; by calling this
   fn?
   ;; of one arity, accepting the game state, returning bool
-  ;; refresh is dev time niceties to recall fn declared by ::world/post-fn
-  ;; return true to trigger ::world/post-fn
+  ;; refresh is dev time niceties to recall fn post-refresh without destroy, and rebuild arena
+  ;; return true to trigger post-refresh
   )
 
 (s/def ;; the game will loop and
@@ -48,7 +48,7 @@
   fn? ;; of zero arity to do cleanup 
   )
 
-(s/def ::game-loop-config 
+(s/def ::game-loop-config
   (s/keys :req [::we-begin-the-game
                 ::do-we-stop?
                 ::do-we-refresh?
@@ -60,7 +60,7 @@
 ;; devtime, that will be catch by minusthree.-dev.start
 ;; and exception will be presented by viscous/inspect
 
-(declare init tick destroy)
+(declare init post-refresh tick pre-refresh destroy inner-loop)
 
 (defn game-loop
   [{::keys [we-begin-the-game
@@ -70,25 +70,33 @@
     :as game-loop-config}]
   (s/assert ::game-loop-config game-loop-config)
   (try
-    (with-open [game-arena (Arena/ofConfined)]
-      (loop [game (-> (we-begin-the-game)
-                      (assoc ::arena/game-arena game-arena)
-                      (init)
-                      (world/post-world))]
-        (if-not (do-we-stop? game)
-          (let [updated-game
-                (cond-> (things-from-out-there game)
-                  (do-we-refresh? game) (world/post-world))]
-            (recur (tick updated-game)))
-          (destroy game))))
+    (loop [game (we-begin-the-game) first-init? true]
+      (let [[loop-state game']
+            (with-open [game-arena (Arena/ofConfined)]
+              (loop [game' (-> game
+                               (assoc ::arena/game-arena game-arena)
+                               (cond-> first-init? (init))
+                               (post-refresh))]
+                (cond
+                  (do-we-stop? game')    [::stopping   (-> game' pre-refresh destroy)]
+                  (do-we-refresh? game') [::refreshing (-> game' pre-refresh)]
+                  :else (let [updated-game (things-from-out-there game')]
+                          (recur (tick updated-game))))))]
+        (condp = loop-state
+          ::refreshing (recur game' false)
+          ::stopping   ::ending)))
     (finally
       (the-game-ends))))
 
-(defn init [game]
-  (->> (world/init-world game systems/all)
+(defn init [{:keys [::world/this] :as game}]
+  (->> (or this (world/init-world game systems/all))
        (loading/init-channel)
-       (rendering/init)
        (s/assert ::init-game)))
+
+(defn post-refresh [new-game]
+  (->> new-game
+       (rendering/init)
+       (world/post-world)))
 
 (defn tick [game]
   (-> game
@@ -96,6 +104,9 @@
       (loading/loading-zone)
       (rendering/rendering-zone)))
 
+(defn pre-refresh [old-game]
+  (rendering/destroy old-game)
+  old-game)
+
 (defn destroy [game]
-  (-> game
-      (rendering/destroy)))
+  (-> game))
