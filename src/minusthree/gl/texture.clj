@@ -57,6 +57,26 @@
     (GL45/glTexParameteri GL45/GL_TEXTURE_2D GL45/GL_TEXTURE_MIN_FILTER GL45/GL_NEAREST)
     texture))
 
+(defn create-texture [data width height]
+  ;; need hammock to reconcile above, complected wth stb_image
+  (let [texture (GL45/glGenTextures)]
+    (GL45/glBindTexture GL45/GL_TEXTURE_2D texture)
+    (GL45/glTexImage2D GL45/GL_TEXTURE_2D
+                       #_:mip-level    0
+                       #_:internal-fmt GL45/GL_RGBA
+                       (int width)
+                       (int height)
+                       #_:border       0
+                       #_:src-fmt      GL45/GL_RGBA
+                       #_:src-type     GL45/GL_BYTE ;; java use unsigned byte when getting values from thorvg
+                       data)
+
+    (GL45/glTexParameteri GL45/GL_TEXTURE_2D GL45/GL_TEXTURE_MAG_FILTER GL45/GL_NEAREST)
+    (GL45/glTexParameteri GL45/GL_TEXTURE_2D GL45/GL_TEXTURE_MIN_FILTER GL45/GL_NEAREST)
+    texture))
+
+;; below could use a spell like in minusthree.engine.rendering.playground
+
 (defn cast-fbo-spell
   ([width height] (cast-fbo-spell width height {}))
   ([width height {:keys [color-attachment] :as conf
