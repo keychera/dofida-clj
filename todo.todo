@@ -75,9 +75,11 @@ todo:
             ✔ we ended up explored panama directly @done(26-02-21 22:37)
             ☐ par_shapes
         ☐ jolt physics
-        ☐ box2d
+        ✔ box2d @done(26-02-23 00:12)
+            ✔ thorvg @done(26-02-23 00:12) unexpectedly
 
-        ☐ refresh rules, curently we rely on restart for rules
+        ✔ refresh rules, curently we rely on restart for rules @done(26-02-23 00:12)
+            ☐ the post-refresh and pre-refresh can be extended as needed
         ☐ pose anime
         ☐ morph
         ☐ camera
@@ -88,12 +90,12 @@ todo:
 
         ✔ MY TEX-UNIT MISUNDERSTANDING https://www.reddit.com/r/opengl/comments/o4iryb/comment/h2hknhb/ @done(26-02-16 22:36)
 
-        ☐ the timing
+        ☐ the timing, https://gafferongames.com/post/fix_your_timestep/
         ✔ multi track sampling @done(26-02-16 00:26)
             ☐ ↑ we flip the data access, later we want to intro the pose def again
         ☐ text
         ☐ motion graphics
-            ☐ nanovg?
+            ✘ nanovg? @cancelled(26-02-23 00:13) thorvg was the replacement
         ✔ multi armature @done(26-02-16 00:25) wth this is already working
         ☐ shader, lighting
         ☐ props, room
