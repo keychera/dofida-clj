@@ -1,10 +1,8 @@
 (ns minusthree.platform.jvm.glfw
   (:require
-   [minusthree.engine.ffm.arena :as arena]
    [minusthree.engine.engine :as engine]
    [minusthree.engine.time :as time])
   (:import
-   [java.lang.foreign Arena]
    [org.lwjgl.glfw Callbacks GLFW GLFWErrorCallback]
    [org.lwjgl.opengl GL GL42]))
 
@@ -39,25 +37,39 @@
 (defn start-glfw-loop
   ([glfw-window {:keys [stop-flag* :refresh-flag*] :as config}]
    (println "hello -3 + glfw + panama")
-   (try
-     (GLFW/glfwShowWindow glfw-window)
-     (with-open [game-arena (Arena/ofConfined)]
-       (loop [game (engine/init {::time/total 0.0
-                                 ::arena/game-arena game-arena
-                                 :config (dissoc config :stop-flag*)
-                                 :glfw-window glfw-window
-                                 :refresh-flag* refresh-flag*})]
-         (if-not (or (GLFW/glfwWindowShouldClose glfw-window)
-                     (and (some? stop-flag*) @stop-flag*))
-           (let [total (* (GLFW/glfwGetTime) 1000)
-                 delta (- total (::time/total game))
-                 game  (time/update-time game total delta)]
-             (GLFW/glfwSwapBuffers glfw-window)
-             (GLFW/glfwPollEvents)
-             (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " delta))
-             (recur (engine/tick game)))
-           (engine/destroy game))))
-     (finally
-       (Callbacks/glfwFreeCallbacks glfw-window)
-       (GLFW/glfwDestroyWindow glfw-window)
-       (GLFW/glfwTerminate)))))
+   (letfn [(we-begin-the-game []
+             (GLFW/glfwShowWindow glfw-window)
+             {::time/total    0.0
+              :config        (dissoc config :stop-flag*)
+              :glfw-window   glfw-window
+              :refresh-flag* refresh-flag*})
+
+           (do-we-stop? [_game]
+             (or (GLFW/glfwWindowShouldClose glfw-window)
+                 (and (some? stop-flag*) @stop-flag*)))
+
+           (do-we-refresh? [_game]
+             (let [refresh? (some-> refresh-flag* deref)]
+               (when refresh? (reset! refresh-flag* false))
+               refresh?))
+
+           (things-from-out-there [game]
+             (let [total (* (GLFW/glfwGetTime) 1000)
+                   delta (- total (::time/total game))
+                   game  (time/update-time game total delta)]
+               (GLFW/glfwSwapBuffers glfw-window)
+               (GLFW/glfwPollEvents)
+               (GLFW/glfwSetWindowTitle glfw-window (str "frametime(ms): " delta))
+               game))
+
+           (the-game-ends []
+             (Callbacks/glfwFreeCallbacks glfw-window)
+             (GLFW/glfwDestroyWindow glfw-window)
+             (GLFW/glfwTerminate))]
+
+     (engine/game-loop
+      #::engine{:we-begin-the-game we-begin-the-game
+                :do-we-stop? do-we-stop?
+                :do-we-refresh? do-we-refresh?
+                :things-from-out-there things-from-out-there
+                :the-game-ends the-game-ends}))))
