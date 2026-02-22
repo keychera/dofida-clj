@@ -42,7 +42,8 @@
                                   "-XX:+DebugNonSafepoints"]}
            :imgui   {:extra-deps {io.github.spair/imgui-java-binding {:mvn/version "1.89.0"}
                                   io.github.spair/imgui-java-lwjgl3  {:mvn/version "1.89.0"}}}
-           :native  {:jvm-opts ["--enable-native-access=ALL-UNNAMED"]}
+           :native  {:jvm-opts ["--enable-native-access=ALL-UNNAMED"
+                                #_"-Xlog:library=info"]}
            :windows {:extra-deps {org.lwjgl/lwjgl$natives-windows            {:mvn/version "3.3.6"}
                                   org.lwjgl/lwjgl-glfw$natives-windows       {:mvn/version "3.3.6"}
                                   org.lwjgl/lwjgl-opengl$natives-windows     {:mvn/version "3.3.6"}

@@ -77,8 +77,9 @@
     (b/copy-file {:src    box2d-o
                   :target (str "resources/public/libs/" box2d-shared)})
     (jextract "box2d"
-              {:include-dir         box2d-include
-               :header-class-name  "b2d"})))
+              {:include-dir       box2d-include
+               :library           "box2dd"
+               :header-class-name "b2d"})))
 
 (defn build-thorvg [& _]
   (let [out           "c/o/thorvg"
@@ -93,8 +94,9 @@
     (b/copy-file {:src (str out "/bin/libthorvg-1.dll")
                   :target (str "resources/public/libs/" thorvg-shared)})
     (jextract "thorvg"
-              {:single-header      thorvg-capi
-               :header-class-name  "tvg"})))
+              {:single-header     thorvg-capi
+               :library           "libthorvg-1"
+               :header-class-name "tvg"})))
 
 (defn build-stdio [& _]
   (io/make-parents "c/j/gen/x")
@@ -112,8 +114,9 @@
   (build-thorvg)
   (compile-gen-java))
 
-(defn findc [& _]
-  (b/process {:dir "c" :command-args ["gcc" "-H" "-fsyntax-only" "lib/par_streamlines.c"]}))
+;; e.g. bb -x bb/findc :target .\c\lib\par_streamlines.c
+(defn findc [& {:keys [target]}]
+  (b/process {:command-args ["gcc" "-H" "-fsyntax-only" target]}))
 
 (defn runc [& _]
   (b/process {:command-args ["c/o/hello.exe"] :out :inherit}))
