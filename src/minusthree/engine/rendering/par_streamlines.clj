@@ -86,7 +86,7 @@ void main() {
         vao     (-> summons ::gl-magic/data ::gl-magic/vao (get vao-id))
         buffers (-> summons ::gl-magic/data ::shader/buffer)]
 
-    {:vao vao :program-info shader ::buffers buffers}))
+    {:vao vao :program-info shader ::id->buffer buffers}))
 
 (defn gl-update-buffers [mesh|| {:keys [::position-buf ::annotation-buf ::spine-len-buf]}]
   (let [positions||    (.asSlice (parsl_mesh/positions mesh||) 0
@@ -182,10 +182,10 @@ void main() {
            :program-info (:program-info gl-data)
            :num-tri num-tri
            :resolution resolution
-           ::buffers (::buffers gl-data))))
+           ::id->buffer (::id->buffer gl-data))))
 
 (defn render [{:keys [vao program-info num-tri resolution
-                      verts|| context|| spine-list|| ::buffers]
+                      verts|| context|| spine-list|| ::id->buffer]
                tt ::time/total}]
   (let [t-factor (* Math/PI tt 5e-6)]
       (doto ^MemorySegment verts||
@@ -196,12 +196,17 @@ void main() {
         (-> (parsl_position/asSlice 4) (parsl_position/y (- 150 (* 50 (Math/sin t-factor)))))))
   (let [mesh|| (parsl/parsl_mesh_from_lines context|| spine-list||)]
     (GL45/glUseProgram (:program program-info))
-    (gl-update-buffers mesh|| buffers)
+    (gl-update-buffers mesh|| id->buffer)
     (cljgl/set-uniform program-info :resolution resolution)
     (GL45/glBindVertexArray vao)
     (GL45/glDrawElements GL45/GL_TRIANGLES num-tri GL45/GL_UNSIGNED_INT 0)))
 
-(defn destroy [{::keys []}])
+(defn destroy [{:keys [vao program-info ::id->buffer]}]
+  (println "destroy par_streamlines")
+  (doseq [buf (vals id->buffer)]
+    (GL45/glDeleteBuffers buf))
+  (GL45/glDeleteBuffers vao)
+  (GL45/glDeleteProgram (:program program-info)))
 
 (comment
   (require '[clojure.java.javadoc :refer [add-remote-javadoc javadoc]])

@@ -2,8 +2,9 @@
   (:require
    [fastmath.vector :as v]
    [minusthree.engine.offscreen :as offscreen]
-   [minusthree.engine.rendering.imgui :as imgui]
-   ;;  [minusthree.engine.rendering.par-streamlines :as par-streamlines]
+   [minusthree.engine.rendering.imgui :as imgui] ;;  [minusthree.engine.rendering.par-streamlines :as par-streamlines]
+   [minusthree.engine.rendering.par-streamlines :as par-streamlines]
+   [minusthree.engine.rendering.playground :as playground]
    [minusthree.engine.world :as world]
    [minusthree.model.model-rendering :as model-rendering]
    [odoyle.rules :as o])
@@ -23,7 +24,8 @@
     (println "init game")
     (-> game
         (assoc :screen1 screen1)
-        #_(par-streamlines/init)
+        (par-streamlines/init)
+        (playground/init)
         (imgui/init))))
 
 (defn rendering-zone [game]
@@ -45,7 +47,7 @@
       (doseq [{:keys [render-fn] :as match} renders]
         (render-fn game match)))
 
-    #_(par-streamlines/render game)
+    (par-streamlines/render game)
 
     (offscreen/render-fbo screen1 {:fbo 0 :width w :height h}
                           {:translation (v/vec3 0.0 0.0 0.0)
@@ -54,5 +56,6 @@
 
 (defn destroy [game]
   (println "destroy game")
-  #_(par-streamlines/destroy game)
+  (par-streamlines/destroy game)
+  (playground/destroy game)
   (imgui/destroy game))
