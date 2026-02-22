@@ -4,9 +4,10 @@
    [minusthree.engine.ffm.arena :as arena]
    [minusthree.engine.loader :as loader]
    [minusthree.engine.rendering.par-streamlines :refer [parsl-context||]]
+   [minusthree.engine.time :as time]
    [minusthree.gl.cljgl :as cljgl]
-   [minusthree.gl.texture :as texture]
-   [minusthree.gl.gl-magic :as gl-magic])
+   [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.texture :as texture])
   (:import
    [box2d b2d]
    [java.lang.foreign Arena MemoryLayout]
@@ -21,16 +22,16 @@
 ;; https://www.thorvg.org/native-tutorial
 ;; thorvg capi https://github.com/thorvg/thorvg.example/blob/main/src/Capi.cpp
 
-;; redundant, copied from offscreen.clj, TODO refactor later
+;; redundant copied from offscreen.clj TODO refactor later
 (def plane3d-vertices
   (float-array
-   [-1.0 -1.0 0.0,  1.0 -1.0 0.0, -1.0  1.0 0.0,
-    -1.0  1.0 0.0,  1.0 -1.0 0.0,  1.0  1.0 0.0]))
+   [-1.0 -1.0 0.0  1.0 -1.0 0.0 -1.0  1.0 0.0
+    -1.0  1.0 0.0  1.0 -1.0 0.0  1.0  1.0 0.0]))
 
 (def plane3d-uvs
   (float-array
-   [0.0 0.0, 1.0 0.0, 0.0 1.0,
-    0.0 1.0, 1.0 0.0, 1.0 1.0]))
+   [0.0 0.0 1.0 0.0 0.0 1.0
+    0.0 1.0 1.0 0.0 1.0 1.0]))
 
 (def fbo-vs
   (str cljgl/version-str
@@ -67,7 +68,7 @@ void main() {
         rect||       (doto (tvg/tvg_shape_new)
                        (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
                        ;; unsure why the color is dimmed rn
-                       (tvg/tvg_shape_set_fill_color #_rgba 90 127 90 110))  ;; not 255 since java use unsigned bytes,  -128 .. 127 
+                       (tvg/tvg_shape_set_fill_color #_rgba 90 127 90 110))  ;; not 255 since java use unsigned bytes  -128 .. 127 
         _            (doto canvas||
                        (tvg/tvg_canvas_add rect||)
                        (tvg/tvg_canvas_update)
@@ -86,15 +87,32 @@ void main() {
     (println "playground ready!")
     #_{:clj-kondo/ignore [:inline-def]}
     (def debug-var (vec (.toArray buffer|| tvg/C_INT)))
-    (assoc game ::program-info program-info ::vao vao ::thor-tex thor-tex)))
+    (assoc game
+           ::program-info program-info ::vao vao ::thor-tex thor-tex
+           ::buffer|| buffer|| ::canvas|| canvas|| ::rect|| rect||
+           ::WIDTH WIDTH ::HEIGHT HEIGHT)))
 
-(defn render [{::keys [program-info vao thor-tex]}]
-  (let [program (:program program-info)]
+(defn render [{:keys [::program-info ::vao ::thor-tex 
+                      ::buffer|| ::canvas|| ::rect||
+                      ::WIDTH ::HEIGHT]
+               tt ::time/total}]
+  (let [program (:program program-info)
+        factor  (* 50 (Math/sin (* tt Math/PI 1e-3)))]
+    (doto rect||
+      (tvg/tvg_paint_translate 100 (+ 100 factor)))
+
+    (doto canvas|| 
+      (tvg/tvg_canvas_update)
+      (tvg/tvg_canvas_draw #_clear true)
+      (tvg/tvg_canvas_sync))
+    
     (GL45/glUseProgram program)
     (GL45/glBindVertexArray vao)
-    
+
     (GL45/glActiveTexture GL45/GL_TEXTURE0)
     (GL45/glBindTexture GL45/GL_TEXTURE_2D thor-tex)
+    (GL45/glTexSubImage2D GL45/GL_TEXTURE_2D 0 0 0 WIDTH HEIGHT GL45/GL_RGBA GL45/GL_UNSIGNED_BYTE (.asByteBuffer buffer||))
+    
     (cljgl/set-uniform program-info :u_tex 0)
     (GL45/glDrawArrays GL45/GL_TRIANGLES 0 6)))
 
