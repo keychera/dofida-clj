@@ -3,6 +3,7 @@
    [com.phronemophobic.viscous :as viscous]
    [minusthree.engine.ffm.arena :as arena]
    [minusthree.engine.loader :as loader]
+   [minusthree.engine.sugar :refer [ub]]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.shader :as shader]
@@ -67,9 +68,6 @@ void main() {
 
 (defn b2dvec2 [arena x y]
   (doto (b2Vec2/allocate arena) (b2Vec2/x x) (b2Vec2/y y)))
-
-(defn ub [v]
-  (unchecked-byte v))
 
 (defn init [{:keys [::arena/game-arena] :as game}]
   (with-open [ia #_init-arena (Arena/ofConfined)]
