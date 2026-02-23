@@ -1,6 +1,7 @@
 (ns minusthree.engine.utils
   (:require
    [clojure.java.io :as io]
+   [clojure.string :as str]
    [fastmath.matrix :as mat])
   (:import
    [java.nio ByteBuffer FloatBuffer]
@@ -65,3 +66,15 @@
       (.get fb (+ i 4)) (.get fb (+ i 5))  (.get fb (+ i 6))  (.get fb (+ i 7))
       (.get fb (+ i 8)) (.get fb (+ i 9))  (.get fb (+ i 10)) (.get fb (+ i 11))
       (.get fb (+ i 12)) (.get fb (+ i 13)) (.get fb (+ i 14)) (.get fb (+ i 15))))))
+
+(defmacro raw-from
+  "raw source slurped at compile time"
+  [& paths]
+  (slurp (io/resource (str/join "/" paths))))
+
+(defmacro raw-from-here
+  "raw source slurped at compile time"
+  [& paths]
+  (let [ns-segment (-> (str *ns*) (str/split #"\.") drop-last)
+        combined   (apply conj (into [] ns-segment) paths)]
+    (slurp (io/resource (str/join "/" combined)))))

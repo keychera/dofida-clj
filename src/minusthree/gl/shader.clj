@@ -102,7 +102,7 @@ Anything = Ident | Number | Operator
 
 (defn get-header-source [source]
   ;; just a heuristic split that works for now
-  (let [[_ body] (str/split source #"precision \w* float;\n")
+  (let [[_ body] (str/split source #"precision \w* float;\r?\n")
         [header _] (str/split body #"(void|int|float|(u*(vec|mat)[234])|sampler[23]D)\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(")]
     header))
 

@@ -4,6 +4,7 @@
    [minusthree.engine.ffm.arena :as arena]
    [minusthree.engine.loader :as loader]
    [minusthree.engine.sugar :refer [ub]]
+   [minusthree.engine.utils :refer [raw-from-here]]
    [minusthree.gl.cljgl :as cljgl]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.shader :as shader]
@@ -41,30 +42,8 @@
    [0.0 0.0 1.0 0.0 0.0 1.0
     0.0 1.0 1.0 0.0 1.0 1.0]))
 
-(def fbo-vs
-  (str cljgl/version-str
-       "
-precision mediump float;
-in vec3 a_pos;
-in vec2 a_uv;
-out vec2 uv;
-
-void main() {
-  gl_Position = vec4(a_pos, 1.0);
-  uv = a_uv;
-}"))
-
-(def fbo-fs
-  (str cljgl/version-str
-       "
-precision mediump float;
-in vec2 uv;
-uniform sampler2D u_tex;
-out vec4 o_color;
-
-void main() {
-  o_color = texture(u_tex, uv);
-}"))
+(def fbo-vs (raw-from-here "playground.vert"))
+(def fbo-fs (raw-from-here "playground.frag"))
 
 (defn b2dvec2 [arena x y]
   (doto (b2Vec2/allocate arena) (b2Vec2/x x) (b2Vec2/y y)))
