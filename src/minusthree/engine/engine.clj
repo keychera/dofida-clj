@@ -60,7 +60,7 @@
 ;; devtime, that will be catch by minusthree.-dev.start
 ;; and exception will be presented by viscous/inspect
 
-(declare init post-refresh tick pre-refresh destroy inner-loop)
+(declare init post-refresh tick pre-refresh destroy)
 
 (defn game-loop
   [{::keys [we-begin-the-game

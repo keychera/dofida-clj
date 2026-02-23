@@ -8,8 +8,16 @@
    [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture])
   (:import
-   [box2d b2d b2WorldDef b2Vec2 b2Rot b2WorldId b2BodyDef b2ShapeDef b2SurfaceMaterial]
-   [java.lang.foreign Arena MemoryLayout]
+   [box2d
+    b2BodyDef
+    b2Rot
+    b2ShapeDef
+    b2SurfaceMaterial
+    b2Vec2
+    b2WorldDef
+    b2WorldId
+    b2d]
+   [java.lang.foreign Arena MemoryLayout MemorySegment]
    [org.lwjgl.opengl GL45]
    [thorvg tvg]))
 
@@ -66,8 +74,9 @@ void main() {
 (defn init [{:keys [::arena/game-arena] :as game}]
   (with-open [ia #_init-arena (Arena/ofConfined)]
     (tvg/tvg_engine_init 4)
-    (let [WIDTH        400
-          HEIGHT       400
+    (let [window       (-> game :config :window-conf)
+          WIDTH        (or (:w window) 400)
+          HEIGHT       (or (:h window) 400)
 
           ;; box2d https://box2d.org/documentation/hello.html
           ;; some use init-arena because, following box2d tutorial, the values are copied and not needed anymore
@@ -101,10 +110,18 @@ void main() {
                            (tvg/tvg_swcanvas_set_target buffer|| WIDTH WIDTH HEIGHT (tvg/TVG_COLORSPACE_ABGR8888S)))
           rect||         (doto (tvg/tvg_shape_new)
                            (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
-                           ;; unsure why the color is dimmed rn
+                           ;; unsure why the color is dimmed rn, probably has something to do with blending
+                           ;; also playground/render makes subseq render disappear as well -> reason not known
+                           (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 255) (ub 255) (ub 255)))
+          path||         (doto (tvg/tvg_shape_new)
+                           (tvg/tvg_shape_move_to 20 20)
+                           (tvg/tvg_shape_line_to 45 45)
+                           (tvg/tvg_shape_line_to 70 20)
+                           (tvg/tvg_shape_close)
                            (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 255) (ub 255) (ub 255)))
           _              (doto canvas||
                            (tvg/tvg_canvas_add rect||)
+                           (tvg/tvg_canvas_add path||)
                            (tvg/tvg_canvas_update)
                            (tvg/tvg_canvas_draw #_clear true)
                            (tvg/tvg_canvas_sync))
@@ -124,12 +141,12 @@ void main() {
       (println "box2d index:" (b2WorldId/index1 b2d-world-id||) ", generation:" (b2WorldId/generation b2d-world-id||))
       (println "playground ready!")
       #_{:clj-kondo/ignore [:inline-def]}
-      (def debug-var (vec (.toArray buffer|| tvg/C_INT)))
+      (def debug-var game)
       (assoc game
              ;; box2d
              ::b2d-world-id|| b2d-world-id|| ::body-id|| body-id||
              ;; thorvg
-             ::buffer|| buffer|| ::canvas|| canvas|| ::rect|| rect||
+             ::buffer|| buffer|| ::canvas|| canvas|| ::rect|| rect|| ::path|| path||
              ;; gl
              ::program-info program-info ::vao vao ::thor-tex thor-tex ::id->buffer id->buffer
              ::WIDTH WIDTH ::HEIGHT HEIGHT))))
@@ -140,10 +157,10 @@ void main() {
   ;; return b2Atan2( q.s, q.c );
   (Math/atan2 (b2Rot/s segment) (b2Rot/c segment)))
 
-(defn render [{::keys [program-info vao thor-tex
+(defn render [{::keys [program-info vao ^int thor-tex
                        b2d-world-id|| body-id||
-                       buffer|| canvas|| rect||
-                       WIDTH HEIGHT]
+                       ^MemorySegment buffer|| canvas|| rect||
+                       ^int WIDTH ^int HEIGHT]
                game-arena ::arena/game-arena}]
   (let [program (:program program-info)]
     (b2d/b2World_Step b2d-world-id|| 1/60 4)
@@ -177,10 +194,10 @@ void main() {
   (println "destroy playground")
   (tvg/tvg_engine_term)
   (b2d/b2DestroyWorld b2d-world-id||)
-  (doseq [buf (vals id->buffer)]
+  (doseq [^int buf (vals id->buffer)]
     (GL45/glDeleteBuffers buf))
-  (GL45/glDeleteTextures thor-tex)
-  (GL45/glDeleteBuffers vao)
+  (GL45/glDeleteTextures ^int thor-tex)
+  (GL45/glDeleteBuffers ^int vao)
   (GL45/glDeleteProgram (:program program-info)))
 
 (comment
