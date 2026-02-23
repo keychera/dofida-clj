@@ -6,6 +6,7 @@
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]
+   [minusthree.engine.geom :as geom]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.macros :refer [s->]]
    [minusthree.engine.math :refer [decompose-Mat4x4 quat->mat4 scaling-mat
@@ -13,7 +14,6 @@
    [minusthree.engine.utils :as utils]
    [minusthree.engine.world :as world]
    [minusthree.gl.cljgl :as cljgl]
-   [minusthree.gl.geom :as geom]
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture]

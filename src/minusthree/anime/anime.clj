@@ -1,13 +1,13 @@
 (ns minusthree.anime.anime
   (:require
    [clojure.spec.alpha :as s]
-   [minusthree.engine.macros :refer [insert!]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]
+   [minusthree.engine.geom :as geom]
+   [minusthree.engine.macros :refer [insert!]]
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
-   [minusthree.gl.geom :as geom]
    [odoyle.rules :as o]))
 
 (s/def ::in number?)

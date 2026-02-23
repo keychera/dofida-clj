@@ -1,4 +1,4 @@
-(ns minusthree.gl.geom
+(ns minusthree.engine.geom
   (:require
    [clojure.spec.alpha :as s]
    [minusthree.engine.transform3d :as t3d]
