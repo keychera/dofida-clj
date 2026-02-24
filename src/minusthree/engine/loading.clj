@@ -2,10 +2,10 @@
   (:require
    [clojure.core.async :refer [>!! thread chan poll!]]
    [clojure.spec.alpha :as s]
-   [clojure.stacktrace :refer [print-stack-trace]]
    [minusthree.engine.world :as world]
    [odoyle.rules :as o]))
 
+;; we are now realizing, maybe this could be an atom or something
 (s/def ::channel some? #_ManyToManyChannel)
 (s/def ::load-fn fn? #_(fn [] (s/coll-of facts)))
 (s/def ::state #{:pending :loading :success :error})
@@ -45,9 +45,16 @@
                 (let [loaded-facts (load-fn)]
                   (>!! loading-ch {:esse-id esse-id :new-facts loaded-facts}))
                 (catch Throwable err
-                  (println esse-id "load error!")
-                  (print-stack-trace err)
+                  (println esse-id "load error! cause:" (:cause (Throwable->map err)))
+                  #_{:clj-kondo/ignore [:inline-def]}
+                  (def debug-err err)
                   (>!! loading-ch {:esse-id esse-id :new-facts [[esse-id ::state :error]]}))))))
         (update game ::world/this
                 (fn [world]
                   (reduce (fn [w' {:keys [esse-id]}] (o/insert w' esse-id ::state :loading)) world to-loads)))))))
+
+(comment
+  
+  debug-err
+  
+  :-)
