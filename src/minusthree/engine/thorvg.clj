@@ -11,7 +11,8 @@
    [minusthree.gl.gl-magic :as gl-magic]
    [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture]
-   [odoyle.rules :as o])
+   [odoyle.rules :as o]
+   [clojure.java.io :as io])
   (:import
    [java.lang.foreign Arena MemoryLayout]
    [org.lwjgl.opengl GL45]
@@ -40,8 +41,8 @@
 
 (def plane3d-uvs
   (float-array
-   [0.0 0.0 1.0 0.0 0.0 1.0
-    0.0 1.0 1.0 0.0 1.0 1.0]))
+   [0.0 1.0  1.0 1.0  0.0 0.0
+    0.0 0.0  1.0 1.0  1.0 0.0]))
 
 (def fbo-vs (raw-from "minusthree/engine/rendering/playground.vert"))
 (def fbo-fs (raw-from "minusthree/engine/rendering/playground.frag"))
@@ -76,14 +77,15 @@
                         ::texture texture
                         ::width width
                         ::height height)]
-    (stuff-to-draw-to canvas||)
+    (tvg/tvg_font_load (.allocateFrom tvg-arena (str (io/file (io/resource "nihility/CardboardCrown.ttf")))))
+    (stuff-to-draw-to tvg-arena canvas||)
     (o/insert new-world
               ::tvg {::tvg-arena tvg-arena
                      ::buffer|| buffer||
                      ::canvas|| canvas||
                      ::render-data gl-data})))
 
-(defn stuff-to-draw-to [canvas||]
+(defn stuff-to-draw-to [arena canvas||]
   (let [rect||  (doto (tvg/tvg_shape_new)
                   (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
                   (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 220) (ub 255) (ub 255))
@@ -99,10 +101,19 @@
                   (tvg/tvg_shape_line_to 45 45)
                   (tvg/tvg_shape_line_to 70 20)
                   (tvg/tvg_shape_close)
-                  (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))]
+                  (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))
+        scene|| (doto (tvg/tvg_scene_new)
+                  (tvg/tvg_scene_add rect||)
+                  (tvg/tvg_scene_add rect2||))
+        text||   (doto (tvg/tvg_text_new)
+                   (tvg/tvg_text_set_font (.allocateFrom arena "CardboardCrown"))
+                   (tvg/tvg_text_set_size 50)
+                   (tvg/tvg_text_set_text (.allocateFrom arena "hello thor from dofida!"))
+                   (tvg/tvg_text_set_color (ub 13) (ub 10) (ub 10))
+                   (tvg/tvg_paint_translate 150 150))]
     (doto canvas||
-      (tvg/tvg_canvas_add rect||)
-      (tvg/tvg_canvas_add rect2||)
+      (tvg/tvg_canvas_add scene||)
+      (tvg/tvg_canvas_add text||)
       (tvg/tvg_canvas_add path||))))
 
 (def rules
