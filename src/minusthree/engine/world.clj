@@ -6,7 +6,8 @@
 (s/def ::this ::o/session)
 
 (s/def ::init-fn fn? #_(fn [world game] world))
-(s/def ::post-fn fn? #_(fn [world game] world)) ;; post-[refresh]fn
+(s/def ::after-refresh fn? #_(fn [world game] world))
+(s/def ::before-refresh fn? #_(fn [world game] world))
 (s/def ::rules   ::o/rules)
 
 ;; dev-only
@@ -14,27 +15,38 @@
   (if (instance? clojure.lang.Var v) (deref v) v))
 
 (defn prepare-world [world game all-rules init-fns]
-  (let [world  (reduce o/add-rule (or world (o/->session)) all-rules)
-        world' (reduce (fn [w' {::keys [init-fn post-fn]}]
-                         (cond-> w'
-                           init-fn (init-fn game)
-                           post-fn (post-fn game)))
-                       world init-fns)]
-    world'))
+  (let [world   (reduce (fn [w' {::keys [before-refresh]}]
+                          (cond-> w'
+                            before-refresh (before-refresh game)))
+                        world init-fns)
+        world'  (reduce o/add-rule (or world (o/->session)) all-rules)
+        world'' (reduce (fn [w' {::keys [init-fn after-refresh]}]
+                          (cond-> w'
+                            init-fn (init-fn game)
+                            after-refresh (after-refresh game)))
+                        world' init-fns)]
+    world''))
 
 (defn init-world [game system-coll]
   (let [systems   (into [] (map resolve-var) system-coll)
         all-rules (into [] (mapcat (comp resolve-var ::rules)) systems)
-        init-fns  (into [] (map #(select-keys % [::init-fn ::post-fn])) systems)]
+        init-fns  (into [] (map #(select-keys % [::init-fn ::after-refresh ::before-refresh])) systems)]
     (assoc (update game ::this prepare-world game all-rules init-fns)
            ::init-fns init-fns)))
 
-(defn post-world
-  "post-[refresh] world. this only makes sense in REPL dev.
+(defn after-refresh
+  "after-refresh world. this only makes sense in REPL dev.
    in normal runtime, this is just another init-fn"
   [{::keys [init-fns] :as game}]
-  (reduce (fn [game' post-fn] (update game' ::this post-fn game'))
-          game (into [] (comp (map ::post-fn) (filter some?)) init-fns)))
+  (reduce (fn [game' after-refresh-fn] (update game' ::this after-refresh-fn game'))
+          game (into [] (comp (map ::after-refresh) (filter some?)) init-fns)))
+
+(defn before-refresh
+  "before-refresh world. this only makes sense in REPL dev.
+     in normal runtime, this is like on-destroy"
+  [{::keys [init-fns] :as game}]
+  (reduce (fn [game' before-refresh-fn] (update game' ::this before-refresh-fn game'))
+          game (into [] (comp (map ::before-refresh) (filter some?)) init-fns)))
 
 ;; esse, short for 'essence', has similar connotation to entity in an entity-component-system
 ;; however, this game is built on top of a rules engine, it doesn't actually mean anything inherently

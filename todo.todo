@@ -92,7 +92,7 @@ todo:
             ✔ thorvg @done(26-02-23 00:12) unexpectedly
 
         ✔ refresh rules, curently we rely on restart for rules @done(26-02-23 00:12)
-            ☐ the post-refresh and pre-refresh can be extended as needed
+            ☐ the after-refresh and before-refresh can be extended as needed
         ✔ pose anime @done(26-02-24 21:14)
         ☐ morph
         ✔ camera @done(26-02-24 21:15) 

@@ -32,8 +32,8 @@
   ::do-we-refresh? ;; by calling this
   fn?
   ;; of one arity, accepting the game state, returning bool
-  ;; refresh is dev time niceties to recall fn post-refresh without destroy, and rebuild arena
-  ;; return true to trigger post-refresh
+  ;; refresh is dev time niceties to recall fn after-refresh without destroy, and rebuild arena
+  ;; return true to trigger after-refresh
   )
 
 (s/def ;; the game will loop and
@@ -61,7 +61,7 @@
 ;; devtime, that will be catch by minusthree.-dev.start
 ;; and exception will be presented by viscous/inspect
 
-(declare init post-refresh tick pre-refresh destroy)
+(declare init after-refresh tick before-refresh destroy)
 
 (defn game-loop
   [{::keys [we-begin-the-game
@@ -77,10 +77,10 @@
               (loop [game' (-> game
                                (assoc ::arena/game-arena game-arena)
                                (cond-> first-init? (init))
-                               (post-refresh))]
+                               (after-refresh))]
                 (cond
-                  (do-we-stop? game')    [::stopping   (-> game' pre-refresh destroy)]
-                  (do-we-refresh? game') [::refreshing (-> game' pre-refresh)]
+                  (do-we-stop? game')    [::stopping   (-> game' before-refresh destroy)]
+                  (do-we-refresh? game') [::refreshing (-> game' before-refresh)]
                   :else (let [updated-game (things-from-out-there game')]
                           (recur (tick updated-game))))))]
         (condp = loop-state
@@ -94,11 +94,11 @@
        (loading/init-channel)
        (s/assert ::init-game)))
 
-(defn post-refresh [new-game]
+(defn after-refresh [new-game]
   (->> new-game
        (rendering/init)
        (input/init)
-       (world/post-world)))
+       (world/after-refresh)))
 
 (defn tick [game]
   (-> game
@@ -107,8 +107,9 @@
       (input/input-zone)
       (rendering/rendering-zone)))
 
-(defn pre-refresh [old-game]
+(defn before-refresh [old-game]
   (rendering/destroy old-game)
+  (world/before-refresh old-game)
   old-game)
 
 (defn destroy [game]

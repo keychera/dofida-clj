@@ -31,7 +31,7 @@
             (loading/push (load-gltf-fn ::wirebeing "assets/wirebeing.glb"))
             {::shader/program-info (cljgl/create-program-info-from-source shaderdef/wirecube-vert shaderdef/wirecube-frag)})))
 
-(defn post-fn [world _game]
+(defn after-refresh [world _game]
   (-> world
       (esse ::be-cute
             {::anime/duration 1600
@@ -56,4 +56,4 @@
 
 (def system
   {::world/init-fn #'init-fn
-   ::world/post-fn #'post-fn})
+   ::world/after-refresh #'after-refresh})

@@ -4,13 +4,13 @@
    [minusthree.engine.camera :as camera]
    [minusthree.engine.input :as input]
    [minusthree.engine.loading :as loading]
+   [minusthree.engine.thorvg :as thorvg]
    [minusthree.engine.time :as time]
    [minusthree.engine.transform3d :as t3d]
    [minusthree.gl.texture :as texture]
    [minusthree.model.gltf-model :as gltf-model]
    [minusthree.model.model-rendering :as model-rendering]
-   [minusthree.model.pmx-model :as pmx-model]
-   #_[minusthree.stage.sankyuu :as sankyuu]))
+   [minusthree.model.pmx-model :as pmx-model]))
 
 (def all
   [time/system
@@ -24,7 +24,8 @@
    gltf-model/system
    pmx-model/system
 
-   ;; anime
    anime/system
+
+   thorvg/system
 
    #_sankyuu/system])

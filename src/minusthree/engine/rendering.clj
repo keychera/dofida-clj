@@ -6,7 +6,8 @@
    [minusthree.engine.rendering.playground :as playground]
    [minusthree.engine.world :as world]
    [minusthree.model.model-rendering :as model-rendering]
-   [odoyle.rules :as o])
+   [odoyle.rules :as o]
+   [minusthree.engine.thorvg :as thorvg])
   (:import
    [org.lwjgl.opengl GL45]
    [org.lwjgl.stb STBImage]))
@@ -46,7 +47,7 @@
 
 
     (playground/render game) ;; somehow this makes subsequent render disappear
-
+    (thorvg/render game)
     (offscreen/render-fbo screen1 {:fbo 0 :width w :height h}
                           {:translation (v/vec3 0.0 0.0 0.0)
                            :scale       (v/vec3 1.0 1.0 1.0)}))
