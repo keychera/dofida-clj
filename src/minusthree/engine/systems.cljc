@@ -10,7 +10,7 @@
    [minusthree.model.gltf-model :as gltf-model]
    [minusthree.model.model-rendering :as model-rendering]
    [minusthree.model.pmx-model :as pmx-model]
-   [minusthree.stage.sankyuu :as sankyuu]))
+   #_[minusthree.stage.sankyuu :as sankyuu]))
 
 (def all
   [time/system
@@ -27,4 +27,4 @@
    ;; anime
    anime/system
 
-   sankyuu/system])
+   #_sankyuu/system])
