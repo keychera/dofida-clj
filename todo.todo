@@ -53,7 +53,7 @@ todo:
             ✔ the odoyle default value, everytime we need to create new attribute, we need to assign defaults to existing... now that I wrote this down, this seems easy to fix with factory fn convention or something @done(26-02-16 00:27)
 
     re:minusthree, yet still so far:
-        ☐ rewrite
+        ✔ rewrite @done(26-02-19 19:28)
             ✔ imguizmo @done(26-02-07 19:44)
             ✔ do we need refresh? seems repl is enough for now @done(26-02-16 00:24) only rules insert for now
                
@@ -62,16 +62,40 @@ todo:
             ✔ pmx @done(26-02-16 00:23)
 
             ✔ anime @done(26-02-16 00:24)
-        
-    uished, nativeshed:
-        ☐ skija
-        ☐ membrane
-        ☐ coffi
-        ☐ jolt physics
 
-        ☐ refresh rules, curently we rely on restart for rules
+    uished, lineshed:
+        ☐ text
+        ☐ button
+        ☐ input
+        ☐ screen transition
+        ☐ audio
+        ☐ motion graphics
+
+        ☐ text dialogue
+
+        ☐ unleash box2d + thorvg
+        
+    nativeshed:
+        ✔ to jvm, goodbye js @done(26-02-21 22:37)
+        ✔ drop graalvm (for now), embrace sdl3 @done(26-02-24 21:41) we drop sdl3 idea for now
+
+        ☐ membrane
+        ☐ yoga
+        ✘ skija @cancelled(26-02-24 21:41) thorvg
+        ✘ coffi @cancelled(26-02-24 21:41) we panama first for now
+            ✔ par_streamlines.h @done(26-02-21 22:38)
+            ✔ we ended up explored panama directly @done(26-02-21 22:37)
+            ☐ par_shapes
+        ☐ graalvm with sharedlibs?
+        ✘ jolt physics @cancelled(26-02-24 21:42) we box2d for now
+        ✔ box2d @done(26-02-23 00:12)
+            ✔ thorvg @done(26-02-23 00:12) unexpectedly
+
+        ✔ refresh rules, curently we rely on restart for rules @done(26-02-23 00:12)
+            ☐ the post-refresh and pre-refresh can be extended as needed
+        ✔ pose anime @done(26-02-24 21:14)
         ☐ morph
-        ☐ camera
+        ✔ camera @done(26-02-24 21:15) 
         ☐ particle
 
         ☐ loop
@@ -79,17 +103,14 @@ todo:
 
         ✔ MY TEX-UNIT MISUNDERSTANDING https://www.reddit.com/r/opengl/comments/o4iryb/comment/h2hknhb/ @done(26-02-16 22:36)
 
-        ☐ the timing
+        ☐ the timing, https://gafferongames.com/post/fix_your_timestep/
         ✔ multi track sampling @done(26-02-16 00:26)
-            ☐ ↑ we flip the data access, later we want to intro the pose def again
-        ☐ text
-        ☐ motion graphics
-            ☐ nanovg?
+            ✔ ↑ we flip the data access, later we want to intro the pose def again @done(26-02-24 21:15)
+            ✘ nanovg? @cancelled(26-02-23 00:13) thorvg was the replacement
         ✔ multi armature @done(26-02-16 00:25) wth this is already working
         ☐ shader, lighting
         ☐ props, room
         ☐ post-effect
-        ☐ audio
         ☐ modelling
 
     ☐ shader delusion, begins
@@ -104,7 +125,7 @@ todo:
         ☐ SHADERS
         ✔ particle @done(26-01-04 15:47) kinda, not efficient yet in the drawcalls
         ☐ skybox or background
-        ☐ arbitrary shapes or graphic animation
+        ✘ arbitrary shapes or graphic animation @cancelled(26-02-24 21:44) thorvg held the torch
         ☐ prop, many objects
         ☐ audio
         ☐ bnpr
@@ -114,13 +135,12 @@ todo:
         ☐ multi-mesh, multi-scene
 
         ☐ we still dont understand UBO yet, weird stuff when we load more than 1 models
-        ☐ automatic tex unit counter
+        ✘ automatic tex unit counter @cancelled(26-02-21 22:39) we dont need this
         ✔ gltf and pmx renderer @done(26-01-18 16:47)
 
-        ☐ jank exploration?
+        ✘ jank exploration? @cancelled(26-02-24 21:45) not ready, both jank and me
 
     ☐ hello clojure from dofida!
-        ☐ text dialogue
         ☐ director
 
 
@@ -147,8 +167,7 @@ todo:
             ✔ try lwjgl assimp as well @done(25-12-25 00:19)
             ✔ try pmx @done(25-11-30 22:38) baby steps but we got it! -> move to rubah-perak
         ✔ maybe try implementing opengl tutorial again regarding light and materials @done(25-11-25 21:47)
-        ☐ sidestream: dialogue
-        ☐ rethink director
+        ✘ rethink director @cancelled(26-02-24 21:45)
 
         rubah-perak:
             ✔ load the binary buffer only once @done(25-12-03 01:56)
@@ -189,7 +208,7 @@ todo:
             ☐ tsoding
 
     ☐ we keep wanting to reach the unreachable
-        ☐ does box2d make sense in clojure?
+        ✔ does box2d make sense in clojure? @done(26-02-24 21:46)
         ✔ clojure basilisp @done(26-01-04 15:43)
             ✔ blender @done(26-01-04 15:43) we will do more clojure blender-ing
         ✔ graalvm @done(26-02-11 23:02) HOLY SHIII
@@ -265,7 +284,7 @@ cmzw_:
     ✔ second esse @done(25-06-13 01:25)
     ✘ understand position and transforms @cancelled(25-06-28 16:15)
         ✔ how to center di..entity in the canvas @done(25-07-06 23:40) kinda?
-        ☐ make grid based movement
+        ✘ make grid based movement @cancelled(26-02-24 21:46)
         ☐ scour from kenney for free-assets
     ✔ why is it flipped @done(25-06-28 23:53) dont use viewport, use project + translate + scale
     ✔ remove the white outline @done(25-07-03 00:18) (gl game blendFunc (gl game ONE) (gl game ONE_MINUS_SRC_ALPHA))
@@ -277,25 +296,20 @@ cmzw_:
         ✔ let's see if this also works as an ECS @done(25-07-06 23:41) Paranim readme says rules engine is similar to ECS
     ✘ ecs + rules engine? @cancelled(25-06-28 16:11)
     ✔ clerk or leva.cljs @done(25-07-06 23:40)
-    ☐ eye
+    ✔ eye @done(26-02-24 21:46)
     ☐ twitter embed
     ✔ shadow-cljs? @done(25-07-03 22:15)
     ✔ remove figwheel-main? @done(25-07-28 13:09)
         ✔ fix .start-dev, build, and maybe remove lein in favor of tools.build @done(26-01-12 14:36) I think we did this already
 
 I don't think you realized how blessed you are:
-    ☐ text
-    ☐ dialogues
-    ☐ controls
-    ☐ animated gif
     ✔ animation @done(25-12-10 23:30)
     ✔ the rules engine as ecs and thinking of loading and prep @done(25-07-16 22:36)
         ✔ thinking of what to hot-reload @done(25-12-10 23:30) after-load-fn tackle this
         ✔ more efficient image loading, maybe decouple sprite and loaded image @done(25-12-10 23:30)
-    ☐ redraw dofida
 
 startaker:
-    ☐ mouse inputs
+    ✔ mouse inputs @done(26-02-24 21:46)
     ☐ ripple effecct
     ☐ sprite
     ☐ the logic

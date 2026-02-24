@@ -1,15 +1,16 @@
 (ns minusthree.anime.anime
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [insert!]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]
+   [minusthree.engine.geom :as geom]
+   [minusthree.engine.macros :refer [insert!]]
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
-   [minusthree.gl.geom :as geom]
    [odoyle.rules :as o]))
 
+(s/def ::in number?)
 (s/def :translation/out #(instance? fastmath.vector.Vec3 %))
 (s/def ::translation-kf (s/keys :req-un [::in :translation/out]))
 (s/def ::translation-track (s/coll-of ::translation-kf :kind vector?))
@@ -20,11 +21,8 @@
 (s/def ::rotation-track (s/coll-of ::rotation-kf :kind vector?))
 (s/def ::rotation ::rotation-track)
 
-(s/def ::channels
-  (s/keys :opt-un [::translation ::rotation]))
-
-(s/def ::bone-name string?)
-(s/def ::bone-anime (s/map-of ::bone-name ::channels))
+(s/def ::channels (s/keys :opt-un [::translation ::rotation]))
+(s/def ::bone-anime (s/map-of ::bones/name ::channels))
 
 (s/def ::use ::world/esse-id)
 (s/def ::duration number?)

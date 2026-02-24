@@ -1,27 +1,25 @@
 (ns minusthree.model.pmx-model
   (:require
    [clojure.spec.alpha :as s]
-   [engine.macros :refer [s-> vars->map]]
-   [engine.sugar :refer [f32-arr i32-arr]]
    [fastmath.matrix :as mat :refer [mat->float-array]]
    [fastmath.quaternion :as q]
    [fastmath.vector :as v]
    [minusthree.anime.bones :as bones]
+   [minusthree.engine.camera :as camera]
+   [minusthree.engine.geom :as geom]
+   [minusthree.engine.macros :refer [s-> vars->map]]
    [minusthree.engine.math :refer [translation-mat]]
    [minusthree.engine.utils :refer [get-parent-path]]
    [minusthree.engine.world :as world]
    [minusthree.gl.cljgl :as cljgl]
-   [minusthree.gl.geom :as geom]
    [minusthree.gl.gl-magic :as gl-magic]
+   [minusthree.gl.shader :as shader]
    [minusthree.gl.texture :as texture]
    [minusthree.model.model-rendering :as model-rendering]
-   [minustwo.gl.constants :refer [GL_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
-                                  GL_FLOAT GL_TEXTURE_2D GL_TRIANGLES
-                                  GL_UNIFORM_BUFFER GL_UNSIGNED_INT]]
-   [minustwo.gl.macros :refer [lwjgl] :rename {lwjgl gl}]
-   [minustwo.gl.shader :as shader]
-   [minustwo.model.pmx-parser :as pmx-parser]
-   [odoyle.rules :as o]))
+   [minusthree.model.pmx-parser :as pmx-parser]
+   [odoyle.rules :as o])
+  (:import
+   [org.lwjgl.opengl GL45]))
 
 ;; PMX model
 (s/def ::bones ::geom/transform-tree)
@@ -39,8 +37,8 @@
 (defn reduce-to-WEIGHTS-and-JOINTS
   "assuming all bones weights are :BDEF1, :BDEF2, or :BDEF4"
   [len]
-  (let [WEIGHTS (f32-arr (* 4 len))
-        JOINTS  (i32-arr (* 4 len))]
+  (let [WEIGHTS (float-array (* 4 len))
+        JOINTS  (int-array (* 4 len))]
     (fn
       ([] 0)
       ([_counter] (vars->map WEIGHTS JOINTS))
@@ -147,23 +145,23 @@
 (defn pmx-spell [data shader-program {:keys [esse-id]}]
   (let [textures (:textures data)]
     (->> [{:bind-vao esse-id}
-          {:buffer-data (:POSITION data) :buffer-type GL_ARRAY_BUFFER :buffer-name :position}
-          {:point-attr :POSITION :use-shader shader-program :count 3 :component-type GL_FLOAT}
-          {:buffer-data (:NORMAL data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr :NORMAL :use-shader shader-program :count 3 :component-type GL_FLOAT}
-          {:buffer-data (:TEXCOORD data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr :TEXCOORD :use-shader shader-program :count 2 :component-type GL_FLOAT}
+          {:buffer-data (:POSITION data) :buffer-type GL45/GL_ARRAY_BUFFER :buffer-name :position}
+          {:point-attr :POSITION :use-shader shader-program :count 3 :component-type GL45/GL_FLOAT}
+          {:buffer-data (:NORMAL data) :buffer-type GL45/GL_ARRAY_BUFFER}
+          {:point-attr :NORMAL :use-shader shader-program :count 3 :component-type GL45/GL_FLOAT}
+          {:buffer-data (:TEXCOORD data) :buffer-type GL45/GL_ARRAY_BUFFER}
+          {:point-attr :TEXCOORD :use-shader shader-program :count 2 :component-type GL45/GL_FLOAT}
 
-          {:buffer-data (:WEIGHTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr :WEIGHTS :use-shader shader-program :count 4 :component-type GL_FLOAT}
-          {:buffer-data (:JOINTS data) :buffer-type GL_ARRAY_BUFFER}
-          {:point-attr :JOINTS :use-shader shader-program :count 4 :component-type GL_UNSIGNED_INT}
+          {:buffer-data (:WEIGHTS data) :buffer-type GL45/GL_ARRAY_BUFFER}
+          {:point-attr :WEIGHTS :use-shader shader-program :count 4 :component-type GL45/GL_FLOAT}
+          {:buffer-data (:JOINTS data) :buffer-type GL45/GL_ARRAY_BUFFER}
+          {:point-attr :JOINTS :use-shader shader-program :count 4 :component-type GL45/GL_UNSIGNED_INT}
 
           (eduction
-           (map-indexed (fn [tex-idx img-uri] {:bind-texture tex-idx :image {:uri img-uri}}))
+           (map-indexed (fn [tex-idx img-uri] {:bind-texture tex-idx :image {:uri img-uri} :for-esse esse-id}))
            textures)
 
-          {:buffer-data (:INDICES data) :buffer-type GL_ELEMENT_ARRAY_BUFFER}
+          {:buffer-data (:INDICES data) :buffer-type GL45/GL_ELEMENT_ARRAY_BUFFER}
           {:unbind-vao true}]
          flatten (into []))))
 
@@ -186,7 +184,7 @@
      :then
      (println "loading pmx model for" esse-id)
      (let [pmx-chant (pmx-spell pmx-data program-info {:esse-id esse-id})
-           summons   (gl-magic/cast-spell nil esse-id pmx-chant)
+           summons   (gl-magic/cast-spell pmx-chant)
            gl-facts  (::gl-magic/facts summons)
            gl-data   (assoc (::gl-magic/data summons)
                             :materials (:materials pmx-data))
@@ -204,44 +202,45 @@
   {::world/init-fn #'init-fn
    ::world/rules #'rules})
 
-(defn render-material [ctx tex-data program-info material]
+(defn render-material [tex-data program-info material]
   (let [face-count  (:face-count material)
         face-offset (* 4 (:face-offset material))
         tex         (get tex-data (:texture-index material))]
     (when-let [{:keys [gl-texture]} tex]
-      (gl ctx bindTexture GL_TEXTURE_2D gl-texture)
-      (cljgl/set-uniform ctx program-info :u_mat_diffuse 0))
+      (GL45/glBindTexture GL45/GL_TEXTURE_2D gl-texture)
+      (cljgl/set-uniform program-info :u_mat_diffuse 0))
 
-    (gl ctx drawElements GL_TRIANGLES face-count GL_UNSIGNED_INT face-offset)))
+    (GL45/glDrawElements GL45/GL_TRIANGLES face-count GL45/GL_UNSIGNED_INT face-offset)))
 
 (defn render-pmx
-  [{:keys [ctx project view]}
+  [game
    {:keys [esse-id program-info gl-data tex-data transform pose-tree skinning-ubo] :as match}]
   #_{:clj-kondo/ignore [:inline-def]}
   (def debug-var match)
-  (let [vaos  (::gl-magic/vao gl-data)
-        ;; ^floats POSITION   (:POSITION pmx-data) ;; morph mutate this in a mutable way!
+  (let [{:keys [project* view*]} (camera/get-active-cam game)
+        vaos  (::gl-magic/vao gl-data)
+        ;; ^floats POSITION   (:POSITION pmx-data) ;; morphs mutate this in a mutable way!
         vao   (get vaos esse-id)]
-    (gl ctx useProgram (:program program-info))
-    (cljgl/set-uniform ctx program-info :u_projection project)
-    (cljgl/set-uniform ctx program-info :u_view view)
-    (cljgl/set-uniform ctx program-info :u_model (mat->float-array transform))
+    (GL45/glUseProgram (:program program-info))
+    (cljgl/set-uniform program-info :u_projection project*)
+    (cljgl/set-uniform program-info :u_view view*)
+    (cljgl/set-uniform program-info :u_model (mat->float-array transform))
 
     (when (seq pose-tree)
       (let [^floats joint-mats (bones/create-joint-mats-arr pose-tree)]
         (when (> (alength joint-mats) 0)
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER skinning-ubo)
-          (gl ctx bufferSubData GL_UNIFORM_BUFFER 0 joint-mats)
-          (gl ctx bindBuffer GL_UNIFORM_BUFFER 0))))
+          (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER skinning-ubo)
+          (GL45/glBufferSubData GL45/GL_UNIFORM_BUFFER 0 joint-mats)
+          (GL45/glBindBuffer GL45/GL_UNIFORM_BUFFER 0))))
 
     ;; bufferSubData is bottlenecking rn, visualvm checked, todo optimization
-    ;; (gl ctx bindBuffer GL_ARRAY_BUFFER position-buffer)
-    ;; (gl ctx bufferSubData GL_ARRAY_BUFFER 0 POSITION)
+    ;; (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER position-buffer)
+    ;; (GL45/glBufferSubData GL45/GL_ARRAY_BUFFER 0 POSITION)
 
-    (gl ctx bindVertexArray vao)
+    (GL45/glBindVertexArray vao)
     (doseq [material (:materials gl-data)]
-      (render-material ctx tex-data program-info material))
-    (gl ctx bindVertexArray 0)))
+      (render-material tex-data program-info material))
+    (GL45/glBindVertexArray 0)))
 
 (comment
   (require '[com.phronemophobic.viscous :as viscous])
