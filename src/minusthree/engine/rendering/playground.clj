@@ -1,6 +1,5 @@
 (ns minusthree.engine.rendering.playground
   (:require
-   [com.phronemophobic.viscous :as viscous]
    [minusthree.engine.ffm.arena :as arena]
    [minusthree.engine.loader :as loader]
    [minusthree.engine.sugar :refer [ub]]
@@ -178,6 +177,7 @@
   (GL45/glDeleteProgram (:program program-info)))
 
 (comment
+  (require '[com.phronemophobic.viscous :as viscous])
   (viscous/inspect debug-var)
 
   (eduction

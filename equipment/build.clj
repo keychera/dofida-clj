@@ -5,7 +5,7 @@
    [clojure.tools.build.api :as b]))
 
 (def game 'self.chera/dofida-clj)
-(def version (format "0.1.%s" (b/git-count-revs nil)))
+(def version (format "0.2.%s" (b/git-count-revs nil)))
 (def target-dir "target")
 (def class-dir (str target-dir "/input/classes"))
 (def dist-dir (str target-dir "/output"))
@@ -71,6 +71,8 @@
                 :class-dir class-dir})
   (b/copy-dir {:src-dirs ["resources"]
                :target-dir class-dir})
+  (b/copy-dir {:src-dirs ["c/j/classes"]
+               :target-dir class-dir})
   (minusthree-compile {:basis basis})
   (b/uber {:class-dir class-dir
            :uber-file uber-file
@@ -114,12 +116,13 @@
         graal-cmd  [(if (ms-windows?) "native-image.cmd" "native-image") "-jar" graal-uber
                     "-H:+ReportExceptionStackTraces"
                     "-H:+ReportUnsupportedElementsAtRuntime"
+                    ;; "-H:CLibraryPath=" it seems possible with this, but we wont graalshed for now
                     "--features=clj_easy.graal_build_time.InitClojureClasses"
                     "--verbose"
                     "--no-fallback"
                     (str "--target=" os-arch)
                     "--initialize-at-build-time=com.fasterxml.jackson,clj_tuple,potemkin,clj_tuple$hash_map,clj_tuple$vector"
-                    "--initialize-at-run-time=org.lwjgl" 
+                    "--initialize-at-run-time=org.lwjgl"
                     "-o" graal-bin]]
     (minusthree-uber {:uber-file graal-uber
                       :basis     basis})
