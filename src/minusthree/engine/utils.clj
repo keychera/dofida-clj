@@ -2,7 +2,8 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as str]
-   [fastmath.matrix :as mat])
+   [fastmath.matrix :as mat]
+   [odoyle.rules :as o])
   (:import
    [java.nio ByteBuffer FloatBuffer]
    [java.nio.channels Channels ReadableByteChannel]
@@ -96,3 +97,6 @@
   (let [ns-segment (-> (str *ns*) (str/split #"\.") drop-last)
         combined   (apply conj (into [] ns-segment) paths)]
     (slurp (io/resource (str/join "/" combined)))))
+
+(defn query-one [odoyle-session rule-name]
+  (first (o/query-all odoyle-session rule-name)))
