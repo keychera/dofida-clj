@@ -3,7 +3,6 @@
    [fastmath.vector :as v]
    [minusthree.engine.offscreen :as offscreen]
    [minusthree.engine.rendering.imgui :as imgui]
-   [minusthree.engine.rendering.par-streamlines :as par-streamlines]
    [minusthree.engine.rendering.playground :as playground]
    [minusthree.engine.world :as world]
    [minusthree.model.model-rendering :as model-rendering]
@@ -24,7 +23,6 @@
     (println "init game")
     (-> game
         (assoc :screen1 screen1)
-        (par-streamlines/init)
         (playground/init)
         (imgui/init))))
 
@@ -32,7 +30,7 @@
   (let [{:keys [config screen1]} game
         {:keys [w h]}            (:window-conf config)]
     (GL45/glBlendFunc GL45/GL_SRC_ALPHA GL45/GL_ONE_MINUS_SRC_ALPHA)
-    (GL45/glClearColor (/ 0x68 0xff) (/ 0xb2 0xff) (/ 0x2c 0xff) 1.0)
+    (GL45/glClearColor 1.0 1.0 1.0 1.0)
     (GL45/glClear (bit-or GL45/GL_COLOR_BUFFER_BIT GL45/GL_DEPTH_BUFFER_BIT))
 
     (imgui/frame game)
@@ -46,7 +44,6 @@
       (doseq [{:keys [render-fn] :as match} renders]
         (render-fn game match)))
 
-    (par-streamlines/render game)
 
     (playground/render game) ;; somehow this makes subsequent render disappear
 
@@ -57,6 +54,5 @@
 
 (defn destroy [game]
   (println "destroy game")
-  (par-streamlines/destroy game)
   (playground/destroy game)
   (imgui/destroy game))

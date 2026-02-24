@@ -62,7 +62,7 @@
                                              (b2WorldDef/gravity b2-vec2||))]
                            (b2d/b2CreateWorld game-arena world-def||))
 
-          ground-id||    (let [b2-vec2||     (b2dvec2 ia 0.0 -20.0)
+          ground-id||    (let [b2-vec2||     (b2dvec2 ia 0.0 -28.0)
                                b2-body-def|| (doto (b2d/b2DefaultBodyDef ia)
                                                (b2BodyDef/position b2-vec2||))]
                            (b2d/b2CreateBody game-arena b2d-world-id|| b2-body-def||))
@@ -72,7 +72,7 @@
 
           body-id||      (let [b2-body-def|| (doto (b2d/b2DefaultBodyDef ia)
                                                (b2BodyDef/type (b2d/b2_dynamicBody))
-                                               (b2BodyDef/position (b2dvec2 ia 0.0 4.0)))]
+                                               (b2BodyDef/position (b2dvec2 ia -12.0 4.0)))]
                            (b2d/b2CreateBody game-arena b2d-world-id|| b2-body-def||))
           _              (let [dynamic-box|| (b2d/b2MakeBox ia 1.0 1.0)
                                shape-def||   (doto (b2d/b2DefaultShapeDef ia)
@@ -88,13 +88,13 @@
                            (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
                            ;; unsure why the color is dimmed rn, probably has something to do with blending
                            ;; also playground/render makes subseq render disappear as well -> reason not known
-                           (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 255) (ub 255) (ub 255)))
+                           (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))
           path||         (doto (tvg/tvg_shape_new)
                            (tvg/tvg_shape_move_to 20 20)
                            (tvg/tvg_shape_line_to 45 45)
                            (tvg/tvg_shape_line_to 70 20)
                            (tvg/tvg_shape_close)
-                           (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 255) (ub 255) (ub 255)))
+                           (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))
           _              (doto canvas||
                            (tvg/tvg_canvas_add rect||)
                            (tvg/tvg_canvas_add path||)
