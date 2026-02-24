@@ -3,17 +3,14 @@
    [minusthree.engine.gui.fps-panel :as fps-panel])
   (:import
    [imgui ImGui]
-   [imgui.flag ImGuiConfigFlags]
    [imgui.gl3 ImGuiImplGl3]
-   [imgui.glfw ImGuiImplGlfw]
-   [org.lwjgl.glfw GLFW]))
+   [imgui.glfw ImGuiImplGlfw]))
 
 (defn init [{:keys [glfw-window] :as game}]
   (let [imGuiGlfw (ImGuiImplGlfw.)
         imGuiGl3  (ImGuiImplGl3.)]
     (ImGui/createContext)
     (doto (ImGui/getIO)
-      (.addConfigFlags ImGuiConfigFlags/ViewportsEnable)
       (.setConfigWindowsMoveFromTitleBarOnly  true)
       (.setFontGlobalScale 1.0))
     (doto imGuiGlfw
@@ -33,11 +30,7 @@
   (let [{:keys [title text]} (:imgui config)]
     (fps-panel/render! title text))
   (ImGui/render)
-  (.renderDrawData imGuiGl3 (ImGui/getDrawData))
-  (let [backupWindowPtr (GLFW/glfwGetCurrentContext)]
-    (ImGui/updatePlatformWindows)
-    (ImGui/renderPlatformWindowsDefault)
-    (GLFW/glfwMakeContextCurrent backupWindowPtr)))
+  (.renderDrawData imGuiGl3 (ImGui/getDrawData)))
 
 (defn destroy [{::keys [imGuiGl3 imGuiglfw]}]
   (println "destroy imgui context")
