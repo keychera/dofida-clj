@@ -1,9 +1,7 @@
 (ns minusthree.engine.rendering.imgui
   (:require
-   [fastmath.matrix :refer [mat->float-array]]
-   [fastmath.vector :as v]
-   [minusthree.engine.gui.fps-panel :as fps-panel]
-   [minusthree.engine.math :refer [look-at perspective]])
+   [minusthree.engine.camera :as camera]
+   [minusthree.engine.gui.fps-panel :as fps-panel])
   (:import
    [imgui ImGui]
    [imgui.extension.imguizmo ImGuizmo]
@@ -12,21 +10,6 @@
    [imgui.flag ImGuiConfigFlags ImGuiWindowFlags]
    [imgui.gl3 ImGuiImplGl3]
    [imgui.glfw ImGuiImplGlfw]))
-
-;; need hammock to decide where to abstract these project-view stufff
-(def project
-  (let [[w h]   [540 540]
-        fov     45.0
-        aspect  (/ w h)]
-    (-> (perspective fov aspect 0.1 1000) mat->float-array)))
-
-(def cam-distance 24.0)
-
-(def view
-  (let [position       (v/vec3 0.0 12.0 cam-distance)
-        look-at-target (v/vec3 0.0 12.0 0.0)
-        up             (v/vec3 0.0 1.0 0.0)]
-    (-> (look-at position look-at-target up) mat->float-array)))
 
 (def identity-mat (float-array
                    [1.0 0.0 0.0 0.0
@@ -48,11 +31,9 @@
     (.init imGuiGl3 "#version 300 es")
     (assoc game
            ::imGuiglfw imGuiGlfw
-           ::imGuiGl3 imGuiGl3
-           :project project
-           :view view)))
+           ::imGuiGl3 imGuiGl3)))
 
-(defn imGuizmoPanel [w h]
+(defn imGuizmoPanel [view* project* cam-distance w h]
   (ImGuizmo/beginFrame)
 
   (ImGui/setNextWindowPos 0.0 0.0)
@@ -67,20 +48,24 @@
       (ImGuizmo/enable true)
       (ImGuizmo/setDrawList)
       (ImGuizmo/setRect 0.0 0.0 w h)
-      (ImGuizmo/drawGrid view project identity-mat 100)
+      (ImGuizmo/drawGrid view* project* identity-mat 100)
       (ImGuizmo/setID 0)
-      (ImGuizmo/viewManipulate view cam-distance manip-x manip-y 128.0 128.0 0x70707070))
+      (ImGuizmo/viewManipulate view* cam-distance manip-x manip-y 128.0 128.0 0x70707070))
 
     :-)
 
   (ImGui/end))
 
-(defn frame [{::keys [imGuiGl3 imGuiglfw] :keys [config]}]
+(defn frame
+  [{::keys [imGuiGl3 imGuiglfw]
+    :keys [config]
+    :as game}]
   (.newFrame imGuiglfw)
   (.newFrame imGuiGl3)
   (ImGui/newFrame)
-  (let [{:keys [w h]} (:window-conf config)]
-    (imGuizmoPanel w h))
+  (let [{:keys [view* project* distance]} (camera/get-active-cam game)
+        {:keys [w h]} (:window-conf config)]
+    (imGuizmoPanel view* project* distance w h))
   (let [{:keys [title text]} (:imgui config)]
     (fps-panel/render! title text))
   (ImGui/render)
