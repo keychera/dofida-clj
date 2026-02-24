@@ -6,6 +6,7 @@
    [minusthree.engine.loading :as loading]
    [minusthree.engine.rendering :as rendering]
    [minusthree.engine.systems :as systems]
+   [minusthree.engine.thorvg :as thorvg]
    [minusthree.engine.time :as time]
    [minusthree.engine.world :as world]
    [odoyle.rules :as o])
@@ -61,7 +62,7 @@
 ;; devtime, that will be catch by minusthree.-dev.start
 ;; and exception will be presented by viscous/inspect
 
-(declare init after-refresh tick before-refresh destroy)
+(declare init after-refresh tick before-refresh clean-up)
 
 (defn game-loop
   [{::keys [we-begin-the-game
@@ -79,7 +80,7 @@
                                (cond-> first-init? (init))
                                (after-refresh))]
                 (cond
-                  (do-we-stop? game')    [::stopping   (-> game' before-refresh destroy)]
+                  (do-we-stop? game')    [::stopping   (-> game' before-refresh)]
                   (do-we-refresh? game') [::refreshing (-> game' before-refresh)]
                   :else (let [updated-game (things-from-out-there game')]
                           (recur (tick updated-game))))))]
@@ -87,6 +88,7 @@
           ::refreshing (recur game' false)
           ::stopping   ::ending)))
     (finally
+      (clean-up)
       (the-game-ends))))
 
 (defn init [{:keys [::world/this] :as game}]
@@ -112,5 +114,5 @@
   (world/before-refresh old-game)
   old-game)
 
-(defn destroy [game]
-  (-> game))
+(defn clean-up []
+  (thorvg/clean-up))

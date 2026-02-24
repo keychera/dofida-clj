@@ -84,17 +84,25 @@
                      ::render-data gl-data})))
 
 (defn stuff-to-draw-to [canvas||]
-  (let [rect|| (doto (tvg/tvg_shape_new)
-                 (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
-                 (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))
-        path|| (doto (tvg/tvg_shape_new)
-                 (tvg/tvg_shape_move_to 20 20)
-                 (tvg/tvg_shape_line_to 45 45)
-                 (tvg/tvg_shape_line_to 70 20)
-                 (tvg/tvg_shape_close)
-                 (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))]
+  (let [rect||  (doto (tvg/tvg_shape_new)
+                  (tvg/tvg_shape_append_rect #_x-y 100 100 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
+                  (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 220) (ub 255) (ub 255))
+                  (tvg/tvg_shape_set_stroke_width 4)
+                  (tvg/tvg_shape_set_stroke_color (ub 13) (ub 10) (ub 10) (ub 255)))
+        rect2|| (doto (tvg/tvg_shape_new)
+                  (tvg/tvg_shape_append_rect #_x-y 120 120 #_w-h 100 100 #_rx-ry 15 15 #_cw? false)
+                  (tvg/tvg_shape_set_fill_color #_rgba (ub 255) (ub 220) (ub 255) (ub 255))
+                  (tvg/tvg_shape_set_stroke_width 4)
+                  (tvg/tvg_shape_set_stroke_color (ub 13) (ub 10) (ub 10) (ub 255)))
+        path||  (doto (tvg/tvg_shape_new)
+                  (tvg/tvg_shape_move_to 20 20)
+                  (tvg/tvg_shape_line_to 45 45)
+                  (tvg/tvg_shape_line_to 70 20)
+                  (tvg/tvg_shape_close)
+                  (tvg/tvg_shape_set_fill_color #_rgba (ub 13) (ub 10) (ub 10) (ub 255)))]
     (doto canvas||
       (tvg/tvg_canvas_add rect||)
+      (tvg/tvg_canvas_add rect2||)
       (tvg/tvg_canvas_add path||))))
 
 (def rules
@@ -132,9 +140,11 @@
       (render-buffer-to-gl buffer|| render-data)))
   game)
 
-;; hmm I don't have guarantee yet that this will be called...
+(defn clean-up []
+  (tvg/tvg_engine_term))
+
 (defn before-refresh [old-world _old-game]
-  (tvg/tvg_engine_term)
+  (clean-up)
   (-> old-world
       (dissoc ::tvg-arena ::buffer|| ::canvas||)))
 
