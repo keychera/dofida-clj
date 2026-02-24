@@ -2,6 +2,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [minusthree.engine.ffm.arena :as arena]
+   [minusthree.engine.input :as input]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.rendering :as rendering]
    [minusthree.engine.systems :as systems]
@@ -96,12 +97,14 @@
 (defn post-refresh [new-game]
   (->> new-game
        (rendering/init)
+       (input/init)
        (world/post-world)))
 
 (defn tick [game]
   (-> game
       (update ::world/this o/fire-rules)
       (loading/loading-zone)
+      (input/input-zone)
       (rendering/rendering-zone)))
 
 (defn pre-refresh [old-game]

@@ -2,6 +2,7 @@
   (:require
    [minusthree.anime.anime :as anime]
    [minusthree.engine.camera :as camera]
+   [minusthree.engine.input :as input]
    [minusthree.engine.loading :as loading]
    [minusthree.engine.time :as time]
    [minusthree.engine.transform3d :as t3d]
@@ -16,6 +17,7 @@
    loading/system
    texture/system
    camera/system
+   input/system
 
    t3d/system
    model-rendering/system
