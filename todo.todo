@@ -64,7 +64,15 @@ todo:
             ✔ anime @done(26-02-16 00:24)
 
     uished, lineshed:
-        ☐ text
+        ✔ lines @done(26-02-25 22:12)
+        ✔ text @done(26-02-25 22:12)
+        ☐ imgui
+            ☐ fixed window
+            ☐ input and focus
+            ☐ multi component widgets
+            ☐ color picker
+            ☐ drag range
+            ☐ fact -> control -> imgui render -> save -> repeat
         ☐ button
         ☐ input
         ☐ screen transition
